@@ -414,7 +414,8 @@ const inSeasonOn=d=>{const m=d.getMonth()+1,dd=d.getDate();return SPECIES.filter
 const fishLine=d=>{const a=inSeasonOn(d),m=d.getMonth()+1;return `<div style="margin-top:8px"><span class="muted" style="font-weight:700">سمك الموسم في اليوم ده: </span>${a.length?a.map(f=>'<span class="chip">'+f.name+'</span>').join(' '):'<span class="muted">مفيش نوع مسجل</span>'}${(m===3||m===4)?' <span class="chip">موسم تكاثر</span>':''}</div>`};
 /* ---------- سجل الصيد ---------- */
 let logs=[];try{const x=JSON.parse(localStorage.getItem('fishbook-log')||'[]');if(Array.isArray(x))logs=x.filter(e=>e&&typeof e.date==='string').slice(0,200)}catch(e){}
-const saveLogs=()=>{try{localStorage.setItem('fishbook-log',JSON.stringify(logs.map(e=>({id:e.id,date:e.date,time:e.time,species:e.species,kg:e.kg,bait:e.bait,spot:e.spot,trip:e.trip}))))}catch(e){}};
+let logSrv=false; /* true: الصيدات متحملة من حساب المستخدم على السيرفر، ومبتتحفظش على الجهاز */
+const saveLogs=()=>{if(logSrv)return;try{localStorage.setItem('fishbook-log',JSON.stringify(logs.map(e=>({id:e.id,date:e.date,time:e.time,species:e.species,kg:e.kg,bait:e.bait,spot:e.spot,trip:e.trip}))))}catch(e){}};
 const shots={};
 function cond(k){const d=fromIso(k),hd=hijri(d),w=weather(d);const aw=Math.round([1,2,3,4,5].reduce((a,i)=>a+w.wind[i],0)/5);return{fas:isFasad(hd.day),aw,h:hd,real:!!w.real}}
 function seasonChip(e){const f=SPECIES.find(x=>x.name===e.species);if(!f||!f.m.length)return '';
@@ -460,8 +461,9 @@ function logView(){
     <div class="trip"><strong>${f*2>n?'أغلب صيدك في أيام الفساد':f*2<n?'أغلب صيدك في أيام الحمل':'صيدك متقسم بين الحمل والفساد'}</strong><span class="muted">${f} في الفساد و${n-f} في الحمل · متوسط الرياح في أيام صيدك ${aw} عقدة</span></div>
     <div class="trip"><strong>أرقامي القياسية</strong><span>${Object.keys(rec).sort((a,b)=>rec[b]-rec[a]).map(k=>'<span class="chip">'+esc(k)+' '+rec[k]+' كجم</span>').join(' ')}</span></div>`}
   const nowT=new Date(),hhmm=String(nowT.getHours()).padStart(2,'0')+':'+String(nowT.getMinutes()).padStart(2,'0');
-  const myTrips=bookings.length?bookings.map(b=>`<div class="trip" style="gap:6px"><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${b.range} · ${dWord(b.n)}${b.org?' · '+esc(b.org):''}</div></div><span class="chip">${iso(addDays(fromIso(b.date),b.n-1))<iso(today)?'خلصت':'قادمة'}</span></div>
-    <div class="bot"><span class="muted">${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}${b.rated?' · تقييمك '+b.rated+' من 5':''}</span>${b.rated?'':`<button class="btn ghost sm" data-act="ratetrip" data-id="${b.id}">قيّم الرحلة</button>`}</div></div>`).join(''):'<span class="muted">لسه محجزتش رحلات. أي رحلة تحجزها هتظهر هنا بيومها، وتقدر تقيّمها.</span>';
+  const bks=myBk(),ended=b=>iso(addDays(fromIso(b.date),b.n-1))<iso(today);
+  const myTrips=bks.length?bks.map(b=>`<div class="trip" style="gap:6px"><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${b.range} · ${dWord(b.n)}${b.org?' · '+esc(b.org):''}</div></div><span class="chip">${ended(b)?'خلصت':'قادمة'}</span></div>
+    <div class="bot"><span class="muted">${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}${b.rated?' · تقييمك '+b.rated+' من 5':''}</span>${b.rated?'':(srvOn()&&!ended(b))?'<span class="muted">التقييم بعد ما الرحلة تخلص</span>':`<button class="btn ghost sm" data-act="ratetrip" data-id="${b.id}">قيّم الرحلة</button>`}</div></div>`).join(''):'<span class="muted">لسه محجزتش رحلات. أي رحلة تحجزها هتظهر هنا بيومها، وتقدر تقيّمها.</span>';
   return `<div class="sec"><h2>سجل صيدي</h2>${ins}</div>
   <div class="card"><form id="logForm" novalidate><h2>سجّل صيدة</h2>
     <label for="lImg">صوّر السمكة أو اختار صورة<input id="lImg" type="file" accept="image/*" style="padding:10px 12px"></label>
@@ -473,14 +475,14 @@ function logView(){
     <label for="lTime">الساعة<input id="lTime" type="time" value="${hhmm}"></label>
     <label for="lBait">الطُعم (اختياري)<input id="lBait" maxlength="40" autocomplete="off"></label>
     <label for="lSpot">المكان (اختياري، بيفضل خاص بيك)<input id="lSpot" maxlength="40" autocomplete="off"></label>
-    ${bookings.length?`<label for="lTrip">في أنهي رحلة (اختياري)<select id="lTrip"><option value="">من غير رحلة</option>${bookings.map(b=>`<option value="${esc(b.boat+' · '+b.range)}">${esc(b.boat)} · ${b.range}</option>`).join('')}</select></label>`:''}
+    ${bks.length?`<label for="lTrip">في أنهي رحلة (اختياري)<select id="lTrip"><option value="">من غير رحلة</option>${bks.map(b=>`<option value="${esc(b.boat+' · '+b.range)}">${esc(b.boat)} · ${b.range}</option>`).join('')}</select></label>`:''}
     <div class="err" id="lErr" role="alert"></div>
     <button class="btn" type="submit">سجّل</button></form></div>
   <div class="sec"><h2>صيداتي (${n})</h2>${n?logs.slice().sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?1:-1).map(e=>{const c=cond(e.date),d=fromIso(e.date);
     return `<div class="trip" style="gap:4px"><div class="top"><div><strong>${esc(e.species)} · ${e.kg} كجم</strong><div class="muted">${gDate(d)} ${d.getFullYear()}${e.time?' · الساعة '+esc(e.time):''} · ${c.h.day} ${HM[c.h.month]}</div></div><button class="btn ghost sm" data-act="dellog" data-id="${e.id}">امسح</button></div>
     <div><span class="chip">${c.fas?'فساد':'حمل'}</span> <span class="chip">رياح ${c.aw} عقدة${c.real?'':' (تقريبي)'}</span>${seasonChip(e)}${e.bait?' <span class="chip">طُعم: '+esc(e.bait)+'</span>':''}${e.spot?' <span class="chip">'+esc(e.spot)+'</span>':''}</div>${e.trip?'<span class="muted">رحلة: '+esc(e.trip)+'</span>':''}${shots[e.id]?`<img class="shot" src="${shots[e.id]}" alt="صورة ${esc(e.species)}">`:''}</div>`}).join(''):'<span class="muted">لسه مسجلتش حاجة.</span>'}</div>
-  <div class="sec"><h2>رحلاتي (${bookings.length})</h2>${myTrips}
-  <span class="muted">الرياح مع كل صيدة حقيقية لو يومها في آخر شهر، والأقدم من كده تقريبي. الصيدات محفوظة على الجهاز ده بس، والصور والرحلات بتروح لما تقفل الصفحة.</span></div>`;
+  <div class="sec"><h2>رحلاتي (${bks.length})</h2>${myTrips}
+  <span class="muted">الرياح مع كل صيدة حقيقية لو يومها في آخر شهر، والأقدم من كده تقريبي. ${logSrv?'الصيدات والرحلات محفوظة على حسابك. الصور لسه بتروح لما تقفل الصفحة.':'الصيدات محفوظة على الجهاز ده بس، والصور والرحلات بتروح لما تقفل الصفحة.'+(srvOn()?' ادخل بحسابك من الإدارة عشان تتحفظ على حسابك.':'')}</span></div>`;
 }
 function openTripRate(id){
   const b=bookings.find(x=>x.id===id);if(!b||b.rated)return;starSel=0;
@@ -534,21 +536,157 @@ function openRate(k,thanks){
   <div class="price">${r.count?STAR(18)+' '+r.avg.toFixed(1)+' من 5 <span class="muted" style="font-weight:400">· '+r.count+' تقييم</span>':'لسه مفيش تقييمات'}</div>
   ${thanks?'<span class="chip">تقييمك اتسجل</span>':''}
   ${txt.length?'<ul class="list">'+txt.map(x=>`<li><strong>${x.s} من 5</strong>${x.name?' · '+esc(x.name):''}<br><span class="muted">${esc(x.text)}</span></li>`).join('')+'</ul>':''}
-  <form id="rateForm" data-k="${esc(k)}" novalidate><h2>قيّم إنت</h2>
+  ${srvOn()?'<span class="muted">التقييم للي طلع الرحلة فعلًا. بعد ما رحلتك تخلص قيّمها من: سجلي، رحلاتي.</span><button class="btn ghost" type="button" data-act="close">قفل</button>':`<form id="rateForm" data-k="${esc(k)}" novalidate><h2>قيّم إنت</h2>
     <div class="stars" role="group" aria-label="عدد النجوم">${st}</div>
     <label for="rText">تعليق (اختياري)<input id="rText" maxlength="140" autocomplete="off"></label>
     <label for="rName">اسمك (اختياري)<input id="rName" maxlength="40" autocomplete="name"></label>
     <div class="err" id="rErr" role="alert"></div>
-    <div class="rowbtns"><button class="btn" type="submit">ابعت التقييم</button><button class="btn ghost" type="button" data-act="close">قفل</button></div></form>`;
+    <div class="rowbtns"><button class="btn" type="submit">ابعت التقييم</button><button class="btn ghost" type="button" data-act="close">قفل</button></div></form>`}`;
   $('#ovl').hidden=false;
 }
 function rateSec(owner,mine){
-  const items=owner?boats.map(b=>['b:'+b.name,b.name]):[...new Set(mine.map(t=>t.org).filter(Boolean))].map(n=>['o:'+n,n]);
+  const items=owner?myBoats().map(b=>['b:'+b.name,b.name]):[...new Set(mine.map(t=>t.org).filter(Boolean))].map(n=>['o:'+n,n]);
   return `<div class="sec"><h2>تقييماتي</h2>${items.length?'<ul class="list">'+items.map(x=>`<li><div class="top" style="align-items:center"><strong>${esc(x[1])}</strong>${rateBadge(x[0],owner?'المركب':'المنظم')}</div></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش تقييمات.</span>'}</div>`;
 }
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
 const wholeFree=t=>t.full>0&&t.left===t.total;
 const matchDur=t=>(dur===''||t.n===Number(dur))&&(mode==='seat'||wholeFree(t));
+
+/* ---------- السيرفر (Supabase) ----------
+   لو السيرفر رد: المراكب والرحلات والحجوزات والتقييمات وسجل الصيد بتيجي منه وبتتحفظ عليه.
+   لو مردش (مفيش نت، أو الصفحة على claude.ai): التطبيق بيكمل بالبيانات التجريبية اللي فوق.
+   المفتاح ده عام (publishable) ومكانه الكود. المفتاح السري مبيتحطش هنا أبدًا. */
+const SB_URL='https://gcsgdfcufktrjsuhfqlf.supabase.co',SB_KEY='sb_publishable_4zpRHgNL9r20bpUxnOrFXg_zwg1_VY-';
+let srv='off',ses=null,me=null,authMode='in',authMsg='',sheetAuth=false;
+try{const s=JSON.parse(localStorage.getItem('fishbook-ses')||'null');if(s&&s.access_token&&s.user)ses=s}catch(e){}
+const srvOn=()=>srv==='ok';
+const uid=()=>ses?ses.user.id:null;
+const myBk=()=>srvOn()?bookings.filter(b=>b.mine):bookings;
+const myBoats=()=>srvOn()?boats.filter(b=>b.owner===uid()):boats;
+const srvNote=()=>srv==='fail'?'<span class="muted">مفيش اتصال بالسيرفر دلوقتي، فاللي ظاهر بيانات تجريبية ومش بتتحفظ.</span>':'';
+function saveSes(j){
+  ses=j&&j.access_token?{access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,user:{id:j.user.id,email:j.user.email||''}}:null;
+  try{if(ses)localStorage.setItem('fishbook-ses',JSON.stringify(ses));else localStorage.removeItem('fishbook-ses')}catch(e){}
+}
+let refreshing=null;
+function refreshSes(){
+  if(!refreshing)refreshing=(async()=>{
+    try{saveSes(await sbFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:ses.refresh_token},noAuth:true}))}
+    catch(e){if(e.status)saveSes(null)}
+    finally{refreshing=null}})();
+  return refreshing;
+}
+async function sbFetch(path,opt){
+  opt=opt||{};
+  if(ses&&!opt.noAuth&&ses.exp-Date.now()<60e3)await refreshSes();
+  const h={apikey:SB_KEY,'Content-Type':'application/json'};
+  if(ses&&!opt.noAuth)h.Authorization='Bearer '+ses.access_token;
+  if(opt.prefer)h.Prefer=opt.prefer;
+  const r=await fetch(SB_URL+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined});
+  const txt=await r.text();let j=null;try{j=txt?JSON.parse(txt):null}catch(e){}
+  if(!r.ok){const er=new Error((j&&(j.msg||j.message||j.error_description||j.error))||('HTTP '+r.status));er.status=r.status;er.code=j&&(j.error_code||j.code)||'';throw er}
+  return j;
+}
+function srvErr(e){
+  const m=String(e&&e.message||''),c=String(e&&e.code||'');
+  if(!e||!e.status)return 'مفيش اتصال بالسيرفر. جرّب تاني.';
+  if(/not_enough_seats/.test(m))return 'عدد الأماكن المتاحة أقل من المطلوب.';
+  if(/whole_boat_not_available/.test(m))return 'المركب اتحجز فيها أماكن ومبقتش متاحة كاملة.';
+  if(/trip_not_available/.test(m))return 'الرحلة دي مبقتش متاحة.';
+  if(/not_signed_in/.test(m)||e.status===401)return 'ادخل بحسابك الأول.';
+  if(/invalid_credentials|Invalid login/i.test(c+m))return 'الإيميل أو كلمة السر غلط.';
+  if(/user_already_exists|already registered/i.test(c+m))return 'الإيميل ده متسجل قبل كده. اختار "دخول" وادخل بيه.';
+  if(/email_not_confirmed|not confirmed/i.test(c+m))return 'لازم تأكد الإيميل الأول من الرسالة اللي وصلتك.';
+  if(/weak_password/i.test(c))return 'كلمة السر ضعيفة. اكتب 6 حروف أو أرقام على الأقل.';
+  if(/email_address_invalid|validation_failed/i.test(c))return 'اكتب إيميل صحيح.';
+  if(e.status===429)return 'محاولات كتير. جرّب بعد شوية.';
+  if(c==='42501'||e.status===403)return 'حسابك مش مسموح له بالعملية دي.';
+  if(c==='23505')return 'العملية دي اتسجلت قبل كده.';
+  return 'حصلت مشكلة: '+m;
+}
+/* يشغّل عملية على السيرفر من فورم: يقفل الزرار، ويكتب الغلط في مكانه */
+async function srvRun(form,errSel,fn){
+  const btn=form.querySelector('[type=submit]'),er=$(errSel);if(btn)btn.disabled=true;if(er)er.textContent='';
+  try{await fn()}catch(e){const x=$(errSel);if(x)x.textContent=srvErr(e);if(btn&&btn.isConnected)btn.disabled=false}
+}
+async function loadCatches(){
+  if(!logSrv&&logs.length){ /* صيدات اتسجلت على الجهاز قبل الدخول: تترفع على الحساب مرة واحدة */
+    await sbFetch('/rest/v1/catches',{method:'POST',body:logs.map(e=>({caught_on:e.date,caught_at:e.time||null,species:e.species,kg:e.kg,bait:e.bait||'',spot:e.spot||'',area:area.id}))});
+    try{localStorage.removeItem('fishbook-log')}catch(e){}
+  }
+  const cs=await sbFetch('/rest/v1/catches?select=*&order=caught_on.desc&limit=500');
+  logs=cs.map(c=>{const b=bookings.find(x=>x.mine&&x.tripId===c.trip_id);
+    return{id:c.id,date:c.caught_on,time:c.caught_at?String(c.caught_at).slice(0,5):'',species:c.species,kg:Number(c.kg),bait:c.bait,spot:c.spot,trip:b?b.boat+' · '+b.range:''}});
+  logSrv=true;
+}
+async function loadSrv(){
+  try{
+    const from=iso(addDays(today,-60));
+    const [bs,ts,rs]=await Promise.all([
+      sbFetch('/rest/v1/boats?select=id,name,capacity,owner_id,created_by&order=id'),
+      sbFetch('/rest/v1/trips_public?select=*&status=eq.open&start_date=gte.'+from+'&order=start_date'),
+      sbFetch('/rest/v1/ratings_public?select=*&order=created_at.desc&limit=500')]);
+    let pf=[],bk=[],mr=[];
+    if(uid()){
+      [pf,bk]=await Promise.all([
+        sbFetch('/rest/v1/profiles?select=*&id=eq.'+uid()),
+        sbFetch('/rest/v1/bookings?select=*,trips(start_date,days,publisher_id,boats(name,owner_id))&status=eq.booked&order=created_at.desc')]);
+      const ids=bk.filter(k=>k.user_id===uid()).map(k=>k.id);
+      if(ids.length)mr=await sbFetch('/rest/v1/ratings?select=booking_id,stars&target=eq.boat&booking_id=in.('+ids.join(',')+')');
+    }
+    boats.length=0;bs.forEach(b=>boats.push({id:b.id,name:b.name,cap:b.capacity,owner:b.owner_id,by:b.created_by}));
+    trips.length=0;ts.forEach(t=>{const ow=t.publisher_role==='owner';
+      trips.push({id:t.id,date:t.start_date,boat:t.boat_name,boatId:t.boat_id,n:t.days,total:t.seats_total,left:Math.max(0,t.seats_left),price:t.price_seat,full:t.price_whole,by:ow?'owner':'org',org:ow?'':(t.publisher_name||'منظم رحلات'),pub:t.publisher_id})});
+    const bn={},pn={};boats.forEach(b=>bn[b.id]=b.name);trips.forEach(t=>{if(t.org)pn[t.pub]=t.org});
+    Object.keys(ratings).forEach(k=>delete ratings[k]);
+    rs.forEach(r=>{const nm=r.target==='boat'?bn[r.boat_id]:pn[r.publisher_id];if(!nm)return;
+      const k=(r.target==='boat'?'b:':'o:')+nm;(ratings[k]=ratings[k]||[]).push({s:r.stars,text:r.body||'',name:r.reviewer_name||''})});
+    const rated={};mr.forEach(r=>rated[r.booking_id]=r.stars);
+    bookings.length=0;bk.forEach(k=>{const tr=k.trips;if(!tr||!tr.boats)return;const lt=trips.find(t=>t.id===k.trip_id);
+      bookings.push({id:k.id,tripId:k.trip_id,name:k.name,phone:k.phone,seats:k.seats,whole:k.whole,boat:tr.boats.name,range:tripRange({date:tr.start_date,n:tr.days}),by:lt?lt.by:'org',org:lt?lt.org:'',date:tr.start_date,n:tr.days,rated:rated[k.id]||0,
+        mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()})});
+    me=pf[0]||null;if(me)role=me.role==='owner'?'owner':'org';
+    srv='ok';
+    if(uid())await loadCatches();else if(logSrv){logSrv=false;logs=[]}
+  }catch(e){
+    if(e.status===401&&ses){saveSes(null);me=null;return loadSrv()}
+    if(srv!=='ok')srv='fail';
+  }
+  render();
+}
+async function doAuth(email,pw,name){
+  authMsg='';
+  if(authMode==='up'){
+    const j=await sbFetch('/auth/v1/signup',{method:'POST',noAuth:true,body:{email,password:pw,data:{name}}});
+    if(!j||!j.access_token){authMode='in';authMsg='بعتنالك رسالة تأكيد على الإيميل. افتحها واضغط اللينك، وبعدين ادخل من هنا.';return}
+    saveSes(j);
+  }else saveSes(await sbFetch('/auth/v1/token?grant_type=password',{method:'POST',noAuth:true,body:{email,password:pw}}));
+  await loadSrv();
+}
+async function signOut(){
+  try{await sbFetch('/auth/v1/logout',{method:'POST'})}catch(e){}
+  saveSes(null);me=null;bookings.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
+  await loadSrv();
+}
+async function setRole(r){
+  try{await sbFetch('/rest/v1/profiles?id=eq.'+uid(),{method:'PATCH',body:{role:r==='owner'?'owner':'organizer'}});if(me)me.role=r==='owner'?'owner':'organizer';role=r}catch(e){}
+  render();
+}
+function authCard(note){
+  const up=authMode==='up';
+  return `<form id="authForm" novalidate><h2>${up?'حساب جديد':'دخول'}</h2>${note?'<span class="muted">'+note+'</span>':''}
+    <div class="seg" role="group" aria-label="دخول أو حساب جديد"><button type="button" data-act="authmode" data-m="in" aria-pressed="${!up}">دخول</button><button type="button" data-act="authmode" data-m="up" aria-pressed="${up}">حساب جديد</button></div>
+    ${authMsg?'<span class="chip">'+esc(authMsg)+'</span>':''}
+    ${up?'<label for="aName">الاسم<input id="aName" maxlength="40" autocomplete="name"></label>':''}
+    <label for="aEmail">الإيميل<input id="aEmail" type="email" inputmode="email" maxlength="80" autocomplete="email" dir="ltr"></label>
+    <label for="aPw">كلمة السر${up?' (6 حروف أو أرقام على الأقل)':''}<input id="aPw" type="password" maxlength="72" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
+    <div class="err" id="aErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">${up?'اعمل الحساب':'ادخل'}</button>${sheetAuth?'<button class="btn ghost" type="button" data-act="close">إلغاء</button>':''}</div></form>`;
+}
+function openAuth(note){sheetAuth=true;authMsg='';$('#sheet').innerHTML=authCard(note);$('#ovl').hidden=false}
+function showBooked(t,whole,seats){
+  $('#sheet').innerHTML=`<h2>الحجز اتسجل</h2><p style="margin:0">${whole?'المركب كاملة لـ'+seats+' فرد: ':seats+(seats>1?' أماكن في ':' مكان في ')}${esc(t.boat)}، ${tripRange(t)}.</p><p class="muted" style="margin:0">${srvOn()?'الحجز اتحفظ على حسابك، وظهر عند '+(t.by==='owner'?'صاحب المركب':'منظم الرحلات')+'. هتلاقيه في: سجلي، رحلاتي. لسه مفيش دفع من التطبيق.':'ده حجز تجريبي: مفيش دفع ومفيش رسالة اتبعتت. هتلاقيه في الإدارة عند '+(t.by==='owner'?'صاحب المركب':'منظم الرحلات')+'.'}</p><button class="btn" data-act="close">تمام</button>`;
+}
 
 /* ---------- Pieces ---------- */
 function tripRange(t){const a=fromIso(t.date);return t.n===1?gDate(a):'من '+gDate(a)+' لحد '+gDate(addDays(a,t.n-1))}
@@ -607,7 +745,7 @@ function home(){
 }
 function tripsView(){
   const list=trips.filter(matchDur).sort(byDate);
-  return `<div class="sec"><h2>الرحلات المتاحة</h2>${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
+  return `<div class="sec"><h2>الرحلات المتاحة</h2>${srvNote()}${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
 }
 function askView(){
   return `<div class="sec"><h2>اسأل فيش بوك</h2>
@@ -647,7 +785,7 @@ function ownerCal(){
   const N=28;
   return `<div class="sec"><h2>جدول مراكبي، الـ${N} يوم الجايين</h2>
   <div class="legend"><span><i></i>يوم متاح</span><span><i class="trip"></i>عليه رحلة لسه فيها أماكن</span><span><i class="full"></i>محجوز كامل</span></div>
-  <ul class="list">${boats.map(b=>{let cells='',free=0;
+  <ul class="list">${myBoats().map(b=>{let cells='',free=0;
     for(let i=0;i<N;i++){const d=addDays(today,i),k=iso(d);
       const ts=trips.filter(t=>t.boat===b.name&&k>=t.date&&k<=iso(addDays(fromIso(t.date),t.n-1)));
       const st=!ts.length?'':ts.some(t=>t.left===0)?' full':' trip';if(!st)free++;
@@ -655,14 +793,21 @@ function ownerCal(){
     return `<li><div class="top"><strong>${esc(b.name)}</strong><span class="muted">تشيل ${b.cap} فرد</span></div><div class="cal">${cells}</div><span class="muted">متاح ${free} يوم · مشغول ${N-free} يوم</span></li>`}).join('')}</ul></div>`;
 }
 function manageView(){
-  const owner=role==='owner';
-  const mine=trips.filter(t=>t.by===role).sort(byDate),myB=bookings.filter(b=>b.by===role);
-  const boatForm=owner?`<div class="card"><form id="addBoat" novalidate><h2>ضيف مركب</h2>
+  const on=srvOn();
+  if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تنشر رحلات وتشوف حجوزاتك. نفس الحساب بيشتغل للصياد والمنظم وصاحب المركب.</span></div><div class="card">${authCard()}</div>`;
+  const needRole=on&&me&&me.role==='angler',owner=!needRole&&role==='owner';
+  const acct=on?`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong>${esc((me&&me.name)||'حسابي')}</strong><div class="muted" dir="ltr">${esc(ses.user.email)}</div></div><button class="btn ghost sm" data-act="signout">خروج</button></div></div>`:'';
+  if(needRole)return `${acct}<div class="sec"><h2>الإدارة</h2><span class="muted">لو هتنشر رحلات، اختار نوع حسابك. لو صياد بس، مش محتاج تختار حاجة.</span><div class="seg" role="group" aria-label="نوع الحساب">
+    <button data-act="role" data-r="org" aria-pressed="false">منظم رحلات</button>
+    <button data-act="role" data-r="owner" aria-pressed="false">صاحب مركب</button></div></div>`;
+  const mine=(on?trips.filter(t=>t.pub===uid()):trips.filter(t=>t.by===role)).sort(byDate),myB=on?bookings.filter(b=>b.forMe):bookings.filter(b=>b.by===role);
+  const selBoats=on&&owner?myBoats():boats;
+  const boatForm=(owner||on)?`<div class="card"><form id="addBoat" novalidate><h2>ضيف مركب</h2>
     <label for="bbName">اسم المركب<input id="bbName" maxlength="40" autocomplete="off"></label>
     <label for="bbCap">تشيل كام فرد<input id="bbCap" type="number" inputmode="numeric" min="1" max="60" value="10"></label>
     <div class="err" id="bbErr" role="alert"></div>
     <button class="btn ghost" type="submit">ضيف المركب</button></form></div>`:'';
-  return `<div class="sec"><h2>الإدارة</h2><div class="seg" role="group" aria-label="نوع الحساب">
+  return `${acct}<div class="sec"><h2>الإدارة</h2>${srvNote()}<div class="seg" role="group" aria-label="نوع الحساب">
     <button data-act="role" data-r="org" aria-pressed="${!owner}">منظم رحلات</button>
     <button data-act="role" data-r="owner" aria-pressed="${owner}">صاحب مركب</button></div>
     <span class="muted">${owner?'سجّل مراكبك وانشر رحلات عليها بنفسك.':'اختار مركب وانشر رحلتك للصيادين.'}</span></div>
@@ -671,8 +816,9 @@ function manageView(){
   <div class="sec"><h2>الحجوزات (${myB.length})</h2>${myB.length?'<ul class="list">'+myB.map(b=>`<li><strong>${esc(b.name)}</strong> · ${esc(b.phone)}<br><span class="muted">${esc(b.boat)} · ${b.range} · ${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}</span></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش حجوزات على رحلاتك.</span>'}</div>
   ${rateSec(owner,mine)}
   <div class="card"><form id="addTrip" novalidate><h2>انشر رحلة</h2>
-    ${owner?'':'<label for="tOrg">اسمك كمنظم<input id="tOrg" maxlength="40" value="منظم تجريبي 1" autocomplete="off"></label>'}
-    <label for="tBoat">المركب<select id="tBoat">${boats.map(b=>`<option value="${b.id}">${esc(b.name)} · ${b.cap} فرد</option>`).join('')}</select></label>
+    ${(owner||on)?'':'<label for="tOrg">اسمك كمنظم<input id="tOrg" maxlength="40" value="منظم تجريبي 1" autocomplete="off"></label>'}
+    ${selBoats.length?'':'<span class="muted">لسه مفيش مراكب. ضيف مركب من تحت الأول.</span>'}
+    <label for="tBoat">المركب<select id="tBoat">${selBoats.map(b=>`<option value="${b.id}">${esc(b.name)} · ${b.cap} فرد</option>`).join('')}</select></label>
     <label for="tDate">يوم البداية (أي تاريخ من النهارده)<input id="tDate" type="date" min="${iso(today)}" value="${iso(addDays(today,1))}"></label>
     <label for="tDays">عدد أيام الرحلة<input id="tDays" type="number" inputmode="numeric" min="1" value="1"></label>
     <label for="tSeats">عدد الأماكن<input id="tSeats" type="number" inputmode="numeric" min="1" value="8"></label>
@@ -694,17 +840,18 @@ function go(v){view=v;try{location.hash=v}catch(e){}render();$('#main').scrollTo
 function openBook(id){
   const t=trips.find(x=>x.id===id);if(!t||t.left<1)return;
   const whole=mode==='boat';if(whole&&!wholeFree(t))return;
+  if(srvOn()&&!uid()){openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تحجز. بعد الدخول اضغط احجز تاني.');return}
   const n=whole?t.total:Math.min(t.left,6);let o='';for(let i=1;i<=n;i++)o+=`<option value="${i}">${i}</option>`;
   $('#sheet').innerHTML=`<h2>${whole?'حجز المركب كاملة: ':'حجز مكان في '}${esc(t.boat)}</h2><span class="muted">${tripRange(t)} · ${dWord(t.n)} · ${whole?t.full+' جنيه للمركب كاملة':t.price+' جنيه للفرد'}</span>
   <form id="bookForm" data-id="${t.id}" data-kind="${whole?'boat':'seat'}" novalidate>
-    <label for="bName">الاسم<input id="bName" maxlength="40" autocomplete="name"></label>
+    <label for="bName">الاسم<input id="bName" maxlength="40" autocomplete="name" value="${esc((srvOn()&&me&&me.name)||'')}"></label>
     <label for="bPhone">رقم الموبايل<input id="bPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel"></label>
     <label for="bSeats">${whole?'هتطلعوا كام فرد':'عدد الأماكن'}<select id="bSeats">${o}</select></label>
     <div class="err" id="bErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;$('#bName').focus();
 }
-function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML=''}
+function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false}
 
 document.addEventListener('click',e=>{
   const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
@@ -714,7 +861,9 @@ document.addEventListener('click',e=>{
   else if(act==='goto'){sel=a.dataset.d;ensureH(sel);reveal=true;go('home')}
   else if(act==='more'){H+=30;render()}
   else if(act==='alert'){alerts[sel]=true;render()}
-  else if(act==='role'){role=a.dataset.r;render()}
+  else if(act==='role'){if(srvOn()&&uid())setRole(a.dataset.r);else{role=a.dataset.r;render()}}
+  else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
+  else if(act==='signout')signOut();
   else if(act==='mode'){mode=a.dataset.m;render()}
   else if(act==='ask')ask(a.dataset.q);
   else if(act==='book')openBook(Number(a.dataset.id));
@@ -723,7 +872,8 @@ document.addEventListener('click',e=>{
   else if(act==='reload'){live='loading';render();loadLive()}
   else if(act==='ratetrip')openTripRate(Number(a.dataset.id));
   else if(act==='nav')go(a.dataset.v);
-  else if(act==='dellog'){const id=Number(a.dataset.id);logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()}
+  else if(act==='dellog'){const id=Number(a.dataset.id),drop=()=>{logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()};
+    if(logSrv){a.disabled=true;sbFetch('/rest/v1/catches?id=eq.'+id,{method:'DELETE'}).then(drop).catch(()=>{a.disabled=false})}else drop()}
   else if(act==='rate')openRate(a.dataset.k);
   else if(act==='star'){starSel=Number(a.dataset.n);document.querySelectorAll('.st').forEach((b,i)=>{b.classList.toggle('on',i<starSel);b.setAttribute('aria-pressed',i<starSel?'true':'false')})}
 });
@@ -741,10 +891,22 @@ document.addEventListener('submit',e=>{
     const whole=e.target.dataset.kind==='boat';
     if(whole&&(!t||!wholeFree(t))){$('#bErr').textContent='المركب اتحجز فيها أماكن ومبقتش متاحة كاملة.';return}
     if(!t||seats<1||seats>t.left){$('#bErr').textContent='عدد الأماكن المتاحة أقل من المطلوب.';return}
+    if(srvOn()){srvRun(e.target,'#bErr',async()=>{
+      await sbFetch('/rest/v1/rpc/book_trip',{method:'POST',body:{p_trip:t.id,p_seats:seats,p_whole:whole,p_name:name,p_phone:phone}});
+      showBooked(t,whole,seats);await loadSrv()});return}
     if(whole)t.left=0;else t.left-=seats;
     bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0});
-    $('#sheet').innerHTML=`<h2>الحجز اتسجل</h2><p style="margin:0">${whole?'المركب كاملة لـ'+seats+' فرد: ':seats+(seats>1?' أماكن في ':' مكان في ')}${esc(t.boat)}، ${tripRange(t)}.</p><p class="muted" style="margin:0">ده حجز تجريبي: مفيش دفع ومفيش رسالة اتبعتت. هتلاقيه في الإدارة عند ${t.by==='owner'?'صاحب المركب':'منظم الرحلات'}.</p><button class="btn" data-act="close">تمام</button>`;
+    showBooked(t,whole,seats);
     render();
+  }else if(e.target.id==='authForm'){
+    const email=$('#aEmail').value.trim(),pw=$('#aPw').value,name=$('#aName')?$('#aName').value.trim():'';
+    if(authMode==='up'&&name.length<2){$('#aErr').textContent='اكتب اسمك.';return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('#aErr').textContent='اكتب إيميل صحيح.';return}
+    if(pw.length<6){$('#aErr').textContent='كلمة السر 6 حروف أو أرقام على الأقل.';return}
+    srvRun(e.target,'#aErr',async()=>{
+      await doAuth(email,pw,name);
+      if(!uid()){if(sheetAuth)$('#sheet').innerHTML=authCard();else render();return}
+      if(sheetAuth)closeSheet();render()});
   }else if(e.target.id==='rateForm'){
     const k=e.target.dataset.k;
     if(starSel<1){$('#rErr').textContent='اختار عدد النجوم الأول.';return}
@@ -756,12 +918,20 @@ document.addEventListener('submit',e=>{
     if(species.length<2){$('#lErr').textContent='اكتب نوع السمك.';return}
     if(!(kg>0)){$('#lErr').textContent='اكتب الوزن بالكيلو، رقم أكبر من صفر.';return}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>iso(today)){$('#lErr').textContent='اختار يوم الصيد، النهارده أو قبله.';return}
-    const id=Date.now(),f=$('#lImg').files&&$('#lImg').files[0];
-    if(f&&f.type.indexOf('image/')===0){try{shots[id]=URL.createObjectURL(f)}catch(err){}}
-    logs.push({id,date,time,species,kg,bait,spot,trip});saveLogs();render();
+    const f=$('#lImg').files&&$('#lImg').files[0];
+    const add=id=>{if(f&&f.type.indexOf('image/')===0){try{shots[id]=URL.createObjectURL(f)}catch(err){}}
+      logs.push({id,date,time,species,kg,bait,spot,trip});saveLogs();render()};
+    if(logSrv){const bk=myBk().find(b=>b.boat+' · '+b.range===trip);
+      srvRun(e.target,'#lErr',async()=>{
+        const r=await sbFetch('/rest/v1/catches',{method:'POST',prefer:'return=representation',body:{caught_on:date,caught_at:time||null,species,kg,bait,spot,trip_id:bk?bk.tripId:null,area:area.id}});
+        add(r[0].id)});return}
+    add(Date.now());
   }else if(e.target.id==='tripRateForm'){
     const b=bookings.find(x=>x.id===Number(e.target.dataset.id));
     if(starSel<1){$('#trErr').textContent='اختار عدد النجوم الأول.';return}
+    if(b&&srvOn()){const body=$('#trText').value.trim(),rows=[{booking_id:b.id,target:'boat',stars:starSel,body}];
+      if(b.org)rows.push({booking_id:b.id,target:'publisher',stars:starSel,body});
+      srvRun(e.target,'#trErr',async()=>{await sbFetch('/rest/v1/ratings',{method:'POST',body:rows});closeSheet();await loadSrv()});return}
     if(b){const r={s:starSel,text:$('#trText').value.trim(),name:b.name};(ratings['b:'+b.boat]=ratings['b:'+b.boat]||[]).push(r);
       if(b.org)(ratings['o:'+b.org]=ratings['o:'+b.org]||[]).push(r);b.rated=starSel}
     closeSheet();render();
@@ -769,6 +939,8 @@ document.addEventListener('submit',e=>{
     const name=$('#bbName').value.trim(),cap=Number($('#bbCap').value);
     if(name.length<2){$('#bbErr').textContent='اكتب اسم المركب.';return}
     if(!(cap>=1&&cap<=60)){$('#bbErr').textContent='عدد الأفراد من 1 لـ 60.';return}
+    if(srvOn()){srvRun(e.target,'#bbErr',async()=>{
+      await sbFetch('/rest/v1/boats',{method:'POST',body:{name,capacity:Math.round(cap),area:area.id,owner_id:role==='owner'?uid():null}});await loadSrv()});return}
     boats.push({id:nextId++,name,cap:Math.round(cap)});render();
   }else if(e.target.id==='addTrip'){
     const b=boats.find(x=>x.id===Number($('#tBoat').value)),date=$('#tDate').value;
@@ -779,9 +951,12 @@ document.addEventListener('submit',e=>{
     if(!(seats>=1)){$('#tErr').textContent='اكتب عدد الأماكن.';return}
     if(seats>b.cap){$('#tErr').textContent='المركب دي تشيل '+b.cap+' فرد بس.';return}
     if(!(price>=0)||full<0){$('#tErr').textContent='اكتب السعر بالأرقام.';return}
+    const done=()=>{dur='';mode='seat';sel=date;ensureH(date);reveal=true;go('trips')};
+    if(srvOn()){srvRun(e.target,'#tErr',async()=>{
+      await sbFetch('/rest/v1/trips',{method:'POST',body:{boat_id:b.id,start_date:date,days:n,seats_total:Math.round(seats),price_seat:Math.round(price),price_whole:Math.round(full),area:area.id}});
+      await loadSrv();done()});return}
     trips.push({id:nextId++,date,boat:b.name,n,total:Math.round(seats),left:Math.round(seats),price:Math.round(price),full:Math.round(full),by:role,org:role==='org'?(($('#tOrg')&&$('#tOrg').value.trim())||'منظم تجريبي 1'):''});
-    dur='';mode='seat';sel=date;ensureH(date);reveal=true;
-    go('trips');
+    done();
   }
 });
 function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
@@ -793,6 +968,7 @@ if(live!=='cache')useSnap();
 $('#hArea').textContent=area.name+' · نسخة تجريبية';
 render();
 loadLive();
+loadSrv();
 // التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
