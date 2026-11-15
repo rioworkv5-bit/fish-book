@@ -1,0 +1,16 @@
+{
+  "name": "فيش بوك",
+  "short_name": "فيش بوك",
+  "description": "رحلات صيد وأفضل أيام الصيد وسجل الصياد في البحر الأحمر",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B3A66",
+  "theme_color": "#1479B8",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

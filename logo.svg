@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="شعار فيش بوك: سمكة متعلقة في سنارة">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2BB3D6"/>
+      <stop offset="0.55" stop-color="#1479B8"/>
+      <stop offset="1" stop-color="#0B3A66"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#sea)"/>
+  <!-- سطح البحر -->
+  <path d="M6 12 q6.5 -4.5 13 0 t13 0 t13 0 t13 0" fill="none" stroke="#BFE9F7" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- خيط السنارة -->
+  <path d="M32 2 V21" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- السمكة متعلقة من بقها -->
+  <path d="M32 21 C44 28 45 41 32 49 C19 41 20 28 32 21 Z" fill="#FFFFFF"/>
+  <path d="M32 46 L42 58 L32 54.5 L22 58 Z" fill="#FFFFFF"/>
+  <path d="M22 34 L14.5 40.5 L22.5 41.5 Z M42 34 L49.5 40.5 L41.5 41.5 Z" fill="#FFFFFF"/>
+  <circle cx="27" cy="31" r="2" fill="#0B3A66"/>
+  <!-- الشص -->
+  <path d="M32 20 V27.5 a3.3 3.3 0 0 0 6.6 0 V25.5" fill="none" stroke="#0B3A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

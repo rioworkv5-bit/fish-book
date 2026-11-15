@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فيش بوك تجريبي</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1479B8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="فيش بوك">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<style>
+:root{
+  /* layout: one phone-width column, calm header, roomy cards on a pale sea-grey ground, bottom tab bar */
+  --ground:#F2F5F7; --card:#FFFFFF; --line:#E1E8ED; --ink:#0B2A3F; --muted:#44566A;
+  --brand:#0B2A3F; --soft:#E8F0F5; --accent:#B84E0A;
+  --good:#0E5A4E; --ok:#BFE6DC; --mid:#FFE2A8; --bad:#F6C9BF;
+  --font:'Cairo','Segoe UI',Tahoma,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #2F7FB5;outline-offset:2px}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:var(--ground)}
+header{background:var(--brand);color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{margin:0;font-size:22px;font-weight:800;line-height:1.2;display:flex;align-items:center;gap:10px}
+/* اسم التطبيق: "فيش" أبيض و"بوك" بأزرق البحر، وتحتهم موجة */
+.wm{position:relative;display:inline-block;padding-bottom:6px;font-size:24px;line-height:1.15}
+.wm2{color:#7FD3EE}
+.wv{position:absolute;left:0;right:0;bottom:0;width:100%;height:6px}
+header .logo{flex:0 0 36px;border-radius:9px;box-shadow:0 0 0 1.5px rgba(255,255,255,.25)}
+header span{font-size:13px;color:#D5E6F2;font-weight:600}
+main{flex:1;overflow-y:auto;padding:0 0 24px}
+nav{background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:4px 4px 8px}
+nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:54px;background:none;border:0;color:var(--muted);font-size:12px;font-weight:600}
+nav button[aria-current="page"]{color:var(--brand);font-weight:800}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:16px 20px 4px}
+.day{flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+.day b{font-size:20px;font-weight:800;line-height:1}
+.day .wd{font-size:12px;font-weight:600;color:var(--muted)}
+.day[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.day[aria-pressed="true"] .wd{color:#D5E6F2}
+.pill{display:inline-block;font-size:13px;font-weight:800;border-radius:8px;padding:0 8px;font-variant-numeric:tabular-nums}
+.s-good{background:var(--good);color:#fff}.s-ok{background:var(--ok);color:#0A3F36}.s-mid{background:var(--mid);color:#5A3A00}.s-bad{background:var(--bad);color:#6B1D0E}
+.card{margin:16px 20px 0;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 1px 2px rgba(11,42,63,.05)}
+.sum{display:flex;gap:16px;align-items:center}
+.big{flex:0 0 76px;height:76px;border-radius:38px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.big b{font-size:30px;font-weight:800;line-height:1}.big span{font-size:12px;font-weight:600}
+h2{font-size:17px;font-weight:800;margin:0;text-wrap:balance}
+.sec{margin:24px 20px 0;display:flex;flex-direction:column;gap:10px}
+.muted{color:var(--muted);font-size:13px}
+.tbl{padding:6px 0}
+.row{display:grid;grid-template-columns:48px 1fr 60px 56px;align-items:center;gap:10px;padding:7px 18px}
+.row.h{font-size:12px;font-weight:700;color:var(--muted);padding-bottom:4px}
+.row>span{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.wind{display:flex;align-items:center;gap:6px;border-radius:10px;padding:7px 10px;font-size:15px!important;font-weight:800!important}
+.wind small{font-size:12px;font-weight:600}
+.temp{border-radius:10px;padding:7px 0;text-align:center;font-size:15px!important;font-weight:800!important}
+.trip{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(11,42,63,.05)}
+.trip .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.trip strong{font-size:16px;font-weight:800}
+.trip .bot{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.price{font-size:16px;font-weight:800}
+.chip{display:inline-block;font-size:12px;font-weight:700;background:var(--soft);border-radius:8px;padding:2px 10px}
+.btn{flex:0 0 auto;min-height:46px;padding:0 20px;border-radius:14px;border:0;background:var(--accent);color:#fff;font-weight:800}
+.btn[disabled]{background:#D3DBE1;color:#44566A;cursor:default}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--ink)}
+.q{display:block;width:100%;text-align:right;min-height:52px;padding:12px 18px;border-radius:16px;border:1px solid var(--line);background:var(--card);font-weight:700}
+.ans{display:flex;flex-direction:column;gap:10px}
+.ans p{margin:0}
+form{display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
+input,select{min-height:46px;border:1px solid #9FB0BC;border-radius:12px;padding:0 12px;background:#fff;font-size:16px;width:100%}
+.filter{display:flex;align-items:center;gap:10px}
+.filter label{flex-direction:row;align-items:center;gap:10px;flex:1;white-space:nowrap}
+.err{color:#8C1D0A;font-size:13px;font-weight:700;min-height:20px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--soft);border-radius:14px;padding:4px}
+.seg button{min-height:44px;border:0;border-radius:11px;background:none;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);font-weight:800;box-shadow:0 1px 2px rgba(11,42,63,.12)}
+.ovl{position:fixed;inset:0;background:rgba(11,42,63,.55);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.ovl[hidden]{display:none}
+.sheet{width:100%;max-width:480px;background:var(--card);border-radius:22px 22px 0 0;padding:22px 20px 26px;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.rowbtns{display:flex;gap:8px}.rowbtns .btn{flex:1}
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+ul.list .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.chart{padding:16px 12px 14px}
+.chart h2,.chart .muted{padding:0 6px}
+.bars{display:flex;gap:2px;align-items:flex-end;margin-top:10px;overflow-x:auto;padding-bottom:2px}
+.bar{flex:0 0 36px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0 6px;border:0;border-radius:10px;background:none}
+.bar[aria-pressed="true"]{background:var(--soft)}
+.bar .bt{height:128px;width:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;border-bottom:1px solid #9FB0BC}
+.bar .best{font-size:10px;font-weight:800;line-height:1.1}
+.bar .bn{font-size:12px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.bar .bf{display:block;width:calc(100% - 6px);max-width:26px;border-radius:4px 4px 0 0}
+.bar .wd{font-size:10px;font-weight:600;color:var(--muted);line-height:1.3}
+.bar b{font-size:14px;font-weight:800;line-height:1.1}
+.bar .bf.pre{background:#fff;border:2px dashed var(--ink);border-bottom:0}
+.bar .mo{font-size:10px;font-weight:700;line-height:1.2;min-height:12px;white-space:nowrap}
+.bar.more{flex:0 0 70px;align-self:stretch;justify-content:center;border:1.5px dashed #9FB0BC;font-size:12px;font-weight:800;margin-inline-start:6px}
+.big.pre{background:#fff;border:2px dashed var(--ink)}
+.legend i.pre{border:2px dashed var(--ink)}
+.chart .legend{padding:10px 6px 0}
+.legend i.g1{background:var(--good);border-color:var(--good)}.legend i.g2{background:var(--ok);border-color:var(--ok)}.legend i.g3{background:var(--mid);border-color:var(--mid)}.legend i.g4{background:var(--bad);border-color:var(--bad)}
+.rates{display:flex;gap:6px;flex-wrap:wrap}
+.rate{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.rate .muted{font-weight:600}
+.stars{display:flex;gap:2px}
+.st{width:46px;height:46px;border:0;background:none;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.st svg{fill:#fff;stroke:#44566A}.st.on svg{fill:#B26A00;stroke:#B26A00}
+.tide svg{display:block;width:100%;height:auto;margin:10px 0 4px}
+.trow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
+.trow b{font-weight:800}
+.notif{display:flex;flex-direction:column;gap:8px}
+.notif .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.btn.sm{min-height:44px;padding:0 14px;font-size:13px}
+.mgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin:10px 0 6px}
+.mc{border:1.5px solid #9FB0BC;border-radius:7px;background:#fff;text-align:center;font-size:12px;font-weight:700;padding:5px 0;font-variant-numeric:tabular-nums}
+.mc.in{background:var(--ok);border-color:var(--ok);color:#0A3F36}
+.mc.pk{background:var(--good);border-color:var(--good);color:#fff}
+.mc.now{outline:2.5px solid var(--accent);outline-offset:1px}
+.legend i.in{background:var(--ok);border-color:var(--ok)}.legend i.pk{background:var(--good);border-color:var(--good)}.legend i.nw{border:2.5px solid var(--accent)}
+.shot{width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-top:8px;display:block}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.tile b{display:block;font-size:22px;font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--muted);font-weight:600}
+.seats{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 6px}
+.seat{width:18px;height:18px;border-radius:5px;border:1.5px solid #9FB0BC;background:#fff}
+.seat.on{background:var(--brand);border-color:var(--brand)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0 6px}
+.cd{border-radius:10px;border:1.5px solid #9FB0BC;background:#fff;padding:5px 0;text-align:center;line-height:1.2}
+.cd b{display:block;font-size:15px;font-weight:800}
+.cd small{font-size:10px;font-weight:600}
+.cd.trip{background:var(--mid);border-color:var(--mid);color:#5A3A00}
+.cd.full{background:var(--good);border-color:var(--good);color:#fff}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:600;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid #9FB0BC;background:#fff;vertical-align:-2px;margin-inline-end:4px}
+.legend i.trip{background:var(--mid);border-color:var(--mid)}.legend i.full{background:var(--good);border-color:var(--good)}
+button.cd{font-family:inherit;color:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:62px}
+/* لون الخانة: فساد أو حمل. الخط اللي تحت: نوع الليلة. الإطار الأخضر: أفضل الأيام */
+.cd.fas{background:#DDF3EC;border-color:#9CD6C6}
+.cd.hml{background:#DFECF8;border-color:#A9C8E6}
+button.cd{padding:5px 0 9px}
+.cd.mdark{box-shadow:inset 0 -5px 0 var(--brand)}
+.cd.mlit{box-shadow:inset 0 -5px 0 #E9B93A}
+.cd.best{border:2.5px solid var(--good)}
+.cd[aria-pressed="true"]{outline:2.5px solid var(--accent);outline-offset:1px}
+.cd .pc{font-size:10px;font-weight:800;border-radius:6px;padding:0 4px;line-height:1.6;font-variant-numeric:tabular-nums}
+.cd .pc.pre{background:#fff;border:1.5px dashed var(--ink);line-height:1.4}
+.legend i.fas{background:#DDF3EC;border-color:#9CD6C6}.legend i.hml{background:#DFECF8;border-color:#A9C8E6}.legend i.best{border:2.5px solid var(--good)}
+.legend i.mdark{background:var(--brand);border-color:var(--brand);height:5px;vertical-align:2px}.legend i.mlit{background:#E9B93A;border-color:#E9B93A;height:5px;vertical-align:2px}
+.brk{margin:0 20px;background:var(--card);border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px;padding:6px 18px 12px}
+.card.sum.hasbrk{border-radius:18px 18px 0 0}
+.bk{display:grid;grid-template-columns:78px 1fr 64px 78px;align-items:center;gap:8px;padding:5px 0;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.bk b{font-weight:800;white-space:nowrap}.bk .muted{font-size:12px;font-weight:600}
+.bkb{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;display:block}
+.bkb i{display:block;height:100%;border-radius:4px}
+ul.list li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+</style>
+</head>
+<body>
+<div id="app">
+<header><h1><svg class="logo" viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><defs><linearGradient id="lgSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2BB3D6"/><stop offset=".55" stop-color="#1479B8"/><stop offset="1" stop-color="#0B3A66"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lgSea)"/><path d="M6 12q6.5-4.5 13 0t13 0t13 0t13 0" fill="none" stroke="#BFE9F7" stroke-width="2.4" stroke-linecap="round"/><path d="M32 2V21" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M32 21C44 28 45 41 32 49C19 41 20 28 32 21Z" fill="#fff"/><path d="M32 46L42 58L32 54.5L22 58Z" fill="#fff"/><path d="M22 34L14.5 40.5L22.5 41.5ZM42 34L49.5 40.5L41.5 41.5Z" fill="#fff"/><circle cx="27" cy="31" r="2" fill="#0B3A66"/><path d="M32 20V27.5a3.3 3.3 0 0 0 6.6 0V25.5" fill="none" stroke="#0B3A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></header>
+<main id="main"></main>
+<nav aria-label="الأقسام">
+  <button data-view="home"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/></svg>الرئيسية</button>
+  <button data-view="trips"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16h18l-2 4H5z"/><path d="M12 3v10M12 4l6 8H6z"/></svg>الرحلات</button>
+  <button data-view="ask"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>اسأل</button>
+  <button data-view="log"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>سجلي</button>
+  <button data-view="manage"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإدارة</button>
+</nav>
+</div>
+
+<div class="ovl" id="ovl" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="حجز رحلة"></div></div>
+
+<script>
+const WD=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const WDS=['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
+const GM=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const HM=['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
+const SLOTS=['2 ص','5 ص','8 ص','11 ص','2 م','5 م','8 م','11 م'];
+const FORECAST_DAYS=10;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const today=new Date();today.setHours(12,0,0,0);
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fromIso=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d,12)};
+const gDate=d=>WD[d.getDay()]+' '+d.getDate()+' '+GM[d.getMonth()];
+const dWord=n=>n===1?'يوم واحد':n===2?'يومين':n<=10?n+' أيام':n+' يوم';
+
+/* ---------- Hijri ---------- */
+let hFmt=null;
+try{const f=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'numeric',year:'numeric'});
+  if(f.resolvedOptions().calendar.indexOf('islamic')===0)hFmt=f;}catch(e){}
+function hijri(d){
+  if(hFmt){try{const p={};hFmt.formatToParts(d).forEach(x=>p[x.type]=x.value);
+    const day=parseInt(p.day,10),m=parseInt(p.month,10),y=parseInt(p.year,10);
+    if(day>0&&m>0&&m<13)return{day,month:m-1,year:y};}catch(e){}}
+  const anchor=new Date(2026,10,11,12);const n=Math.round((d-anchor)/864e5);const L=29.5306;
+  const mi=Math.floor(n/L);const day=Math.floor(n-mi*L)+1;const tot=5+mi;
+  return{day,month:((tot%12)+12)%12,year:1448+Math.floor(tot/12)};
+}
+const hText=d=>{const h=hijri(d);return h.day+' '+HM[h.month]+' '+h.year};
+/* حمل: 12–18 و 27–4 ، فساد: 5–11 و 19–26 */
+const isFasad=day=>(day>=5&&day<=11)||(day>=19&&day<=26);
+const isTurn=day=>[3,4,11,12,17,18,26,27].includes(day);
+
+/* ---------- Sample weather ---------- */
+function rng(str){let h=1779033703;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);h^=h>>>16;return(h>>>0)/4294967296}}
+const wxCache={};
+function weather(d){
+  const k=iso(d);if(wxCache[k])return wxCache[k];
+  /* جو حقيقي لو متحمّل لليوم ده، وإلا أرقام تجريبية */
+  const rl=realWx[k];
+  if(rl&&rl.wind){const pick=a=>HRS.map(h=>a&&typeof a[h]==='number'?a[h]:null);
+    const W=pick(rl.wind),T=pick(rl.temp),P=pick(rl.pres),D=pick(rl.dir),V=pick(rl.wave);
+    if(![...W,...T,...P,...D].includes(null)){const wind=W.map(Math.round),rw=!V.includes(null);
+      /* Open-Meteo بيدي اتجاه الرياح "جاية منين"، والسهم هنا "رايحة فين" */
+      return wxCache[k]={wind,temp:T.map(Math.round),pres:P.map(Math.round),dir:D.map(x=>(Math.round(x)+180)%360),
+        wave:rw?V.map(x=>Math.round(x*10)/10):wind.map(w=>Math.max(0.2,Math.round(w*0.045*10)/10)),real:true,realWave:rw}}}
+  let wind,temp,pres,dir;
+  if(k==='2026-11-13'){wind=[13,15,12,12,8,9,11,12];temp=[23,22,23,23,24,24,24,24];pres=[1018,1019,1020,1020,1018,1018,1019,1019];dir=[135,135,135,160,165,140,135,135];}
+  else{const r=rng(k);const base=6+r()*13,tb=21+r()*4,pb=1014+r()*7,db=120+r()*50;const dt=[-1,-2,0,1,2,2,1,0];
+    wind=[];temp=[];pres=[];dir=[];
+    for(let i=0;i<8;i++){wind.push(Math.max(3,Math.round(base+((i<2||i>5)?1.5:-1.5)+(r()*4-2))));
+      temp.push(Math.round(tb+dt[i]*0.7));pres.push(Math.round(pb+(r()*2-1)+(k.charCodeAt(9)%3===0?-i*0.6:0)));dir.push(Math.round(db+r()*20-10));}}
+  const wave=wind.map(w=>Math.max(0.2,Math.round(w*0.045*10)/10));
+  return wxCache[k]={wind,temp,pres,dir,wave};
+}
+function score(d){
+  /* بعد أيام التوقعات: تقييم مبدئي من الهجري بس */
+  if(!inForecast(iso(d))){const hd=hijri(d).day;return{val:isFasad(hd)?(isTurn(hd)?80:70):(isTurn(hd)?60:50),prelim:true}}
+  const w=weather(d),h=hijri(d),idx=[1,2,3,4,5]; /* ساعات النهار: 5 ص لحد 5 م */
+  const avg=a=>idx.reduce((s,i)=>s+a[i],0)/idx.length,r1=x=>Math.round(x*10)/10;
+  /* lin: الدرجة كاملة لحد good، وبتنزل بالتدريج لصفر عند bad */
+  const lin=(x,good,bad)=>Math.max(0,Math.min(1,(bad-x)/(bad-good)));
+  const aw=avg(w.wind),av=avg(w.wave),at=avg(w.temp),dp=Math.abs(w.pres[7]-w.pres[0]),fas=isFasad(h.day),turn=isTurn(h.day);
+  /* فرق المد والجزر الحقيقي في اليوم: كل ما يقل، التيار أضعف */
+  const a0=new Date(d);a0.setHours(0,0,0,0);const t0=a0.getTime(),t1=t0+864e5;let rng=null;
+  if(sea.length&&t0>=seaFrom&&t1<=seaTo){const hs=sea.filter(p=>p.t>=t0&&p.t<=t1).map(p=>p.h);rng=Math.max.apply(null,hs)-Math.min.apply(null,hs)}
+  const parts=[
+    {name:'الرياح',max:WEIGHTS.wind,pts:WEIGHTS.wind*lin(aw,8,22),note:Math.round(aw)+' عقدة'},
+    {name:'الموج',max:WEIGHTS.wave,pts:WEIGHTS.wave*lin(av,0.4,1.5),note:r1(av).toFixed(1)+' م'},
+    {name:'حمل وفساد',max:WEIGHTS.hijri,pts:Math.min(WEIGHTS.hijri,WEIGHTS.hijri*(fas?1:0.5)+(turn?WEIGHTS.hijri*0.15:0)),note:(fas?'فساد':'حمل')+(turn?' · يوم تحول':'')},
+    {name:'المد والجزر',max:WEIGHTS.tide,pts:WEIGHTS.tide*(rng===null?(fas?0.8:0.5):0.4+0.6*lin(rng,0.25,0.75)),note:rng===null?'تقريبي':'فرق '+Math.round(rng*100)+' سم'},
+    {name:'الضغط',max:WEIGHTS.pres,pts:WEIGHTS.pres*lin(dp,2,6),note:dp<=2?'مستقر':'اتغير '+dp+' مليبار'},
+    {name:'الحرارة',max:WEIGHTS.temp,pts:WEIGHTS.temp*(at<18?lin(at,18,10):lin(at,32,40)),note:Math.round(at)+'°'}];
+  let best=1;idx.forEach(i=>{if(w.wind[i]<w.wind[best])best=i});
+  return{val:Math.round(parts.reduce((s,p)=>s+p.pts,0)),best,stable:dp<=2,parts,real:!!w.real};
+}
+/* أوزان المؤشر، مجموعها 100 */
+const WEIGHTS={wind:35,wave:20,hijri:20,tide:10,pres:10,temp:5};
+const sClass=v=>v>=80?'s-good':v>=70?'s-ok':v>=50?'s-mid':'s-bad';
+const sWord=v=>v>=80?'يوم ممتاز للصيد':v>=70?'يوم كويس للصيد':v>=50?'يوم متوسط':'يوم ضعيف';
+/* تفاصيل النسبة: كل عامل خد كام من كام */
+const breakdown=s=>`<div class="brk">${s.parts.map(p=>`<div class="bk"><span>${p.name}</span><span class="bkb"><i class="${sClass(p.pts/p.max*100)}" style="width:${Math.round(p.pts/p.max*100)}%"></i></span><b>${Math.round(p.pts)} من ${p.max}</b><span class="muted">${p.note}</span></div>`).join('')}</div>`;
+const windColor=w=>w<=6?'#CFE6F7':w<=9?'#BDE0F5':w<=13?'#A9E3CF':w<=16?'#F3E08A':w<=20?'#F9C07A':'#F2A08F';
+const tempColor=t=>t<=18?'#BFDDF5':t<=21?'#CDEBD8':t<=23?'#FFDFA6':t<=25?'#FFD08A':t<=28?'#FFBE6B':'#F7A283';
+const dirName=a=>{const n=['ش','ش.ق','ق','ج.ق','ج','ج.غ','غ','ش.غ'];return n[Math.round((((a+180)%360))/45)%8]};
+
+/* ---------- Tides (تقريبي للنسخة التجريبية) ---------- */
+const TIDE_P=12.4206*3600e3,SLACK_LAG=30*60e3;const TIDE_ANCHOR0=new Date(2026,10,13,3,0).getTime();let TIDE_ANCHOR=TIDE_ANCHOR0;
+const tm=t=>{const x=new Date(t);let h=x.getHours();const m=String(x.getMinutes()).padStart(2,'0'),ap=h<12?'ص':'م';h=h%12||12;return h+':'+m+' '+ap};
+
+/* ---------- جو ومد حقيقي من Open-Meteo (مجاني، من غير مفتاح) ---------- */
+const HRS=[2,5,8,11,14,17,20,23];
+/* المناطق: نقطة في البحر لكل منطقة (lat, lon). slon لو نقطة الموج والمد غير نقطة الرياح. */
+const AREAS=[
+  {id:'hurghada',name:'الغردقة',lat:27.26,lon:33.83,slon:33.90},
+  {id:'giftun',name:'الجفتون',lat:27.20,lon:33.97},
+  {id:'gouna',name:'الجونة',lat:27.40,lon:33.75},
+  {id:'tawila',name:'طويلة',lat:27.58,lon:33.78},
+  {id:'gubal',name:'جوبال',lat:27.67,lon:33.82},
+  {id:'shadwan',name:'شدوان',lat:27.50,lon:34.00},
+  {id:'safaga',name:'سفاجا',lat:26.75,lon:34.02},
+  {id:'quseir',name:'القصير',lat:26.10,lon:34.33},
+  {id:'marsaalam',name:'مرسى علم',lat:25.07,lon:34.95}];
+let area=AREAS[0];try{const s=localStorage.getItem('fishbook-area'),f=AREAS.find(a=>a.id===s);if(f)area=f}catch(e){}
+const wxUrl=a=>'https://api.open-meteo.com/v1/forecast?latitude='+a.lat+'&longitude='+a.lon+'&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,pressure_msl&wind_speed_unit=kn&timezone=Africa%2FCairo&past_days=31&forecast_days=16';
+const seaUrl=a=>'https://marine-api.open-meteo.com/v1/marine?latitude='+a.lat+'&longitude='+(a.slon||a.lon)+'&hourly=wave_height,sea_level_height_msl&timezone=Africa%2FCairo&past_days=1&forecast_days=16';
+let realWx={},sea=[],tideEv=[],seaFrom=0,seaTo=0,seaMin=0,seaMax=0,live='loading',liveAt=0;
+function applyLive(wj,mj){
+  const days={},put=(j,map)=>{const h=j.hourly;h.time.forEach((s,i)=>{const o=days[s.slice(0,10)]=days[s.slice(0,10)]||{},hr=Number(s.slice(11,13));
+    for(const f in map){if(h[f])(o[map[f]]=o[map[f]]||[])[hr]=h[f][i]}})};
+  put(wj,{wind_speed_10m:'wind',wind_direction_10m:'dir',temperature_2m:'temp',pressure_msl:'pres'});
+  if(mj&&mj.hourly)put(mj,{wave_height:'wave'});
+  realWx=days;for(const k in wxCache)delete wxCache[k];
+  /* مستوى البحر كل ساعة: منه المنحنى وأوقات أعلى مد وأقل جزر */
+  const s=[];
+  if(mj&&mj.hourly&&mj.hourly.sea_level_height_msl){const h=mj.hourly,off=(mj.utc_offset_seconds||0)*1000;
+    h.time.forEach((x,i)=>{const v=h.sea_level_height_msl[i];if(typeof v==='number')s.push({t:Date.parse(x+':00Z')-off,h:v})})}
+  let ok=s.length>6;for(let i=1;i<s.length;i++)if(s[i].t-s[i-1].t!==3600e3)ok=false;
+  sea=ok?s:[];tideEv=[];TIDE_ANCHOR=TIDE_ANCHOR0;if(!ok)return;
+  seaFrom=sea[1].t;seaTo=sea[sea.length-2].t;seaMin=Math.min.apply(null,sea.map(p=>p.h));seaMax=Math.max.apply(null,sea.map(p=>p.h));
+  for(let i=1;i<sea.length-1;i++){const a=sea[i-1].h,b=sea[i].h,c=sea[i+1].h,hi=b>a&&b>=c,lo=b<a&&b<=c;if(!hi&&!lo)continue;
+    /* قطع مكافئ على 3 نقط عشان وقت القمة يطلع بالدقيقة مش بالساعة */
+    const den=a-2*b+c,dx=den?0.5*(a-c)/den:0,e={t:sea[i].t+dx*3600e3,high:hi,h:b-0.25*(a-c)*dx},p=tideEv[tideEv.length-1];
+    if(p&&p.high===e.high){if(hi?e.h>p.h:e.h<p.h)tideEv[tideEv.length-1]=e}else tideEv.push(e)}
+  /* الأيام اللي بعد التوقعات: المنحنى التقريبي بيتظبط على آخر مد حقيقي */
+  const lastHigh=tideEv.filter(e=>e.high).pop();if(lastHigh)TIDE_ANCHOR=lastHigh.t;
+}
+function seaAt(t){const x=(t-sea[0].t)/3600e3,i=Math.max(1,Math.min(sea.length-3,Math.floor(x))),u=x-i,p0=sea[i-1].h,p1=sea[i].h,p2=sea[i+1].h,p3=sea[i+2].h;
+  return 0.5*(2*p1+(p2-p0)*u+(2*p0-5*p1+4*p2-p3)*u*u+(3*p1-p0-3*p2+p3)*u*u*u)}
+/* قمم المد وقيعان الجزر بين وقتين: حقيقية لو البيانات مغطية، وإلا تقريبية */
+function tideEvents(a,b){
+  if(sea.length&&a>=seaFrom&&b<=seaTo)return{real:true,ev:tideEv.filter(e=>e.t>=a&&e.t<b)};
+  const ev=[];for(let k=Math.floor((a-TIDE_ANCHOR)/(TIDE_P/2))-1;;k++){const t=TIDE_ANCHOR+k*TIDE_P/2;if(t>=b)break;if(t>=a)ev.push({t,high:((k%2)+2)%2===0})}
+  return{real:false,ev};
+}
+async function loadLive(){
+  const a=area;
+  try{const [wj,mj]=await Promise.all([fetch(wxUrl(a)).then(r=>{if(!r.ok)throw new Error('wx');return r.json()}),fetch(seaUrl(a)).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    if(!wj||!wj.hourly||!wj.hourly.time)throw new Error('wx');
+    if(a!==area)return; /* المستخدم غيّر المنطقة والتحميل شغال */
+    applyLive(wj,mj);live='ok';liveAt=Date.now();
+    try{localStorage.setItem('fishbook-live',JSON.stringify({at:liveAt,area:a.id,wj,mj}))}catch(e){}
+  }catch(e){if(a!==area)return;if(live!=='cache'&&!useSnap())live='fail'}
+  /* منعيدش الرسم لو المستخدم بيكتب في فورم */
+  if(view!=='log'&&view!=='manage'){const be=$('#bars');if(be)barScroll=be.scrollLeft;render()}
+}
+/* تغيير المنطقة: نمسح جو المنطقة القديمة ونحمّل الجديدة */
+function setArea(id){const f=AREAS.find(a=>a.id===id);if(!f||f===area)return;area=f;try{localStorage.setItem('fishbook-area',f.id)}catch(e){}
+  realWx={};sea=[];tideEv=[];TIDE_ANCHOR=TIDE_ANCHOR0;for(const k in wxCache)delete wxCache[k];live='loading';
+  const hs=$('#hArea');if(hs)hs.textContent=area.name+' · نسخة تجريبية';render();loadLive()}
+const areaPick=()=>`<div class="filter" style="padding:10px 18px 8px"><label for="areaSel">جو منطقة<select id="areaSel">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label></div>`;
+/* النسخة المنشورة على claude.ai ممنوع فيها الاتصال بالنت، فبيتحط معاها جو محفوظ وقت النشر في window.FB_SNAPSHOT */
+function useSnap(){const s=window.FB_SNAPSHOT,x=s&&s.areas&&s.areas[area.id];if(!x||!x.wj||!x.wj.hourly)return false;applyLive(x.wj,x.mj);live='snap';liveAt=s.at;return true}
+function liveNote(){
+  if(live==='snap')return `<div class="muted" style="padding:8px 6px 0">جو ${area.name}: الرياح والموج${sea.length?' والمد':''} من Open-Meteo، محفوظين يوم ${gDate(new Date(liveAt))} الساعة ${tm(liveAt)}. النسخة دي للمراجعة ومبتحدّثش الجو لوحدها.</div>`;
+  if(live==='ok'||live==='cache')return `<div class="muted" style="padding:8px 6px 0">جو ${area.name}: الرياح والموج${sea.length?' والمد':''} من Open-Meteo · آخر تحديث ${tm(liveAt)}</div>`;
+  if(live==='loading')return '<div class="muted" style="padding:8px 6px 0">بنحمّل الجو الحقيقي...</div>';
+  return '<div class="muted" style="padding:8px 6px 0;display:flex;align-items:center;gap:10px;justify-content:space-between"><span>معرفناش نحمّل الجو الحقيقي. الأرقام اللي قدامك تجريبية.</span><button class="btn ghost sm" data-act="reload">جرّب تاني</button></div>';
+}
+function tideCard(d){
+  const a=new Date(d);a.setHours(0,0,0,0);const t0=a.getTime(),t1=t0+864e5,{ev,real}=tideEvents(t0,t1);
+  const hd=hijri(d).day,amp=0.3+0.15*Math.cos(2*Math.PI*(hd-15)/14.77),mid=(seaMax+seaMin)/2,half=(seaMax-seaMin)/2||1;
+  const W=320,X=t=>W-(t-t0)/864e5*W,Y=real?t=>42-(seaAt(t)-mid)/half*32:t=>42-amp*Math.cos(2*Math.PI*(t-TIDE_ANCHOR)/TIDE_P)/0.45*30;
+  let path='';for(let i=0;i<=72;i++){const t=t0+i*1200e3;path+=(i?'L':'M')+X(t).toFixed(1)+' '+Y(t).toFixed(1)}
+  const dots=ev.filter(e=>e.t+SLACK_LAG<t1).map(e=>`<circle cx="${X(e.t+SLACK_LAG).toFixed(1)}" cy="${Y(e.t+SLACK_LAG).toFixed(1)}" r="5" fill="#0B2A3F" stroke="#fff" stroke-width="2"><title>توقيفة ${tm(e.t+SLACK_LAG)}</title></circle>`).join('');
+  const ticks=[[0,'12 ص'],[6,'6 ص'],[12,'12 م'],[18,'6 م'],[24,'12 ص']].map(x=>`<text x="${W-x[0]/24*W}" y="94" font-size="10" fill="#44566A" text-anchor="${x[0]===0?'end':x[0]===24?'start':'middle'}" direction="rtl">${x[1]}</text>`).join('');
+  const now=Date.now(),nowLine=(now>=t0&&now<t1)?`<line x1="${X(now).toFixed(1)}" x2="${X(now).toFixed(1)}" y1="4" y2="80" stroke="#B84E0A" stroke-width="2"/><text x="${X(now).toFixed(1)}" y="3" font-size="10" font-weight="700" fill="#0B2A3F" text-anchor="middle" dominant-baseline="hanging" dx="${X(now)<30?16:X(now)>290?-16:0}">دلوقتي</text>`:'';
+  return `<div class="card tide"><h2>المد والجزر وأوقات التوقيفة</h2>
+  <svg viewBox="0 0 ${W} 98" role="img" aria-label="منحنى المد والجزر على مدار اليوم"><line x1="0" x2="${W}" y1="80" y2="80" stroke="#DFE7EC"/><line x1="0" x2="${W}" y1="42" y2="42" stroke="#DFE7EC" stroke-dasharray="3 4"/><path d="${path}" fill="none" stroke="#2F7FB5" stroke-width="2" stroke-linejoin="round"/>${dots}${nowLine}${ticks}</svg>
+  <div class="muted">النقط على المنحنى هي أوقات التوقيفة.</div>
+  ${ev.map(e=>`<div class="trow"><span>${e.high?'أعلى مد':'أقل جزر'} <b>${tm(e.t)}</b>${real?` <span class="muted" dir="ltr">${e.h>0?'+':''}${Math.round(e.h*100)}</span><span class="muted"> سم</span>`:''}</span><span>التوقيفة حوالي <b>${tm(e.t+SLACK_LAG)}</b></span></div>`).join('')}
+  <div class="muted" style="border-top:1px solid var(--line);padding-top:8px">${real?'أوقات المد من نموذج Open-Meteo البحري لنقطة في البحر عند '+area.name+'،والارتفاع بالسنتي عن متوسط سطح البحر. النموذج دقته كيلومترات مش مرسى بعينه، فراجعه على الواقع قبل ما تعتمد عليه.':'أوقات تقريبية: توقعات المد الحقيقية بتغطي '+FORECAST_DAYS+' أيام بس.'} التوقيفة محسوبة بعد قمة المد وقاع الجزر بنص ساعة.</div></div>`;
+}
+
+/* ---------- القمر: حساب فلكي على الجهاز، من غير نت ---------- */
+const RAD=Math.PI/180,OBL=RAD*23.4397,j2k=t=>t/864e5-0.5+2440588-2451545;
+function sunPos(d){const M=RAD*(357.5291+0.98560028*d),L=M+RAD*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M))+RAD*102.9372+Math.PI;
+  return{dec:Math.asin(Math.sin(OBL)*Math.sin(L)),ra:Math.atan2(Math.sin(L)*Math.cos(OBL),Math.cos(L))}}
+function moonPos(d){const L=RAD*(218.316+13.176396*d),M=RAD*(134.963+13.064993*d),F=RAD*(93.272+13.22935*d),l=L+RAD*6.289*Math.sin(M),b=RAD*5.128*Math.sin(F);
+  return{ra:Math.atan2(Math.sin(l)*Math.cos(OBL)-Math.tan(b)*Math.sin(OBL),Math.cos(l)),dec:Math.asin(Math.sin(b)*Math.cos(OBL)+Math.cos(b)*Math.sin(OBL)*Math.sin(l)),dist:385001-20905*Math.cos(M)}}
+/* ارتفاع الجرم فوق الأفق عند المنطقة المختارة */
+function altOf(pos,t){const d=j2k(t),c=pos(d),H=RAD*(280.16+360.9856235*d)+RAD*area.lon-c.ra,p=RAD*area.lat;
+  return Math.asin(Math.sin(p)*Math.sin(c.dec)+Math.cos(p)*Math.cos(c.dec)*Math.cos(H))}
+const moonUp=t=>altOf(moonPos,t)-RAD*0.133,sunUp=t=>altOf(sunPos,t)+RAD*0.833;
+/* لحظات الطلوع والغروب بين وقتين: خطوة 10 دقايق */
+function cross(f,a,b){const out=[],st=6e5;let p=f(a);for(let t=a+st;t<=b;t+=st){const q=f(t);if((p<0)!==(q<0))out.push({t:t-st+st*p/(p-q),up:q>=0});p=q}return out}
+const moonCache={};
+function moonInfo(d){
+  const k=area.id+iso(d);if(moonCache[k])return moonCache[k];
+  const a=new Date(d);a.setHours(0,0,0,0);const t0=a.getTime(),t1=t0+864e5;
+  const mc=cross(moonUp,t0,t1+30*3600e3),rise=mc.find(e=>e.up&&e.t<t1),set=rise?mc.find(e=>!e.up&&e.t>rise.t):mc.find(e=>!e.up&&e.t<t1);
+  /* ليلة اليوم ده: من غروب الشمس لشروق تاني يوم */
+  const sc=cross(sunUp,t0+12*3600e3,t1+12*3600e3),ss=sc.find(e=>!e.up),sr=ss&&sc.find(e=>e.up&&e.t>ss.t);
+  let nm=0,nt=0;if(ss&&sr)for(let t=ss.t;t<sr.t;t+=6e5){nt++;if(moonUp(t)>0)nm++}
+  /* نسبة الإضاءة وطور القمر الساعة 9 بالليل */
+  const dd=j2k(t0+21*3600e3),s=sunPos(dd),m=moonPos(dd),sd=149598000;
+  const phi=Math.acos(Math.sin(s.dec)*Math.sin(m.dec)+Math.cos(s.dec)*Math.cos(m.dec)*Math.cos(s.ra-m.ra)),inc=Math.atan2(sd*Math.sin(phi),m.dist-sd*Math.cos(phi));
+  const ang=Math.atan2(Math.cos(s.dec)*Math.sin(s.ra-m.ra),Math.sin(s.dec)*Math.cos(m.dec)-Math.cos(s.dec)*Math.sin(m.dec)*Math.cos(s.ra-m.ra));
+  const frac=(1+Math.cos(inc))/2,ph=0.5+0.5*inc*(ang<0?-1:1)/Math.PI;
+  const name=(ph<0.03||ph>0.97)?'محاق':ph<0.22?'هلال أول الشهر':ph<0.28?'تربيع أول':ph<0.47?'أحدب متزايد':ph<0.53?'بدر':ph<0.72?'أحدب متناقص':ph<0.78?'تربيع أخير':'هلال آخر الشهر';
+  /* ضلمة: إضاءة أقل من 10% أو القمر فوق الأفق أقل من ساعة بالليل. مقمرة: إضاءة 50% وأكتر والقمر طالع نص الليل على الأقل */
+  const kind=(frac<0.1||nm<6)?'dark':(frac>=0.5&&nm*2>=nt)?'lit':'part';
+  return moonCache[k]={rise:rise?rise.t:0,set:set?set.t:0,setNext:!!(set&&set.t>=t1),up:rise&&set?set.t-rise.t:0,frac,wax:ph<0.5,name,kind,nightMoon:nm*6e5,night:nt*6e5};
+}
+const MOON_KIND={dark:'ليلة ضلمة، من غير قمر',lit:'ليلة مقمرة',part:'قمر جزء من الليل'};
+const hm=ms=>{const n=Math.round(ms/6e4),h=Math.floor(n/60),m=n%60;return (h?h+' س':'')+(h&&m?' ':'')+(m||!h?m+' د':'')};
+function moonIcon(f,wax,z){const rx=(10*Math.abs(1-2*f)).toFixed(2),o=wax?1:0,i=(f<0.5)===wax?0:1;
+  return `<svg aria-hidden="true" width="${z}" height="${z}" viewBox="0 0 24 24" style="flex:0 0 auto"><circle cx="12" cy="12" r="10" fill="#0B2A3F" stroke="#7FA3BD"/><path d="M12 2A10 10 0 0 ${o} 12 22A${rx} 10 0 0 ${i} 12 2Z" fill="#FFF3C4"/></svg>`}
+function moonCard(d){
+  const m=moonInfo(d),N=30;let cells='';
+  for(let i=0;i<N;i++){const x=addDays(today,i),k=iso(x),mi=moonInfo(x),sc=score(x),hx=hijri(x).day,fs=isFasad(hx),tip=`${gDate(x)} · ${fs?'فساد':'حمل'}${isTurn(hx)?' · يوم تحول':''} · ${sc.prelim?'تقييم مبدئي':'مؤشر'} ${sc.val}% · ${mi.name} · ${MOON_KIND[mi.kind]}`;
+    cells+=`<button class="cd ${fs?'fas':'hml'} m${mi.kind}${sc.val>=80?' best':''}" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${tip}" aria-label="${tip}"><small>${WDS[x.getDay()]}</small><b>${x.getDate()}</b>${moonIcon(mi.frac,mi.wax,18)}<span class="pc ${sc.prelim?'pre':sClass(sc.val)}">${sc.val}%</span></button>`}
+  const sd=score(d),hd=hijri(d).day;
+  return `<div class="card moon"><h2>القمر والحمل والفساد</h2>
+  <div class="sum" style="margin:10px 0 12px">${moonIcon(m.frac,m.wax,64)}<div><strong style="font-size:16px">${m.name}</strong><div class="muted">إضاءة القمر ${Math.round(m.frac*100)}% · ${hText(d)}</div><div style="margin-top:4px"><span class="chip">${MOON_KIND[m.kind]}</span> <span class="chip">${isFasad(hd)?'فساد':'حمل'}${isTurn(hd)?' · يوم تحول':''}</span> <span class="pill ${sd.prelim?'':sClass(sd.val)}"${sd.prelim?' style="border:1.5px dashed var(--ink)"':''}>${sd.val}%${sd.prelim?' مبدئي':''}</span></div></div></div>
+  <div class="trow"><span>بيطلع <b>${m.rise?tm(m.rise):'مفيش طلوع في اليوم ده'}</b></span><span>بيغيب <b>${m.set?tm(m.set):'—'}</b>${m.setNext?' <span class="muted">تاني يوم</span>':''}</span></div>
+  <div class="trow"><span>مدة ظهوره <b>${m.up?hm(m.up):'—'}</b></span><span>منها بالليل <b>${hm(m.nightMoon)}</b> <span class="muted">من ${hm(m.night)}</span></span></div>
+  <h2 style="font-size:15px;margin-top:14px">القمر والحمل والفساد، الـ${N} يوم الجايين</h2>
+  <div class="muted">تحت كل يوم شكل القمر ونسبة مؤشر الصيد.</div>
+  <div class="cal">${cells}</div>
+  <div class="legend"><span><i class="fas"></i>فساد</span><span><i class="hml"></i>حمل</span><span><i class="best"></i>أفضل الأيام، 80% وأكتر</span><span><i class="pre"></i>نسبة مبدئية من غير جو</span></div>
+  <div class="legend" style="margin-top:6px"><span><i class="mlit"></i>خط أصفر: ليلة مقمرة</span><span><i class="mdark"></i>خط كحلي: ليلة ضلمة</span><span>من غير خط: قمر جزء من الليل</span></div>
+  <div class="muted" style="border-top:1px solid var(--line);padding-top:8px;margin-top:10px">الأوقات محسوبة فلكيًا لمنطقة ${area.name}، وممكن تفرق دقايق عن الواقع. الليلة بتتحسب من غروب شمس اليوم لشروق اللي بعده.</div></div>`;
+}
+
+/* ---------- مواسم السمك ---------- */
+const SPECIES=[
+  {name:'مرجان',m:[11,12,1,2],pk:[1,2],note:'أحسن شهرين يناير وفبراير.'},
+  {name:'شعور',m:[5,6,7,8],pk:[],from:[5,15],to:[8,15],note:'الموسم بيبدأ من نص مايو لحوالي 3 شهور (فرشة الشعور)، والصيد أحسن بعد الغروب.'},
+  {name:'ناجل',m:[6,7],pk:[],note:'منتشر بكثرة في يونيو ويوليو.'},
+  {name:'توين',m:[],pk:[],note:''},{name:'كشر',m:[],pk:[],note:''},{name:'بهار',m:[],pk:[],note:''},{name:'بياض',m:[],pk:[],note:''},{name:'عنبرة',m:[],pk:[],note:''}];
+const inSeasonOn=d=>{const m=d.getMonth()+1,dd=d.getDate();return SPECIES.filter(f=>f.m.includes(m)&&!(f.from&&m===f.from[0]&&dd<f.from[1])&&!(f.to&&m===f.to[0]&&dd>f.to[1]))};
+const fishLine=d=>{const a=inSeasonOn(d),m=d.getMonth()+1;return `<div style="margin-top:8px"><span class="muted" style="font-weight:700">سمك الموسم في اليوم ده: </span>${a.length?a.map(f=>'<span class="chip">'+f.name+'</span>').join(' '):'<span class="muted">مفيش نوع مسجل</span>'}${(m===3||m===4)?' <span class="chip">موسم تكاثر</span>':''}</div>`};
+/* ---------- سجل الصيد ---------- */
+let logs=[];try{const x=JSON.parse(localStorage.getItem('fishbook-log')||'[]');if(Array.isArray(x))logs=x.filter(e=>e&&typeof e.date==='string').slice(0,200)}catch(e){}
+const saveLogs=()=>{try{localStorage.setItem('fishbook-log',JSON.stringify(logs.map(e=>({id:e.id,date:e.date,time:e.time,species:e.species,kg:e.kg,bait:e.bait,spot:e.spot,trip:e.trip}))))}catch(e){}};
+const shots={};
+function cond(k){const d=fromIso(k),hd=hijri(d),w=weather(d);const aw=Math.round([1,2,3,4,5].reduce((a,i)=>a+w.wind[i],0)/5);return{fas:isFasad(hd.day),aw,h:hd,real:!!w.real}}
+function seasonChip(e){const f=SPECIES.find(x=>x.name===e.species);if(!f||!f.m.length)return '';
+  return inSeasonOn(fromIso(e.date)).includes(f)?' <span class="chip">في موسمه</span>':' <span class="chip">بره موسمه</span>'}
+/* التعرف على السمكة من الصورة */
+let sampleFn=null;
+async function getSample(){if(sampleFn)return sampleFn;try{if(window.claude&&window.claude.use)sampleFn=await window.claude.use('sample')}catch(e){}return sampleFn}
+async function shrink(file){try{const bmp=await createImageBitmap(file),k=Math.min(1,1024/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');
+  c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',0.85))}catch(e){return file}}
+let aiBusy=false;
+async function identify(file){
+  const say=t=>{const el=$('#lAi');if(el)el.textContent=t};
+  if(aiBusy)return;aiBusy=true;
+  try{
+    const sm=await getSample();
+    if(!sm){say('التعرف التلقائي مش متاح في العرض ده. اختار النوع بنفسك.');return}
+    let ok=true;try{const lim=await sm.limits();ok=!!(lim&&lim.images)}catch(e){}
+    if(!ok){say('التعرف التلقائي مش متاح في العرض ده. اختار النوع بنفسك.');return}
+    say('بتعرّف على السمكة من الصورة...');
+    const blob=await shrink(file);
+    const res=await sm('This photo comes from a fishing logbook app used around Hurghada on the Egyptian Red Sea. Identify the fish in it. Reply with JSON only, no other text: {"local":"<Egyptian Arabic common name>","english":"<English common name>","sure":true|false}. For "local" prefer one of these names when it fits (rough guide): مرجان (sea bream / porgy type), شعور (emperor, Lethrinus), ناجل (coral trout, Plectropomus), كشر (grouper, Epinephelus), بهار (bohar snapper, Lutjanus bohar), توين (small tuna), بياض (trevally / jack, Caranx), عنبرة (amberjack, Seriola); otherwise give another Egyptian Arabic name. Set "sure" to false unless the species is clear. If no fish is visible reply {"local":"","english":"","sure":false}.',{images:[blob],modelTier:'quick',cache:false});
+    let o=null;try{const m=String(res&&res.text||'').match(/\{[\s\S]*\}/);if(m)o=JSON.parse(m[0])}catch(e){}
+    const local=o&&typeof o.local==='string'?o.local.trim().slice(0,30):'',en=o&&typeof o.english==='string'?o.english.trim().slice(0,40):'';
+    if(!local){say('مش باين سمكة واضحة في الصورة. اختار النوع بنفسك.');return}
+    const sel=$('#lSp'),oth=$('#lOther');if(!sel||!oth)return;
+    if(SPECIES.some(f=>f.name===local)){sel.value=local;oth.value=''}else{sel.value='';oth.value=local}
+    say('التطبيق شايف إنها '+local+(en?' ('+en+')':'')+(o.sure?'':'، ومش متأكد')+'. راجع النوع قبل ما تسجل.');
+  }catch(e){say(e&&e.code==='rate_limited'?'في ضغط دلوقتي، جرّب الصورة تاني بعد شوية أو اختار النوع بنفسك.':'معرفتش أتعرف على الصورة. اختار النوع بنفسك.')}
+  finally{aiBusy=false}
+}
+function onPhoto(f){
+  if(!f||f.type.indexOf('image/')!==0)return;
+  let t=new Date(f.lastModified||Date.now());if(isNaN(t)||t>new Date())t=new Date();
+  const dEl=$('#lDate'),tEl=$('#lTime');if(dEl)dEl.value=iso(t);if(tEl)tEl.value=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  identify(f);
+}
+function logView(){
+  const n=logs.length;let ins='<span class="muted">سجّل 3 صيدات أو أكتر وهيظهرلك تحليل: بتصطاد أحسن في أنهي أيام وأنهي ظروف.</span>';
+  if(n>=3){const cs=logs.map(e=>cond(e.date)),f=cs.filter(c=>c.fas).length,aw=Math.round(cs.reduce((a,c)=>a+c.aw,0)/n);
+    const big=logs.reduce((a,e)=>e.kg>a.kg?e:a,logs[0]),tot=Math.round(logs.reduce((a,e)=>a+e.kg,0)*10)/10,rec={};logs.forEach(e=>{if(!(rec[e.species]>=e.kg))rec[e.species]=e.kg});
+    ins=`<div class="tiles"><div class="tile"><b>${n}</b><span>صيدة</span></div><div class="tile"><b>${big.kg}</b><span>أكبر سمكة كجم</span></div><div class="tile"><b>${tot}</b><span>المجموع كجم</span></div></div>
+    <div class="trip"><strong>${f*2>n?'أغلب صيدك في أيام الفساد':f*2<n?'أغلب صيدك في أيام الحمل':'صيدك متقسم بين الحمل والفساد'}</strong><span class="muted">${f} في الفساد و${n-f} في الحمل · متوسط الرياح في أيام صيدك ${aw} عقدة</span></div>
+    <div class="trip"><strong>أرقامي القياسية</strong><span>${Object.keys(rec).sort((a,b)=>rec[b]-rec[a]).map(k=>'<span class="chip">'+esc(k)+' '+rec[k]+' كجم</span>').join(' ')}</span></div>`}
+  const nowT=new Date(),hhmm=String(nowT.getHours()).padStart(2,'0')+':'+String(nowT.getMinutes()).padStart(2,'0');
+  const myTrips=bookings.length?bookings.map(b=>`<div class="trip" style="gap:6px"><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${b.range} · ${dWord(b.n)}${b.org?' · '+esc(b.org):''}</div></div><span class="chip">${iso(addDays(fromIso(b.date),b.n-1))<iso(today)?'خلصت':'قادمة'}</span></div>
+    <div class="bot"><span class="muted">${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}${b.rated?' · تقييمك '+b.rated+' من 5':''}</span>${b.rated?'':`<button class="btn ghost sm" data-act="ratetrip" data-id="${b.id}">قيّم الرحلة</button>`}</div></div>`).join(''):'<span class="muted">لسه محجزتش رحلات. أي رحلة تحجزها هتظهر هنا بيومها، وتقدر تقيّمها.</span>';
+  return `<div class="sec"><h2>سجل صيدي</h2>${ins}</div>
+  <div class="card"><form id="logForm" novalidate><h2>سجّل صيدة</h2>
+    <label for="lImg">صوّر السمكة أو اختار صورة<input id="lImg" type="file" accept="image/*" style="padding:10px 12px"></label>
+    <div class="muted" id="lAi" aria-live="polite">من الصورة التطبيق بيحدد النوع واليوم والساعة، وإنت تراجعهم.</div>
+    <label for="lSp">نوع السمك<select id="lSp">${SPECIES.map(f=>`<option>${f.name}</option>`).join('')}<option value="">نوع تاني</option></select></label>
+    <label for="lOther">لو نوع تاني اكتبه<input id="lOther" maxlength="30" autocomplete="off"></label>
+    <label for="lKg">الوزن بالكيلو<input id="lKg" type="number" inputmode="decimal" min="0" step="0.1"></label>
+    <label for="lDate">يوم الصيد<input id="lDate" type="date" max="${iso(today)}" value="${iso(today)}"></label>
+    <label for="lTime">الساعة<input id="lTime" type="time" value="${hhmm}"></label>
+    <label for="lBait">الطُعم (اختياري)<input id="lBait" maxlength="40" autocomplete="off"></label>
+    <label for="lSpot">المكان (اختياري، بيفضل خاص بيك)<input id="lSpot" maxlength="40" autocomplete="off"></label>
+    ${bookings.length?`<label for="lTrip">في أنهي رحلة (اختياري)<select id="lTrip"><option value="">من غير رحلة</option>${bookings.map(b=>`<option value="${esc(b.boat+' · '+b.range)}">${esc(b.boat)} · ${b.range}</option>`).join('')}</select></label>`:''}
+    <div class="err" id="lErr" role="alert"></div>
+    <button class="btn" type="submit">سجّل</button></form></div>
+  <div class="sec"><h2>صيداتي (${n})</h2>${n?logs.slice().sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?1:-1).map(e=>{const c=cond(e.date),d=fromIso(e.date);
+    return `<div class="trip" style="gap:4px"><div class="top"><div><strong>${esc(e.species)} · ${e.kg} كجم</strong><div class="muted">${gDate(d)} ${d.getFullYear()}${e.time?' · الساعة '+esc(e.time):''} · ${c.h.day} ${HM[c.h.month]}</div></div><button class="btn ghost sm" data-act="dellog" data-id="${e.id}">امسح</button></div>
+    <div><span class="chip">${c.fas?'فساد':'حمل'}</span> <span class="chip">رياح ${c.aw} عقدة${c.real?'':' (تقريبي)'}</span>${seasonChip(e)}${e.bait?' <span class="chip">طُعم: '+esc(e.bait)+'</span>':''}${e.spot?' <span class="chip">'+esc(e.spot)+'</span>':''}</div>${e.trip?'<span class="muted">رحلة: '+esc(e.trip)+'</span>':''}${shots[e.id]?`<img class="shot" src="${shots[e.id]}" alt="صورة ${esc(e.species)}">`:''}</div>`}).join(''):'<span class="muted">لسه مسجلتش حاجة.</span>'}</div>
+  <div class="sec"><h2>رحلاتي (${bookings.length})</h2>${myTrips}
+  <span class="muted">الرياح مع كل صيدة حقيقية لو يومها في آخر شهر، والأقدم من كده تقريبي. الصيدات محفوظة على الجهاز ده بس، والصور والرحلات بتروح لما تقفل الصفحة.</span></div>`;
+}
+function openTripRate(id){
+  const b=bookings.find(x=>x.id===id);if(!b||b.rated)return;starSel=0;
+  let st='';for(let i=1;i<=5;i++)st+=`<button type="button" class="st" data-act="star" data-n="${i}" aria-pressed="false" aria-label="${i} من 5">${STAR(30,true)}</button>`;
+  $('#sheet').innerHTML=`<h2>قيّم رحلتك على ${esc(b.boat)}</h2><span class="muted">${b.range}${b.org?' · المنظم: '+esc(b.org):''}</span>
+  <form id="tripRateForm" data-id="${b.id}" novalidate>
+    <div class="stars" role="group" aria-label="عدد النجوم">${st}</div>
+    <label for="trText">تعليق (اختياري)<input id="trText" maxlength="140" autocomplete="off"></label>
+    <div class="err" id="trErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت التقييم</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+/* ---------- إشعار الصبح ---------- */
+let notifOn=false;
+function nextSlack(){const now=Date.now(),e=tideEvents(now-SLACK_LAG,now-SLACK_LAG+864e5).ev[0];return e?e.t+SLACK_LAG:0}
+function morning(){
+  const s=score(today),fas=isFasad(hijri(today).day),nx=nextSlack();
+  const n=trips.filter(t=>t.date===iso(today)&&t.left>0).length,sp=inSeasonOn(today).map(f=>f.name);
+  return `<div class="card notif"><div class="top"><span class="chip">إشعار الصبح</span><button class="btn ghost sm" data-act="notif" aria-pressed="${notifOn}">${notifOn?'الإشعار شغال':'فعّل الإشعار'}</button></div>
+  <strong style="font-size:16px">النهارده ${s.val}% ·${fas?'فساد':'حمل'}</strong>
+  <span class="muted">${nx?'التوقيفة الجاية '+tm(nx)+' · ':''}أهدى رياح ${SLOTS[s.best]}${sp.length?' · موسم '+sp.join(' و'):''}${n?' · '+n+' رحلة فيها أماكن':''}</span>
+  ${notifOn?'<span class="muted">في التطبيق الحقيقي الرسالة دي هتوصلك على الموبايل كل يوم الصبح. النسخة التجريبية مبتبعتش إشعارات.</span>':''}
+  <div class="rates"><button class="rate" data-act="nav" data-v="log">سجّل صيدة</button></div></div>`;
+}
+
+/* ---------- State ---------- */
+const fdays=[];for(let i=0;i<FORECAST_DAYS;i++)fdays.push(addDays(today,i));
+const inForecast=k=>fdays.some(d=>iso(d)===k);
+let H=45,barScroll=null,reveal=false;
+const viewDays=()=>{const a=[];for(let i=0;i<H;i++)a.push(addDays(today,i));return a};
+const ensureH=k=>{const n=Math.round((fromIso(k)-today)/864e5);if(n>=H)H=n+10};
+let view='home',sel=iso(today),dur='',mode='seat',role='org',answer='',alerts={},nextId=1;
+const boats=[['مركب تجريبي 1',10],['مركب تجريبي 2',8],['مركب تجريبي 3',12],['مركب تجريبي 4',10],['مركب تجريبي 5',8],['مركب تجريبي 6',12]].map(b=>({id:nextId++,name:b[0],cap:b[1]}));
+/* [بعد كام يوم, المركب, عدد الأيام, الأماكن, الفاضي, السعر, الناشر] */
+const trips=[[1,0,1,10,4,1500,'org'],[2,1,3,8,2,5500,'owner'],[2,2,1,12,7,1400,'org'],[3,2,5,12,9,9000,'owner'],[4,3,2,10,10,3200,'owner'],[5,4,4,8,0,7500,'org'],[7,5,1,12,12,1500,'owner'],[8,0,3,10,10,5200,'org']]
+  .map(t=>({id:nextId++,date:iso(addDays(today,t[0])),boat:boats[t[1]].name,n:t[2],total:t[3],left:t[4],price:t[5],full:Math.round(t[5]*t[3]*0.9/100)*100,by:t[6],org:t[6]==='org'?(t[0]%2?'منظم تجريبي 1':'منظم تجريبي 2'):''}));
+const bookings=[];
+/* تقييمات تجريبية: نجوم بس */
+const ratings={};
+[[5,4,5],[4,4],[5,5,4,5],[3,4],[5],[4,5,4]].forEach((a,i)=>{ratings['b:'+boats[i].name]=a.map(n=>({s:n,text:'',name:''}))});
+ratings['o:منظم تجريبي 1']=[5,4,5,5].map(n=>({s:n,text:'',name:''}));ratings['o:منظم تجريبي 2']=[4,4,3].map(n=>({s:n,text:'',name:''}));
+let starSel=0;
+const STAR=(z,plain)=>`<svg aria-hidden="true" width="${z}" height="${z}" viewBox="0 0 24 24" ${plain?'':'fill="#B26A00" stroke="#B26A00"'} stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z"/></svg>`;
+function rateAvg(k){const a=ratings[k]||[];return{count:a.length,avg:a.length?a.reduce((x,y)=>x+y.s,0)/a.length:0}}
+function rateBadge(k,label){const r=rateAvg(k);
+  return `<button class="rate" data-act="rate" data-k="${esc(k)}" aria-label="تقييم ${label}">${STAR(16)}${r.count?r.avg.toFixed(1)+' <span class="muted">('+r.count+')</span>':'<span class="muted">من غير تقييم</span>'} <span class="muted">${label}</span></button>`}
+function openRate(k,thanks){
+  const arr=ratings[k]||[],r=rateAvg(k),name=k.slice(2),isBoat=k[0]==='b',txt=arr.filter(x=>x.text);starSel=0;
+  let st='';for(let i=1;i<=5;i++)st+=`<button type="button" class="st" data-act="star" data-n="${i}" aria-pressed="false" aria-label="${i} من 5">${STAR(30,true)}</button>`;
+  $('#sheet').innerHTML=`<h2>تقييم ${isBoat?'المركب':'المنظم'}: ${esc(name)}</h2>
+  <div class="price">${r.count?STAR(18)+' '+r.avg.toFixed(1)+' من 5 <span class="muted" style="font-weight:400">· '+r.count+' تقييم</span>':'لسه مفيش تقييمات'}</div>
+  ${thanks?'<span class="chip">تقييمك اتسجل</span>':''}
+  ${txt.length?'<ul class="list">'+txt.map(x=>`<li><strong>${x.s} من 5</strong>${x.name?' · '+esc(x.name):''}<br><span class="muted">${esc(x.text)}</span></li>`).join('')+'</ul>':''}
+  <form id="rateForm" data-k="${esc(k)}" novalidate><h2>قيّم إنت</h2>
+    <div class="stars" role="group" aria-label="عدد النجوم">${st}</div>
+    <label for="rText">تعليق (اختياري)<input id="rText" maxlength="140" autocomplete="off"></label>
+    <label for="rName">اسمك (اختياري)<input id="rName" maxlength="40" autocomplete="name"></label>
+    <div class="err" id="rErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت التقييم</button><button class="btn ghost" type="button" data-act="close">قفل</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+function rateSec(owner,mine){
+  const items=owner?boats.map(b=>['b:'+b.name,b.name]):[...new Set(mine.map(t=>t.org).filter(Boolean))].map(n=>['o:'+n,n]);
+  return `<div class="sec"><h2>تقييماتي</h2>${items.length?'<ul class="list">'+items.map(x=>`<li><div class="top" style="align-items:center"><strong>${esc(x[1])}</strong>${rateBadge(x[0],owner?'المركب':'المنظم')}</div></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش تقييمات.</span>'}</div>`;
+}
+const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
+const wholeFree=t=>t.full>0&&t.left===t.total;
+const matchDur=t=>(dur===''||t.n===Number(dur))&&(mode==='seat'||wholeFree(t));
+
+/* ---------- Pieces ---------- */
+function tripRange(t){const a=fromIso(t.date);return t.n===1?gDate(a):'من '+gDate(a)+' لحد '+gDate(addDays(a,t.n-1))}
+function tripScore(t){let s=0,pre=false;for(let i=0;i<t.n;i++){const x=score(addDays(fromIso(t.date),i));s+=x.val;if(x.prelim)pre=true}return{val:Math.round(s/t.n),prelim:pre}}
+function tripCard(t){
+  const sc=tripScore(t),h=hijri(fromIso(t.date));
+  return `<div class="trip"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="مؤشر الصيد">${sc.val}%${sc.prelim?' مبدئي':''}</span></div>
+    <div><span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
+    <div class="rates">${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}</div>
+    ${mode==='boat'?`<div class="bot"><div><div class="price">${t.full} جنيه <span class="muted" style="font-weight:400">للمركب كاملة</span></div><div class="muted">تشيل لحد ${t.total} فرد</div></div>
+    <button class="btn" data-act="book" data-id="${t.id}" ${wholeFree(t)?'':'disabled'}>${wholeFree(t)?'احجز المركب':'مش متاحة'}</button></div>`:
+    `<div class="bot"><div><div class="price">${t.price} جنيه <span class="muted" style="font-weight:400">للفرد</span></div><div class="muted">${t.left>0?t.left+' أماكن فاضية من '+t.total:'الرحلة كاملة'}</div></div>
+    <button class="btn" data-act="book" data-id="${t.id}" ${t.left>0?'':'disabled'}>${t.left>0?'احجز مكان':'كاملة'}</button></div>`}</div>`;
+}
+function durFilter(){
+  const ns=[...new Set(trips.map(t=>t.n))].sort((a,b)=>a-b);
+  return `<div class="seg" role="group" aria-label="نوع الحجز"><button data-act="mode" data-m="seat" aria-pressed="${mode==='seat'}">مكان في رحلة</button><button data-act="mode" data-m="boat" aria-pressed="${mode==='boat'}">مركب كاملة</button></div>
+  <div class="filter"><label for="durSel">مدة الرحلة<select id="durSel"><option value="">أي مدة</option>${ns.map(n=>`<option value="${n}" ${String(n)===dur?'selected':''}>${dWord(n)}</option>`).join('')}</select></label></div>`;
+}
+function home(){
+  const d=fromIso(sel),w=weather(d),h=hijri(d),s=score(d),fas=isFasad(h.day),tideChips=`<span class="chip">${fas?'فساد · تيار ضعيف':'حمل · تيار قوي'}</span>${isTurn(h.day)?' <span class="chip">يوم تحول</span>':''}`;
+  const vd=viewDays(),fv=fdays.map(x=>score(x).val),mx=Math.max.apply(null,fv),bestDay=fdays[fv.indexOf(mx)];
+  const bars=vd.map((x,i)=>{const sc=score(x),v=sc.val,k=iso(x),hx=hijri(x);
+    return `<button class="bar" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${gDate(x)} · ${sc.prelim?'تقييم مبدئي':'مؤشر'} ${v}% · ${isFasad(hx.day)?'فساد':'حمل'}" aria-label="${gDate(x)}، ${sc.prelim?'تقييم مبدئي':'مؤشر'} ${v}%"><span class="bt">${(!sc.prelim&&v===mx)?'<span class="best">الأفضل</span>':''}<span class="bn">${v}%</span><span class="bf ${sc.prelim?'pre':sClass(v)}" style="height:${Math.round(v*0.9)}px"></span></span><span class="wd">${WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="mo">${(i===0||x.getDate()===1)?GM[x.getMonth()]:''}</span></button>`}).join('')
+    +'<button class="bar more" data-act="more">شهر كمان</button>';
+  const chart=`<div class="card chart"><h2>أفضل أيام الصيد</h2>
+    <div class="muted">أحسن يوم في توقعات الجو ${gDate(bestDay)}. اسحب لقدام تشوف الشهور الجاية، واضغط على أي يوم.</div>
+    <div class="bars" id="bars">${bars}</div>
+    <div class="legend"><span><i class="g1"></i>80% وأكتر ممتاز</span><span><i class="g2"></i>70% كويس</span><span><i class="g3"></i>50% متوسط</span><span><i class="g4"></i>أقل من 50% ضعيف</span><span><i class="pre"></i>مبدئي من الهجري، من غير جو</span></div>${liveNote()}</div>`;
+  const rows=SLOTS.map((t,i)=>`<div class="row"><span>${t}</span>
+    <span class="wind" style="background:${windColor(w.wind[i])}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#0B2A3F" style="transform:rotate(${w.dir[i]}deg)"><path d="M12 2l6 18-6-4-6 4z"/></svg>${w.wind[i]} <small>عقدة · ${dirName(w.dir[i])}</small></span>
+    <span>${w.wave[i].toFixed(1)} م</span>
+    <span class="temp" style="background:${tempColor(w.temp[i])}">${w.temp[i]}°</span></div>`).join('');
+  const dayTrips=trips.filter(t=>t.date===sel&&matchDur(t));
+  let tripsHtml;
+  if(dayTrips.length)tripsHtml=dayTrips.map(tripCard).join('');
+  else{
+    const near=(dur===''&&mode==='seat')?[]:trips.filter(t=>matchDur(t)&&t.date!==sel).sort(byDate).slice(0,3);
+    tripsHtml=`<div class="trip"><strong>${mode==='boat'?'مفيش مركب متاحة كاملة':'مفيش رحلات'}${dur===''?'':' '+dWord(Number(dur))} بتبدأ في اليوم ده</strong><div class="bot"><span class="muted">${alerts[sel]?'هننبهك أول ما تنزل رحلة فيه.':'نبعتلك تنبيه أول ما تنزل رحلة؟'}</span><button class="btn ghost" data-act="alert" ${alerts[sel]?'disabled':''}>${alerts[sel]?'التنبيه شغال':'نبهني'}</button></div></div>`
+      +(near.length?'<span class="muted" style="font-weight:700">أقرب اختيارات متاحة</span>'+near.map(tripCard).join(''):'');
+  }
+  return `${morning()}${chart}
+  ${s.prelim?`<div class="card sum"><div class="big pre"><b>${s.val}%</b><span>مبدئي</span></div>
+    <div><h2>${gDate(d)} ${d.getFullYear()}</h2><div class="muted">${hText(d)}</div>
+    <div style="margin-top:6px">${tideChips}</div>
+    <div class="muted" style="margin-top:6px">التقييم ده من التاريخ الهجري بس. توقعات الجو بتظهر قبل اليوم بـ${FORECAST_DAYS} أيام، ووقتها المؤشر بيتحدث. تقدر تحجز من دلوقتي.</div>${fishLine(d)}</div></div>
+  <div class="card tbl">${areaPick()}</div>`:
+  `<div class="card sum hasbrk"><div class="big ${sClass(s.val)}"><b>${s.val}%</b><span>مؤشر الصيد</span></div>
+    <div><h2>${sWord(s.val)}</h2><div class="muted">${gDate(d)} · ${hText(d)}</div>
+    <div style="margin-top:6px">${tideChips}</div>
+    <div class="muted" style="margin-top:6px">أهدى رياح الساعة ${SLOTS[s.best]} · الضغط ${s.stable?'مستقر':'بيتغير'}</div>${fishLine(d)}</div></div>${breakdown(s)}
+  <div class="card tbl">${areaPick()}<div class="row h"><span>الوقت</span><span>الرياح</span><span>الموج</span><span style="text-align:center">الحرارة</span></div>${rows}</div>`}
+  ${tideCard(d)}
+  ${moonCard(d)}
+  <div class="sec"><h2>رحلات تبدأ يوم ${gDate(d)}</h2>${durFilter()}${tripsHtml}</div>`;
+}
+function tripsView(){
+  const list=trips.filter(matchDur).sort(byDate);
+  return `<div class="sec"><h2>الرحلات المتاحة</h2>${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
+}
+function askView(){
+  return `<div class="sec"><h2>اسأل فيش بوك</h2>
+  <button class="q" data-act="ask" data-q="best10">إيه أحسن 3 أيام في الـ10 أيام الجاية؟</button>
+  <button class="q" data-act="ask" data-q="month">إيه أحسن أيام الشهر الجاي؟</button>
+  <button class="q" data-act="ask" data-q="today">النهارده حمل ولا فساد؟</button>
+  <button class="q" data-act="ask" data-q="trips">في رحلات فيها أماكن في أيام كويسة؟</button></div>
+  <div class="sec ans" aria-live="polite">${answer}</div>`;
+}
+function ask(q){
+  if(q==='best10'){const top=fdays.map(d=>({d,s:score(d).val})).sort((a,b)=>b.s-a.s).slice(0,3);
+    answer='<h2>أحسن 3 أيام</h2>'+top.map(x=>{const h=hijri(x.d);return `<div class="trip"><div class="top"><div><strong>${gDate(x.d)}</strong><div class="muted">${h.day} ${HM[h.month]} · ${isFasad(h.day)?'فساد':'حمل'}</div></div><span class="pill ${sClass(x.s)}">${x.s}%</span></div><button class="btn ghost" data-act="goto" data-d="${iso(x.d)}">شوف اليوم ورحلاته</button></div>`}).join('');}
+  else if(q==='month'){const out=[];let run=null;
+    for(let i=FORECAST_DAYS;i<FORECAST_DAYS+30;i++){const d=addDays(today,i),f=isFasad(hijri(d).day);
+      if(f){if(!run)run={a:d,b:d};else run.b=d}else if(run){out.push(run);run=null}}
+    if(run)out.push(run);
+    answer='<h2>أيام الفساد الجاية، المناسبة لرحلات المراكب</h2>'+out.map(r=>`<div class="trip"><strong>من ${gDate(r.a)} لحد ${gDate(r.b)}</strong><span class="muted">${hijri(r.a).day} ${HM[hijri(r.a).month]} لحد ${hijri(r.b).day} ${HM[hijri(r.b).month]}</span></div>`).join('')+
+    '<p class="muted">ده تقييم مبدئي من التاريخ الهجري بس. توقعات الجو بتبان قبل اليوم بـ10 أيام، ووقتها المؤشر بيتحدث.</p>';}
+  else if(q==='today'){const h=hijri(today),f=isFasad(h.day),s=score(today).val;
+    answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${f?'التيار ضعيف، ومناسب للصيد من المركب.':'التيار قوي، والصيد من الشاطئ أنسب.'}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
+  else{const good=trips.filter(t=>t.left>0&&tripScore(t).val>=70).sort(byDate);
+    answer='<h2>رحلات مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
+  render();
+}
+function tripTable(mine){
+  if(!mine.length)return '<div class="sec"><h2>جدول رحلاتي</h2><span class="muted">لسه منشرتش رحلات.</span></div>';
+  const tot=mine.reduce((a,t)=>a+t.total,0),need=mine.reduce((a,t)=>a+t.left,0);
+  return `<div class="sec"><h2>جدول رحلاتي (${mine.length})</h2>
+  <div class="tiles"><div class="tile"><b>${tot}</b><span>كل الأماكن</span></div><div class="tile"><b>${tot-need}</b><span>محجوز</span></div><div class="tile"><b>${need}</b><span>محتاج يتملى</span></div></div>
+  <div class="legend"><span><i class="seat on" style="width:14px;height:14px"></i>مكان محجوز</span><span><i></i>مكان فاضي</span></div>
+  <ul class="list">${mine.map(t=>{const bk=t.total-t.left;let sq='';for(let i=0;i<t.total;i++)sq+='<i class="seat'+(i<bk?' on':'')+'"></i>';
+    const st=t.left===0?['كاملة','s-good']:bk===0?['لسه فاضية','s-bad']:['ناقص '+t.left,'s-mid'];
+    return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)} · ${dWord(t.n)}</div></div><span class="pill ${st[1]}">${st[0]}</span></div>
+    <div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div><span class="muted">محجوز ${bk} · فاضي ${t.left} · ${t.price} جنيه للفرد${t.full>0?' · '+t.full+' للمركب كاملة':''}</span></li>`}).join('')}</ul></div>`;
+}
+function ownerCal(){
+  const N=28;
+  return `<div class="sec"><h2>جدول مراكبي، الـ${N} يوم الجايين</h2>
+  <div class="legend"><span><i></i>يوم متاح</span><span><i class="trip"></i>عليه رحلة لسه فيها أماكن</span><span><i class="full"></i>محجوز كامل</span></div>
+  <ul class="list">${boats.map(b=>{let cells='',free=0;
+    for(let i=0;i<N;i++){const d=addDays(today,i),k=iso(d);
+      const ts=trips.filter(t=>t.boat===b.name&&k>=t.date&&k<=iso(addDays(fromIso(t.date),t.n-1)));
+      const st=!ts.length?'':ts.some(t=>t.left===0)?' full':' trip';if(!st)free++;
+      cells+=`<div class="cd${st}" title="${st===' full'?'محجوز كامل':st?'عليه رحلة':'متاح'}"><small>${WDS[d.getDay()]}</small><b>${d.getDate()}</b></div>`}
+    return `<li><div class="top"><strong>${esc(b.name)}</strong><span class="muted">تشيل ${b.cap} فرد</span></div><div class="cal">${cells}</div><span class="muted">متاح ${free} يوم · مشغول ${N-free} يوم</span></li>`}).join('')}</ul></div>`;
+}
+function manageView(){
+  const owner=role==='owner';
+  const mine=trips.filter(t=>t.by===role).sort(byDate),myB=bookings.filter(b=>b.by===role);
+  const boatForm=owner?`<div class="card"><form id="addBoat" novalidate><h2>ضيف مركب</h2>
+    <label for="bbName">اسم المركب<input id="bbName" maxlength="40" autocomplete="off"></label>
+    <label for="bbCap">تشيل كام فرد<input id="bbCap" type="number" inputmode="numeric" min="1" max="60" value="10"></label>
+    <div class="err" id="bbErr" role="alert"></div>
+    <button class="btn ghost" type="submit">ضيف المركب</button></form></div>`:'';
+  return `<div class="sec"><h2>الإدارة</h2><div class="seg" role="group" aria-label="نوع الحساب">
+    <button data-act="role" data-r="org" aria-pressed="${!owner}">منظم رحلات</button>
+    <button data-act="role" data-r="owner" aria-pressed="${owner}">صاحب مركب</button></div>
+    <span class="muted">${owner?'سجّل مراكبك وانشر رحلات عليها بنفسك.':'اختار مركب وانشر رحلتك للصيادين.'}</span></div>
+  ${owner?ownerCal():''}
+  ${tripTable(mine)}
+  <div class="sec"><h2>الحجوزات (${myB.length})</h2>${myB.length?'<ul class="list">'+myB.map(b=>`<li><strong>${esc(b.name)}</strong> · ${esc(b.phone)}<br><span class="muted">${esc(b.boat)} · ${b.range} · ${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}</span></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش حجوزات على رحلاتك.</span>'}</div>
+  ${rateSec(owner,mine)}
+  <div class="card"><form id="addTrip" novalidate><h2>انشر رحلة</h2>
+    ${owner?'':'<label for="tOrg">اسمك كمنظم<input id="tOrg" maxlength="40" value="منظم تجريبي 1" autocomplete="off"></label>'}
+    <label for="tBoat">المركب<select id="tBoat">${boats.map(b=>`<option value="${b.id}">${esc(b.name)} · ${b.cap} فرد</option>`).join('')}</select></label>
+    <label for="tDate">يوم البداية (أي تاريخ من النهارده)<input id="tDate" type="date" min="${iso(today)}" value="${iso(addDays(today,1))}"></label>
+    <label for="tDays">عدد أيام الرحلة<input id="tDays" type="number" inputmode="numeric" min="1" value="1"></label>
+    <label for="tSeats">عدد الأماكن<input id="tSeats" type="number" inputmode="numeric" min="1" value="8"></label>
+    <label for="tPrice">السعر للفرد بالجنيه<input id="tPrice" type="number" inputmode="numeric" min="0" value="1500"></label>
+    <label for="tFull">سعر المركب كاملة بالجنيه (سيبه فاضي لو مش متاح)<input id="tFull" type="number" inputmode="numeric" min="0"></label>
+    <div class="err" id="tErr" role="alert"></div>
+    <button class="btn" type="submit">انشر الرحلة</button></form></div>
+  ${boatForm}`;
+}
+function render(){
+  $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():manageView();
+  document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
+    if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
+}
+function go(v){view=v;try{location.hash=v}catch(e){}render();$('#main').scrollTop=0}
+
+/* ---------- Booking sheet ---------- */
+function openBook(id){
+  const t=trips.find(x=>x.id===id);if(!t||t.left<1)return;
+  const whole=mode==='boat';if(whole&&!wholeFree(t))return;
+  const n=whole?t.total:Math.min(t.left,6);let o='';for(let i=1;i<=n;i++)o+=`<option value="${i}">${i}</option>`;
+  $('#sheet').innerHTML=`<h2>${whole?'حجز المركب كاملة: ':'حجز مكان في '}${esc(t.boat)}</h2><span class="muted">${tripRange(t)} · ${dWord(t.n)} · ${whole?t.full+' جنيه للمركب كاملة':t.price+' جنيه للفرد'}</span>
+  <form id="bookForm" data-id="${t.id}" data-kind="${whole?'boat':'seat'}" novalidate>
+    <label for="bName">الاسم<input id="bName" maxlength="40" autocomplete="name"></label>
+    <label for="bPhone">رقم الموبايل<input id="bPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel"></label>
+    <label for="bSeats">${whole?'هتطلعوا كام فرد':'عدد الأماكن'}<select id="bSeats">${o}</select></label>
+    <div class="err" id="bErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
+  $('#ovl').hidden=false;$('#bName').focus();
+}
+function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML=''}
+
+document.addEventListener('click',e=>{
+  const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
+  const a=e.target.closest('[data-act]');if(!a){if(e.target.id==='ovl')closeSheet();return}
+  const act=a.dataset.act;const be=$('#bars');if(be)barScroll=be.scrollLeft;
+  if(act==='day'){sel=a.dataset.d;render()}
+  else if(act==='goto'){sel=a.dataset.d;ensureH(sel);reveal=true;go('home')}
+  else if(act==='more'){H+=30;render()}
+  else if(act==='alert'){alerts[sel]=true;render()}
+  else if(act==='role'){role=a.dataset.r;render()}
+  else if(act==='mode'){mode=a.dataset.m;render()}
+  else if(act==='ask')ask(a.dataset.q);
+  else if(act==='book')openBook(Number(a.dataset.id));
+  else if(act==='close')closeSheet();
+  else if(act==='notif'){notifOn=!notifOn;render()}
+  else if(act==='reload'){live='loading';render();loadLive()}
+  else if(act==='ratetrip')openTripRate(Number(a.dataset.id));
+  else if(act==='nav')go(a.dataset.v);
+  else if(act==='dellog'){const id=Number(a.dataset.id);logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()}
+  else if(act==='rate')openRate(a.dataset.k);
+  else if(act==='star'){starSel=Number(a.dataset.n);document.querySelectorAll('.st').forEach((b,i)=>{b.classList.toggle('on',i<starSel);b.setAttribute('aria-pressed',i<starSel?'true':'false')})}
+});
+document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target.files&&e.target.files[0]);return}
+  if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
+  if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovl').hidden)closeSheet()});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(e.target.id==='bookForm'){
+    const t=trips.find(x=>x.id===Number(e.target.dataset.id));
+    const name=$('#bName').value.trim(),phone=$('#bPhone').value.trim(),seats=Number($('#bSeats').value);
+    if(name.length<2){$('#bErr').textContent='اكتب الاسم.';return}
+    if(!/^\+?\d{10,14}$/.test(phone)){$('#bErr').textContent='اكتب رقم موبايل صحيح، أرقام بس.';return}
+    const whole=e.target.dataset.kind==='boat';
+    if(whole&&(!t||!wholeFree(t))){$('#bErr').textContent='المركب اتحجز فيها أماكن ومبقتش متاحة كاملة.';return}
+    if(!t||seats<1||seats>t.left){$('#bErr').textContent='عدد الأماكن المتاحة أقل من المطلوب.';return}
+    if(whole)t.left=0;else t.left-=seats;
+    bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0});
+    $('#sheet').innerHTML=`<h2>الحجز اتسجل</h2><p style="margin:0">${whole?'المركب كاملة لـ'+seats+' فرد: ':seats+(seats>1?' أماكن في ':' مكان في ')}${esc(t.boat)}، ${tripRange(t)}.</p><p class="muted" style="margin:0">ده حجز تجريبي: مفيش دفع ومفيش رسالة اتبعتت. هتلاقيه في الإدارة عند ${t.by==='owner'?'صاحب المركب':'منظم الرحلات'}.</p><button class="btn" data-act="close">تمام</button>`;
+    render();
+  }else if(e.target.id==='rateForm'){
+    const k=e.target.dataset.k;
+    if(starSel<1){$('#rErr').textContent='اختار عدد النجوم الأول.';return}
+    (ratings[k]=ratings[k]||[]).push({s:starSel,text:$('#rText').value.trim(),name:$('#rName').value.trim()});
+    render();openRate(k,true);
+  }else if(e.target.id==='logForm'){
+    const species=($('#lSp').value||$('#lOther').value.trim()),kg=Math.round(Number($('#lKg').value)*10)/10,date=$('#lDate').value,bait=$('#lBait').value.trim();
+    const time=/^\d{2}:\d{2}$/.test($('#lTime').value)?$('#lTime').value:'',spot=$('#lSpot').value.trim(),trip=$('#lTrip')?$('#lTrip').value:'';
+    if(species.length<2){$('#lErr').textContent='اكتب نوع السمك.';return}
+    if(!(kg>0)){$('#lErr').textContent='اكتب الوزن بالكيلو، رقم أكبر من صفر.';return}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>iso(today)){$('#lErr').textContent='اختار يوم الصيد، النهارده أو قبله.';return}
+    const id=Date.now(),f=$('#lImg').files&&$('#lImg').files[0];
+    if(f&&f.type.indexOf('image/')===0){try{shots[id]=URL.createObjectURL(f)}catch(err){}}
+    logs.push({id,date,time,species,kg,bait,spot,trip});saveLogs();render();
+  }else if(e.target.id==='tripRateForm'){
+    const b=bookings.find(x=>x.id===Number(e.target.dataset.id));
+    if(starSel<1){$('#trErr').textContent='اختار عدد النجوم الأول.';return}
+    if(b){const r={s:starSel,text:$('#trText').value.trim(),name:b.name};(ratings['b:'+b.boat]=ratings['b:'+b.boat]||[]).push(r);
+      if(b.org)(ratings['o:'+b.org]=ratings['o:'+b.org]||[]).push(r);b.rated=starSel}
+    closeSheet();render();
+  }else if(e.target.id==='addBoat'){
+    const name=$('#bbName').value.trim(),cap=Number($('#bbCap').value);
+    if(name.length<2){$('#bbErr').textContent='اكتب اسم المركب.';return}
+    if(!(cap>=1&&cap<=60)){$('#bbErr').textContent='عدد الأفراد من 1 لـ 60.';return}
+    boats.push({id:nextId++,name,cap:Math.round(cap)});render();
+  }else if(e.target.id==='addTrip'){
+    const b=boats.find(x=>x.id===Number($('#tBoat').value)),date=$('#tDate').value;
+    const n=Number($('#tDays').value),seats=Number($('#tSeats').value),price=Number($('#tPrice').value),full=Number($('#tFull').value)||0;
+    if(!b){$('#tErr').textContent='اختار المركب.';return}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<iso(today)){$('#tErr').textContent='اختار تاريخ من النهارده أو بعده.';return}
+    if(!(n>=1)||n!==Math.round(n)){$('#tErr').textContent='اكتب عدد الأيام رقم صحيح، يوم أو أكتر.';return}
+    if(!(seats>=1)){$('#tErr').textContent='اكتب عدد الأماكن.';return}
+    if(seats>b.cap){$('#tErr').textContent='المركب دي تشيل '+b.cap+' فرد بس.';return}
+    if(!(price>=0)||full<0){$('#tErr').textContent='اكتب السعر بالأرقام.';return}
+    trips.push({id:nextId++,date,boat:b.name,n,total:Math.round(seats),left:Math.round(seats),price:Math.round(price),full:Math.round(full),by:role,org:role==='org'?(($('#tOrg')&&$('#tOrg').value.trim())||'منظم تجريبي 1'):''});
+    dur='';mode='seat';sel=date;ensureH(date);reveal=true;
+    go('trips');
+  }
+});
+function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
+window.addEventListener('hashchange',fromHash);
+const h0=(location.hash||'').slice(1);if(['home','trips','ask','log','manage'].includes(h0))view=h0;
+/* آخر جو متحمّل (لو أحدث من 6 ساعات) يظهر فورًا، وبعدين نحدّث من النت */
+try{const c=JSON.parse(localStorage.getItem('fishbook-live')||'null');if(c&&c.area===area.id&&c.wj&&c.wj.hourly&&Date.now()-c.at<6*3600e3){applyLive(c.wj,c.mj);live='cache';liveAt=c.at}}catch(e){}
+if(live!=='cache')useSnap();
+$('#hArea').textContent=area.name+' · نسخة تجريبية';
+render();
+loadLive();
+// التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
