@@ -16,6 +16,24 @@ self.addEventListener('activate', e => {
   );
 });
 
+// الإشعارات: السيرفر بيبعت {title, body, url}
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data.json(); } catch (x) {}
+  e.waitUntil(self.registration.showNotification(d.title || 'فيش بوك', {
+    body: d.body || '', icon: 'logo.svg', dir: 'rtl', lang: 'ar', data: { url: d.url || './' }
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const u = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    for (const c of cs) if (c.url.indexOf(self.registration.scope) === 0) { c.navigate(u); return c.focus(); }
+    return self.clients.openWindow(u);
+  }));
+});
+
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;

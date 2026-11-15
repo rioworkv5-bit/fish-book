@@ -328,7 +328,7 @@ async function loadLive(){
 /* تغيير المنطقة: نمسح جو المنطقة القديمة ونحمّل الجديدة */
 function setArea(id){const f=AREAS.find(a=>a.id===id);if(!f||f===area)return;area=f;try{localStorage.setItem('fishbook-area',f.id)}catch(e){}
   realWx={};sea=[];tideEv=[];TIDE_ANCHOR=TIDE_ANCHOR0;for(const k in wxCache)delete wxCache[k];live='loading';
-  const hs=$('#hArea');if(hs)hs.textContent=area.name+' · نسخة تجريبية';render();loadLive()}
+  const hs=$('#hArea');if(hs)hs.textContent=area.name+' · نسخة تجريبية';render();loadLive();syncNotif()}
 const areaPick=()=>`<div class="filter" style="padding:10px 18px 8px"><label for="areaSel">جو منطقة<select id="areaSel">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label></div>`;
 /* النسخة المنشورة على claude.ai ممنوع فيها الاتصال بالنت، فبيتحط معاها جو محفوظ وقت النشر في window.FB_SNAPSHOT */
 function useSnap(){const s=window.FB_SNAPSHOT,x=s&&s.areas&&s.areas[area.id];if(!x||!x.wj||!x.wj.hourly)return false;applyLive(x.wj,x.mj);live='snap';liveAt=s.at;return true}
@@ -496,7 +496,7 @@ function openTripRate(id){
   $('#ovl').hidden=false;
 }
 /* ---------- إشعار الصبح ---------- */
-let notifOn=false;
+let notifOn=false,notifMsg='';
 function nextSlack(){const now=Date.now(),e=tideEvents(now-SLACK_LAG,now-SLACK_LAG+864e5).ev[0];return e?e.t+SLACK_LAG:0}
 function morning(){
   const s=score(today),fas=isFasad(hijri(today).day),nx=nextSlack();
@@ -504,7 +504,7 @@ function morning(){
   return `<div class="card notif"><div class="top"><span class="chip">إشعار الصبح</span><button class="btn ghost sm" data-act="notif" aria-pressed="${notifOn}">${notifOn?'الإشعار شغال':'فعّل الإشعار'}</button></div>
   <strong style="font-size:16px">النهارده ${s.val}% ·${fas?'فساد':'حمل'}</strong>
   <span class="muted">${nx?'التوقيفة الجاية '+tm(nx)+' · ':''}أهدى رياح ${SLOTS[s.best]}${sp.length?' · موسم '+sp.join(' و'):''}${n?' · '+n+' رحلة فيها أماكن':''}</span>
-  ${notifOn?'<span class="muted">في التطبيق الحقيقي الرسالة دي هتوصلك على الموبايل كل يوم الصبح. النسخة التجريبية مبتبعتش إشعارات.</span>':''}
+  ${notifMsg?'<span class="muted">'+esc(notifMsg)+'</span>':notifOn?(srvOn()?'<span class="muted">هيوصلك على الجهاز ده إشعار كل يوم الصبح، وإشعار لما حد يحجز عندك أو رحلتك تتلغي.</span>':'<span class="muted">في التطبيق الحقيقي الرسالة دي هتوصلك على الموبايل كل يوم الصبح. النسخة التجريبية مبتبعتش إشعارات.</span>'):''}
   <div class="rates"><button class="rate" data-act="nav" data-v="log">سجّل صيدة</button></div></div>`;
 }
 
@@ -656,6 +656,7 @@ async function loadSrv(){
     if(srv!=='ok')srv='fail';
   }
   render();
+  syncNotif();
 }
 async function doAuth(email,pw,name){
   authMsg='';
@@ -667,8 +668,9 @@ async function doAuth(email,pw,name){
   await loadSrv();
 }
 async function signOut(){
+  await dropSub(false); /* الإشعارات متكملش توصل للجهاز ده بعد الخروج */
   try{await sbFetch('/auth/v1/logout',{method:'POST'})}catch(e){}
-  saveSes(null);me=null;bookings.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
+  notifOn=false;notifMsg='';saveSes(null);me=null;bookings.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
   await loadSrv();
 }
 async function setRole(r){
@@ -685,6 +687,39 @@ function authCard(note){
     <label for="aPw">كلمة السر${up?' (6 حروف أو أرقام على الأقل)':''}<input id="aPw" type="password" maxlength="72" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
     <div class="err" id="aErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">${up?'اعمل الحساب':'ادخل'}</button>${sheetAuth?'<button class="btn ghost" type="button" data-act="close">إلغاء</button>':''}</div></form>`;
+}
+/* الإشعارات (Web Push): الاشتراك بيتحفظ في push_subs، والإرسال من دالة push على السيرفر */
+const pushOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&/^https?:$/.test(location.protocol);
+async function pushFn(body){const r=await fetch(SB_URL+'/functions/v1/push',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json()}
+const kick=()=>{pushFn({action:'drain'}).catch(()=>{})}; /* ابعت الإشعارات المستنية دلوقتي */
+const b64u=s=>{const p=(s+'==='.slice((s.length+3)%4)).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(p),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return a};
+async function curSub(){const reg=await navigator.serviceWorker.ready;return reg.pushManager.getSubscription()}
+async function saveSub(s){const j=s.toJSON();
+  await sbFetch('/rest/v1/rpc/save_push_sub',{method:'POST',body:{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_area:area.id,p_area_name:area.name,p_lat:area.lat,p_lon:area.lon}})}
+async function syncNotif(){
+  const was=notifOn;
+  try{if(!pushOk()||!srvOn()||!uid())notifOn=false;
+    else{const s=await curSub();notifOn=!!s&&Notification.permission==='granted';if(notifOn)await saveSub(s)}}catch(e){notifOn=false}
+  if(was!==notifOn)render();
+}
+async function dropSub(unsub){try{if(!pushOk())return;const s=await curSub();if(!s)return;
+  await sbFetch('/rest/v1/rpc/drop_push_sub',{method:'POST',body:{p_endpoint:s.endpoint},noAuth:true});if(unsub)await s.unsubscribe()}catch(e){}}
+async function toggleNotif(){
+  notifMsg='';
+  if(!srvOn()){notifOn=!notifOn;render();return}
+  if(!uid()){openAuth('ادخل بحسابك عشان الإشعارات توصلك على الجهاز ده، وبعدين اضغط "فعّل الإشعار" تاني.');return}
+  if(!pushOk()){notifMsg='المتصفح ده مبيدعمش الإشعارات. على آيفون: ثبّت التطبيق على الشاشة الرئيسية الأول وافتحه منها.';render();return}
+  try{
+    if(notifOn){await dropSub(true);notifOn=false;notifMsg='الإشعارات اتقفلت على الجهاز ده.'}
+    else{
+      const p=await Notification.requestPermission();
+      if(p!=='granted'){notifMsg='الإشعارات مقفولة للموقع ده من إعدادات المتصفح. افتحها من الإعدادات وجرّب تاني.';render();return}
+      const reg=await navigator.serviceWorker.ready,k=(await pushFn({action:'key'})).key;
+      const s=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k)});
+      await saveSub(s);notifOn=true;notifMsg='الإشعارات اتفعّلت على الجهاز ده.';
+    }
+  }catch(e){notifMsg='معرفناش نفعّل الإشعارات على الجهاز ده.'}
+  render();
 }
 /* إلغاء الحجز، وتعديل وإلغاء الرحلة (بتشتغل مع السيرفر بس) */
 function openCancelBk(id){
@@ -902,7 +937,7 @@ document.addEventListener('click',e=>{
   else if(act==='ask')ask(a.dataset.q);
   else if(act==='book')openBook(Number(a.dataset.id));
   else if(act==='close')closeSheet();
-  else if(act==='notif'){notifOn=!notifOn;render()}
+  else if(act==='notif')toggleNotif();
   else if(act==='reload'){live='loading';render();loadLive()}
   else if(act==='ratetrip')openTripRate(Number(a.dataset.id));
   else if(act==='nav')go(a.dataset.v);
@@ -927,7 +962,7 @@ document.addEventListener('submit',e=>{
     if(!t||seats<1||seats>t.left){$('#bErr').textContent='عدد الأماكن المتاحة أقل من المطلوب.';return}
     if(srvOn()){srvRun(e.target,'#bErr',async()=>{
       await sbFetch('/rest/v1/rpc/book_trip',{method:'POST',body:{p_trip:t.id,p_seats:seats,p_whole:whole,p_name:name,p_phone:phone}});
-      showBooked(t,whole,seats);await loadSrv()});return}
+      kick();showBooked(t,whole,seats);await loadSrv()});return}
     if(whole)t.left=0;else t.left-=seats;
     bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0});
     showBooked(t,whole,seats);
@@ -943,10 +978,10 @@ document.addEventListener('submit',e=>{
       if(sheetAuth)closeSheet();render()});
   }else if(e.target.id==='cancelBk'){
     const id=Number(e.target.dataset.id);
-    srvRun(e.target,'#cbErr',async()=>{await sbFetch('/rest/v1/rpc/cancel_booking',{method:'POST',body:{p_booking:id}});closeSheet();await loadSrv()});
+    srvRun(e.target,'#cbErr',async()=>{await sbFetch('/rest/v1/rpc/cancel_booking',{method:'POST',body:{p_booking:id}});kick();closeSheet();await loadSrv()});
   }else if(e.target.id==='cancelTrip'){
     const id=Number(e.target.dataset.id);
-    srvRun(e.target,'#ctErr',async()=>{await sbFetch('/rest/v1/trips?id=eq.'+id,{method:'PATCH',body:{status:'cancelled'}});closeSheet();await loadSrv()});
+    srvRun(e.target,'#ctErr',async()=>{await sbFetch('/rest/v1/trips?id=eq.'+id,{method:'PATCH',body:{status:'cancelled'}});kick();closeSheet();await loadSrv()});
   }else if(e.target.id==='editTrip'){
     const t=trips.find(x=>x.id===Number(e.target.dataset.id));if(!t)return;
     const bk=t.total-t.left,b=boats.find(x=>x.id===t.boatId),date=$('#eDate').value;
