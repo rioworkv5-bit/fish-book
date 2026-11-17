@@ -4,19 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>فيش بوك تجريبي</title>
-<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1479B8">
+<meta name="theme-color" content="#DFF2F5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="فيش بوك">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
 <style>
 :root{
   /* layout: one phone-width column, calm header, roomy cards on a pale sea-grey ground, bottom tab bar */
-  --ground:#F2F5F7; --card:#FFFFFF; --line:#E1E8ED; --ink:#0B2A3F; --muted:#44566A;
-  --brand:#0B2A3F; --soft:#E8F0F5; --accent:#B84E0A;
-  --good:#0E5A4E; --ok:#BFE6DC; --mid:#FFE2A8; --bad:#F6C9BF;
+  --ground:#F1F8FA; --card:#FFFFFF; --line:#E1EDF1; --ink:#0E2A44; --muted:#4A6072;
+  --brand:#0E2A44; --soft:#E1F0F3; --accent:#0B7C88; --teal:#22B8C4;
+  --good:#10314F; --ok:#7FD6DD; --mid:#FFE2A8; --bad:#F6C9BF;
+  --shadow:0 6px 22px rgba(14,60,90,.08),0 1px 2px rgba(14,60,90,.04);
   --font:'Cairo','Segoe UI',Tahoma,sans-serif;
   color-scheme:light;
 }
@@ -161,11 +162,81 @@ button.cd{padding:5px 0 9px}
 .bkb{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;display:block}
 .bkb i{display:block;height:100%;border-radius:4px}
 ul.list li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+
+/* ===== الشكل الجديد (اتجاه A من ماجنافيك): أرضية مائية فاتحة، كروت بيضا ناعمة من غير إطار،
+   كحلي وتركواز، دايرة للنسبة، وشريط تبويبات كحلي. القواعد دي بتعدّل على اللي فوق. ===== */
+body{background:#D9EBF0}
+#app{background:linear-gradient(180deg,#DFF2F5 0,var(--ground) 300px)}
+header{background:none;color:var(--ink);padding:14px 18px 8px;justify-content:flex-start;gap:12px}
+header .logo{flex:0 0 48px;width:48px;height:48px;border-radius:14px;box-shadow:0 6px 14px rgba(14,42,68,.22)}
+header h1{font-size:24px;gap:0}
+header h1 span{color:var(--ink);font-size:inherit;font-weight:inherit}
+header h1 .wm{font-size:25px;padding-bottom:5px}header h1 .wm2{color:#0E9AA7}
+header #hArea{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+.hd{display:flex;flex-direction:column;gap:1px;min-width:0}
+main{scroll-behavior:smooth;padding-bottom:28px;scrollbar-width:thin;scrollbar-color:#C5DCE3 transparent}
+.bars,.strip{scrollbar-width:thin;scrollbar-color:#C5DCE3 transparent;padding-bottom:6px}
+.card,.trip,ul.list li,.q,.tile{border:0;box-shadow:var(--shadow)}
+.card{border-radius:24px;margin:16px 16px 0;padding:20px}
+.trip{border-radius:22px;padding:18px}
+ul.list li{border-radius:18px}
+.q{border-radius:18px;transition:transform .12s}
+.q:active{transform:scale(.985)}
+.sec{margin:26px 16px 0}
+.strip{padding-inline:16px}
+.brk{margin:0 16px;border:0;border-top:1px solid var(--line);border-radius:0 0 24px 24px;padding:8px 20px 14px;box-shadow:0 12px 22px rgba(14,60,90,.07)}
+.card.sum.hasbrk{border-radius:24px 24px 0 0}
+.tbl{padding:8px 0}
+/* دايرة النسبة */
+.big{flex:0 0 98px;width:98px;height:98px;border-radius:50%;color:var(--ink);--ring:var(--teal);
+  background:radial-gradient(closest-side,#fff 79%,transparent 80%),conic-gradient(var(--ring) calc(var(--p,0)*1%),#DCEBEF 0)}
+.big.s-good{--ring:#10314F}.big.s-ok{--ring:var(--teal)}.big.s-mid{--ring:#E9B93A}.big.s-bad{--ring:#E07A5F}
+.big b{font-size:26px}.big span{font-size:11px;color:var(--muted)}
+.big.pre{background:#fff;border:2px dashed #7F97A8}
+/* الأعمدة */
+.bar{border-radius:14px;transition:background .2s}
+.bar[aria-pressed="true"]{background:#D9EEF2}
+.bar .bt{border-bottom:0}
+.bar .bf{border-radius:8px;max-width:22px;transition:height .45s cubic-bezier(.2,.8,.2,1)}
+.bar .bf.pre{border:2px dashed #7F97A8;border-radius:8px}
+.bar.more{border-color:#9AD3D9;color:#0B6F7A;border-radius:14px}
+.pill{border-radius:999px;padding:1px 10px}
+.chip{background:#E1F2F4;color:#0B5560;border-radius:999px;padding:3px 12px}
+.rate{border-radius:999px;border-color:var(--line)}
+/* الزراير */
+.btn{border-radius:16px;background:linear-gradient(180deg,#0E8996,#0A6E79);box-shadow:0 6px 14px rgba(11,124,136,.28);transition:transform .12s,box-shadow .2s}
+.btn:active{transform:scale(.97);box-shadow:0 2px 6px rgba(11,124,136,.28)}
+.btn[disabled]{background:#DCE6EA;color:#5B7080;box-shadow:none}
+.btn.ghost{background:#fff;color:#0B6F7A;border:1.5px solid #9AD3D9;box-shadow:none}
+input,select{border:1.5px solid #CFE0E6;border-radius:14px;background:#F8FCFD;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(34,184,196,.18);outline:0}
+.seg{background:#DDEDF1;border-radius:16px}
+.seg button{border-radius:13px;transition:background .2s,color .2s}
+/* شريط التبويبات */
+nav{background:#0E2A44;border-top:0;border-radius:24px 24px 0 0;padding:6px 6px 10px;box-shadow:0 -8px 22px rgba(14,42,68,.2)}
+nav button{color:#A9C4D6;border-radius:16px;transition:background .2s,color .2s}
+nav button[aria-current="page"]{color:#fff;font-weight:800;background:rgba(34,184,196,.2);box-shadow:inset 0 3px 0 var(--teal)}
+/* كارت إشعار الصبح: كحلي */
+.card.notif{background:linear-gradient(135deg,#0E2A44,#14506C);color:#fff}
+.notif .muted{color:#C9DDE8}
+.notif .chip{background:rgba(255,255,255,.16);color:#fff}
+.notif .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+.notif .rate{background:rgba(255,255,255,.14);color:#fff;border:0}
+/* النوافذ */
+.ovl{backdrop-filter:blur(3px);animation:fade .2s ease both}
+.sheet{border-radius:28px 28px 0 0;animation:up .28s cubic-bezier(.2,.8,.2,1) both}
+/* دخول الصفحة عند تغيير التبويب بس */
+#main.enter>*{animation:rise .34s ease both}
+#main.enter>*:nth-child(2){animation-delay:.04s}#main.enter>*:nth-child(3){animation-delay:.08s}#main.enter>*:nth-child(n+4){animation-delay:.12s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}main{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <div id="app">
-<header><h1><svg class="logo" viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><defs><linearGradient id="lgSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2BB3D6"/><stop offset=".55" stop-color="#1479B8"/><stop offset="1" stop-color="#0B3A66"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lgSea)"/><path d="M6 12q6.5-4.5 13 0t13 0t13 0t13 0" fill="none" stroke="#BFE9F7" stroke-width="2.4" stroke-linecap="round"/><path d="M32 2V21" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M32 21C44 28 45 41 32 49C19 41 20 28 32 21Z" fill="#fff"/><path d="M32 46L42 58L32 54.5L22 58Z" fill="#fff"/><path d="M22 34L14.5 40.5L22.5 41.5ZM42 34L49.5 40.5L41.5 41.5Z" fill="#fff"/><circle cx="27" cy="31" r="2" fill="#0B3A66"/><path d="M32 20V27.5a3.3 3.3 0 0 0 6.6 0V25.5" fill="none" stroke="#0B3A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></header>
+<header><img class="logo" src="icons/icon-192.png" width="48" height="48" alt=""><div class="hd"><h1><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></div></header>
 <main id="main"></main>
 <nav aria-label="الأقسام">
   <button data-view="home"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/></svg>الرئيسية</button>
@@ -801,7 +872,7 @@ function home(){
     <div style="margin-top:6px">${tideChips}</div>
     <div class="muted" style="margin-top:6px">التقييم ده من التاريخ الهجري بس. توقعات الجو بتظهر قبل اليوم بـ${FORECAST_DAYS} أيام، ووقتها المؤشر بيتحدث. تقدر تحجز من دلوقتي.</div>${fishLine(d)}</div></div>
   <div class="card tbl">${areaPick()}</div>`:
-  `<div class="card sum hasbrk"><div class="big ${sClass(s.val)}"><b>${s.val}%</b><span>مؤشر الصيد</span></div>
+  `<div class="card sum hasbrk"><div class="big ${sClass(s.val)}" style="--p:${s.val}"><b>${s.val}%</b><span>مؤشر الصيد</span></div>
     <div><h2>${sWord(s.val)}</h2><div class="muted">${gDate(d)} · ${hText(d)}</div>
     <div style="margin-top:6px">${tideChips}</div>
     <div class="muted" style="margin-top:6px">أهدى رياح الساعة ${SLOTS[s.best]} · الضغط ${s.stable?'مستقر':'بيتغير'}</div>${fishLine(d)}</div></div>${breakdown(s)}
@@ -901,7 +972,9 @@ function render(){
   if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
     if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
 }
-function go(v){view=v;try{location.hash=v}catch(e){}render();$('#main').scrollTop=0}
+let enterT=0;
+function go(v){view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
+  m.classList.remove('enter');void m.offsetWidth;m.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>m.classList.remove('enter'),520)}
 
 /* ---------- Booking sheet ---------- */
 function openBook(id){
