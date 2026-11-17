@@ -6,7 +6,9 @@
 // التشغيل:  npm i d3-contour  ثم  node tools/build-map-data.mjs <grid.asc> <osm.json>
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { contours } from 'd3-contour';
+let gridMeta = null;
 
 const [gridFile, osmFile] = process.argv.slice(2);
 const outDir = path.resolve(process.argv[4] || 'data');
@@ -48,6 +50,19 @@ const span = pts => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const [x, y
   const src = new Float32Array(W * H); let n = 0, num = '';
   for (let i = pos; i <= txt.length; i++) { const c = txt.charCodeAt(i); if (c > 32) num += txt[i]; else if (num) { src[n++] = Number(num); num = ''; } }
   if (n !== W * H) throw new Error('grid size mismatch ' + n + ' vs ' + W * H);
+  // شبكة أعماق خفيفة للقراءة اللحظية تحت علامة نص الخريطة: data/depth.png
+  // تصغير ×4 (حوالي 480 متر للخلية، قريب من دقة المصدر الحقيقية). العمق بالمتر في قناتين: R = العمق÷256، G = الباقي. 0 = بر.
+  {
+    const G = 4, gw = Math.floor(W / G), gh = Math.floor(H / G), raw = Buffer.alloc((gw * 3 + 1) * gh);
+    for (let y = 0; y < gh; y++) { const row = y * (gw * 3 + 1); raw[row] = 0;
+      for (let x = 0; x < gw; x++) { let s = 0, c = 0; for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const v = src[(y * G + j) * W + x * G + i]; if (v !== nd && isFinite(v)) { s += v; c++; } }
+        const d = c ? Math.max(0, Math.min(65535, Math.round(-s / c))) : 0; raw[row + 1 + x * 3] = d >> 8; raw[row + 2 + x * 3] = d & 255; } }
+    const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type, 'ascii'), data]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td) >>> 0); return Buffer.concat([len, td, crc]); };
+    const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(gw, 0); ihdr.writeUInt32BE(gh, 4); ihdr[8] = 8; ihdr[9] = 2;
+    fs.writeFileSync(path.join(outDir, 'depth.png'), Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]));
+    gridMeta = { w: gw, h: gh, cell: cs * G, x0: hdr.xllcorner + cs * G / 2, y1: hdr.yllcorner + H * cs - cs * G / 2 };
+    console.log('depth grid:', gw + 'x' + gh, (fs.statSync(path.join(outDir, 'depth.png')).size / 1024 | 0) + ' KB');
+  }
   // تصغير ×2 بالمتوسط (الدقة الحقيقية للمصدر أخشن من الشبكة أصلاً) + تنعيم خفيف
   const F = 2, w = Math.floor(W / F), h = Math.floor(H / F); let g = new Float32Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let s = 0, c = 0; for (let j = 0; j < F; j++) for (let i = 0; i < F; i++) { const v = src[(y * F + j) * W + x * F + i]; if (v !== nd && isFinite(v)) { s += v; c++; } } g[y * w + x] = c ? -s / c : -1; }
@@ -57,7 +72,7 @@ const span = pts => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const [x, y
   const cell = cs * F, lon = x => hdr.xllcorner + x * cell, lat = y => hdr.yllcorner + (H * cs) - y * cell;
   const LEVELS = [20, 30, 50, 75, 100, 150, 200, 300, 500, 750, 1000];
   const gen = contours().size([w, h]);
-  const out = { q: 1e4, src: 'GMRT', levels: {} }; let total = 0, npts = 0;
+  const out = { q: 1e4, src: 'GMRT', grid: gridMeta, levels: {} }; let total = 0, npts = 0;
   for (const lv of LEVELS) {
     const lines = [];
     for (const poly of gen.thresholds([lv])(g)[0].coordinates) for (const ring of poly) {

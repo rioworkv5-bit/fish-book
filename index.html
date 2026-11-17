@@ -262,6 +262,13 @@ main[hidden]{display:none}
 .ck{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid #0B7C88;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .mbar input{min-height:42px;font-size:15px}.mbar .err{min-height:0}
 #lGeo .rate{min-height:34px;margin-inline-start:4px}
+.mx{position:absolute;left:50%;top:50%;z-index:900;pointer-events:none}
+.mx i{position:absolute;left:-13px;top:-13px;width:26px;height:26px;background:linear-gradient(#0E2A44,#0E2A44) center/2px 100% no-repeat,linear-gradient(#0E2A44,#0E2A44) center/100% 2px no-repeat;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff)}
+.mx span{position:absolute;left:16px;top:-34px;white-space:nowrap;background:#0E2A44;color:#fff;font:800 14px var(--font);border-radius:10px;padding:2px 10px;box-shadow:0 2px 8px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
+.mx span:empty{display:none}
+.medot{position:relative;transform-origin:50% 50%}
+.medot i{display:none;position:absolute;left:50%;top:-15px;margin-left:-6px;border:6px solid transparent;border-top:0;border-bottom:11px solid #1E88E5;filter:drop-shadow(0 0 1px #fff)}
+.medot.h i{display:block}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -280,8 +287,9 @@ main[hidden]{display:none}
     <button class="mbtn" id="mbBase" data-act="mapbase" aria-pressed="false" aria-label="بدّل بين خريطة الأعماق وصور القمر الصناعي" title="أعماق / قمر صناعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
     <button class="mbtn" id="mbSea" data-act="mapsea" aria-pressed="true" aria-label="إظهار العلامات الملاحية" title="العلامات الملاحية"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 11h8M4 14a8 8 0 0 0 16 0"/></svg></button>
     <button class="mbtn" id="mbDet" data-act="mapdet" aria-pressed="true" aria-label="إظهار خطوط الأعماق والشعاب" title="خطوط الأعماق والشعاب"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c3-3 6 3 9 0s6 3 9 0M3 13c3-3 6 3 9 0s6 3 9 0M3 18c3-3 6 3 9 0s6 3 9 0"/></svg></button>
-    <button class="mbtn" data-act="maploc" aria-label="موقعي" title="موقعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    <button class="mbtn" id="mbLoc" data-act="maploc" aria-pressed="false" aria-label="تابع موقعي على الخريطة" title="تابع موقعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
   </div>
+  <div class="mx" aria-hidden="true"><i></i><span id="mapXd"></span></div>
   <div class="mbar" id="mapBar" aria-live="polite"></div>
 </div>
 <nav aria-label="الأقسام">
@@ -1109,7 +1117,10 @@ const depthKey=p=>p.lat.toFixed(4)+','+p.lon.toFixed(4);
 async function getJson(u,asText){const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
   try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error('http');return asText?await r.text():await r.json()}finally{clearTimeout(t)}}
 async function fetchDepth(p){
-  const k=depthKey(p);if(k in depthMem)return;depthMem[k]='loading';mapBar();
+  const k=depthKey(p);if(k in depthMem)return;
+  /* جوه الشبكة المحلية: نفس الرقم اللي بتقراه علامة النص، ومن غير نت */
+  const gd=gridDepth(p.lat,p.lon);if(gd!==null){depthMem[k]=gd<0.5?1:-gd;mapBar();return}
+  depthMem[k]='loading';mapBar();
   let v=null;
   try{const j=await getJson('https://www.gmrt.org/services/PointServer?longitude='+p.lon.toFixed(5)+'&latitude='+p.lat.toFixed(5)+'&format=json');
     const n=parseFloat(j&&j.elevation);if(isFinite(n))v=n}catch(e){}
@@ -1143,6 +1154,9 @@ function mapBar(){
     <div class="rowbtns"><button class="btn ghost" data-act="markdel" data-id="${m.id}">امسح النقطة</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`:''}
   else if(mapSel&&mapSel.t==='area'){const a=AREAS.find(x=>x.id===mapSel.id);
     h=`<strong>${a.name}</strong>${fromMe(a)}<div class="rowbtns"><button class="btn" data-act="areago" data-id="${a.id}">جو ومؤشر صيد ${a.name}</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`}
+  if(!h&&!mapNote&&(track.length>1||meWatch!==null)){const nm=routeNm(track);
+    h=`<strong>${meWatch!==null?'التتبع شغال':'أثر آخر حركة'}</strong><span class="muted">مشيت ${nm<10?nm.toFixed(1):Math.round(nm)} ميل بحري${meWatch!==null&&meSpd!==null?' · السرعة '+meSpd.toFixed(1)+' عقدة':''}${meWatch!==null&&meHead!==null?' · الاتجاه '+meHead+'°':''}</span>
+    <div class="rowbtns">${meWatch!==null?'<button class="btn ghost" data-act="trackstop">وقّف التتبع</button>':''}<button class="btn ghost" data-act="trackclear" ${track.length?'':'disabled'}>امسح الأثر</button></div>`}
   if(!h)h=`<span class="muted">${mapNote||'دوس على أي مكان في البحر عشان تشوف إحداثياته وتحفظه نقطة صيد. الخريطة للاستدلال بس، مش بديل لخرائط الملاحة الرسمية.'}</span>`;
   el.innerHTML=h;
 }
@@ -1160,7 +1174,7 @@ const CATCH_ICON='<span class="ck"><svg aria-hidden="true" width="18" height="18
 /* فتح الخريطة على مكان معين من شاشة تانية (صيدة من السجل، أو خط سير رحلة) */
 let mapGo=null;
 function mapApplyGo(){
-  if(!map)return;drawMarks();drawRoute();
+  if(!map)return;drawMarks();drawRoute();drawTrack();
   const g=mapGo;mapGo=null;if(!g){mapBar();return}
   if(g.fit&&rt&&rt.pts.length>1)map.fitBounds(L.latLngBounds(rt.pts).pad(.3),{animate:false});
   else if(g.fit&&rt&&rt.pts.length)map.setView(rt.pts[0],12,{animate:false});
@@ -1243,6 +1257,7 @@ async function loadDetail(){
     det={lv,reef:L.polygon(r.reefs.map(x=>[unpack(x.p,r.q)]),{renderer:cv,interactive:false,color:'#1B7F5C',weight:1.3,fillColor:'#9AD9B0',fillOpacity:.5}),
       pts:FISH_SPOTS.map(f=>({t:"fish",n:f.n,lat:f.lat,lon:f.lon})).concat(r.reefs.filter(x=>x.n).map(x=>({t:'reef',n:x.n,lat:x.c[1]/r.q,lon:x.c[0]/r.q})).concat(r.pts.map(p=>({t:p.t,n:p.n||'',lat:p.y/r.q,lon:p.x/r.q}))))};
     lblLy=L.layerGroup().addTo(map);
+    if(c.grid)loadDepthGrid(c.grid);
     map.attributionControl.addAttribution('خطوط: GMRT · شعاب وأسماء: © OpenStreetMap, GeoNames');
     map.on('moveend',mapDetail);mapDetail();
   }catch(e){detLoad=false}
@@ -1292,19 +1307,77 @@ async function showMap(){
   map.on("click",e=>{
     if(rt&&rt.edit){if(rt.pts.length<60){rt.pts.push([e.latlng.lat,e.latlng.lng]);rt.msg='';drawRoute()}mapBar();return}
     mapSel={t:"pin",lat:e.latlng.lat,lon:e.latlng.lng};mapPin(mapSel);mapBar();fetchDepth(mapSel)});
+  map.on('move',mapCross);map.on('dragstart',()=>{if(meFollow){meFollow=false;setLocBtn()}});
   setMapBase(mapBase);drawMarks();mapBar();loadDetail();
-  setTimeout(()=>{map.invalidateSize();mapApplyGo()},0);
+  setTimeout(()=>{map.invalidateSize();mapApplyGo();mapCross()},0);
 }
+/* ---------- العمق اللحظي تحت علامة نص الخريطة ----------
+   شبكة أعماق محلية (data/depth.png، خلية ~480 متر من GMRT) بتتقري من الذاكرة، فالرقم بيتغير مع كل تحريك من غير نت.
+   بره منطقة الشبكة (باقي البحر الأحمر) الرقم بييجي من النت لما الخريطة تقف. */
+let dg=null,crossT=0,crossSeq=0;
+async function loadDepthGrid(meta){
+  try{const img=new Image();img.src='data/depth.png';await img.decode();
+    const c=document.createElement('canvas');c.width=meta.w;c.height=meta.h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);
+    const px=x.getImageData(0,0,meta.w,meta.h).data,d=new Uint16Array(meta.w*meta.h);for(let i=0;i<d.length;i++)d[i]=px[i*4]<<8|px[i*4+1];
+    dg={w:meta.w,h:meta.h,cell:meta.cell,x0:meta.x0,y1:meta.y1,d};mapCross();
+  }catch(e){}
+}
+/* عمق بالمتر عند نقطة (استكمال بين 4 خلايا). 0 = بر. null = بره الشبكة */
+function gridDepth(lat,lon){
+  if(!dg)return null;const fx=(lon-dg.x0)/dg.cell,fy=(dg.y1-lat)/dg.cell;if(fx<0||fy<0||fx>dg.w-1||fy>dg.h-1)return null;
+  const i=Math.floor(fx),j=Math.floor(fy),u=fx-i,v=fy-j,i2=Math.min(i+1,dg.w-1),j2=Math.min(j+1,dg.h-1),g=(a,b)=>dg.d[b*dg.w+a];
+  return (g(i,j)*(1-u)+g(i2,j)*u)*(1-v)+(g(i,j2)*(1-u)+g(i2,j2)*u)*v;
+}
+const crossText=d=>d<0.5?'بر':Math.round(d)+' م';
+function mapCross(){
+  const el=$('#mapXd');if(!map||!el)return;const c=map.getCenter(),d=gridDepth(c.lat,c.lng);
+  clearTimeout(crossT);
+  if(d!==null){crossSeq++;el.textContent=crossText(d);return}
+  /* بره الشبكة: نستنى الخريطة تقف وبعدين نسأل النت */
+  el.textContent='…';const seq=++crossSeq;
+  crossT=setTimeout(async()=>{
+    try{const j=await getJson('https://www.gmrt.org/services/PointServer?longitude='+c.lng.toFixed(4)+'&latitude='+c.lat.toFixed(4)+'&format=json'),n=parseFloat(j&&j.elevation);
+      if(seq===crossSeq)el.textContent=isFinite(n)?crossText(-n):'—'}catch(e){if(seq===crossSeq)el.textContent='—'}},600);
+}
+/* موقعي: أول دوسة بتشغّل المتابعة (الخريطة بتمشي معاك، فعلامة النص بتقرا العمق تحتك). سحب الخريطة أو دوسة تانية بيوقفوا المتابعة. */
+let meWatch=null,meFollow=false;
+const setLocBtn=()=>{const b=$('#mbLoc');if(b)b.setAttribute('aria-pressed',meFollow)};
+function stopWatch(){if(meWatch!==null){navigator.geolocation.clearWatch(meWatch);meWatch=null}meFollow=false;setLocBtn();saveTrack();if(wake){wake.release().catch(()=>{});wake=null}}
+/* أثر الحركة: خط أزرق ورا النقطة الزرقا. بيتسجل طول ما التتبع شغال (حتى لو فتحت تبويب تاني)، وبيتحفظ على الجهاز لمدة يوم.
+   نقطة جديدة كل 15 متر على الأقل، والقراءات الضعيفة (دقة أسوأ من 80 متر) بتترمي عشان الخط ميتنططش. */
+let track=[],trackLy=null,meHead=null,meSpd=null,wake=null;
+try{const s=JSON.parse(localStorage.getItem('fishbook-track')||'null');if(s&&Array.isArray(s.p)&&Date.now()-s.at<24*3600e3)track=s.p.filter(p=>Array.isArray(p)&&typeof p[0]==='number'&&typeof p[1]==='number')}catch(e){}
+function saveTrack(){try{localStorage.setItem('fishbook-track',JSON.stringify({at:Date.now(),p:track}))}catch(e){}}
+function drawTrack(){if(!map)return;if(!trackLy)trackLy=L.polyline([],{color:'#1E88E5',weight:3.5,opacity:.9,interactive:false}).addTo(map);trackLy.setLatLngs(track)}
+function trackAdd(c){
+  if(typeof c.speed==='number'&&c.speed>=0)meSpd=c.speed*1.94384;
+  if(typeof c.heading==='number'&&!isNaN(c.heading)&&c.speed>0.5)meHead=Math.round(c.heading);
+  if(c.accuracy>80)return;
+  const p=[Math.round(c.latitude*1e5)/1e5,Math.round(c.longitude*1e5)/1e5],l=track[track.length-1];
+  if(l){const d=distBrg({lat:l[0],lon:l[1]},{lat:p[0],lon:p[1]});if(d.nm*1852<15)return;if(!(c.speed>0.5&&typeof c.heading==='number'&&!isNaN(c.heading)))meHead=d.br}
+  track.push(p);if(track.length>4000)track.splice(0,track.length-4000);
+  if(trackLy)trackLy.addLatLng(p);if(track.length%5===0)saveTrack();
+}
+const ME_ICON=()=>L.divIcon({className:'',html:'<span class="medot"><i></i></span>',iconSize:[18,18],iconAnchor:[9,9]});
+function meTurn(){const el=meMk&&meMk.getElement()&&meMk.getElement().querySelector('.medot');if(!el)return;el.classList.toggle('h',meHead!==null);if(meHead!==null)el.style.transform='rotate('+meHead+'deg)'}
+function keepAwake(){try{if(navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>{wake=w;w.addEventListener('release',()=>{if(wake===w)wake=null})}).catch(()=>{})}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&meWatch!==null)keepAwake()});
 function mapLocate(){
   if(!navigator.geolocation){mapSel=null;mapNote='الجهاز ده مش بيدّي الموقع.';mapBar();return}
-  mapSel=null;mapNote='بنحدد موقعك...';mapBar();
-  navigator.geolocation.getCurrentPosition(p=>{
-    mePos={lat:p.coords.latitude,lon:p.coords.longitude};mapNote='';
-    if(map){if(meMk)meMk.remove();meMk=L.marker([mePos.lat,mePos.lon],{icon:mkIcon('medot',18),interactive:false,zIndexOffset:500}).addTo(map);
-      map.setView([mePos.lat,mePos.lon],Math.max(map.getZoom(),12))}
-    mapBar()},
-    e=>{mapNote=e.code===1?'محتاجين إذن الموقع عشان نوريك مكانك على الخريطة. اسمح بيه من إعدادات المتصفح.':'معرفناش نحدد موقعك دلوقتي. جرّب تاني وانت في مكان مفتوح.';mapBar()},
-    {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+  if(meFollow){meFollow=false;setLocBtn();return}
+  meFollow=true;setLocBtn();keepAwake();
+  if(mePos&&map)map.setView([mePos.lat,mePos.lon],Math.max(map.getZoom(),12));
+  if(meWatch!==null)return;
+  if(!mePos){mapSel=null;mapNote='بنحدد موقعك...';mapBar()}
+  meWatch=navigator.geolocation.watchPosition(p=>{
+    const first=!mePos||mapNote==='بنحدد موقعك...';mePos={lat:p.coords.latitude,lon:p.coords.longitude};if(first)mapNote='';
+    trackAdd(p.coords);
+    if(map){if(meMk)meMk.setLatLng([mePos.lat,mePos.lon]);else meMk=L.marker([mePos.lat,mePos.lon],{icon:ME_ICON(),interactive:false,zIndexOffset:500}).addTo(map);
+      meTurn();
+      if(meFollow)map.setView([mePos.lat,mePos.lon],first?Math.max(map.getZoom(),12):map.getZoom(),{animate:!first})}
+    if(!(document.activeElement&&document.activeElement.id==='rtNote'))mapBar()},
+    e=>{stopWatch();mapNote=e.code===1?'محتاجين إذن الموقع عشان نوريك مكانك على الخريطة. اسمح بيه من إعدادات المتصفح.':'معرفناش نحدد موقعك دلوقتي. جرّب تاني وانت في مكان مفتوح.';mapBar()},
+    {enableHighAccuracy:true,timeout:20000,maximumAge:5000});
 }
 function openMarkSave(){
   if(!mapSel||mapSel.t!=='pin')return;
@@ -1363,6 +1436,8 @@ document.addEventListener('click',e=>{
   else if(act==='mapbase')setMapBase(mapBase==='chart'?'sat':'chart');
   else if(act==='mapsea'){mapSea=!mapSea;setMapBase(mapBase)}
   else if(act==="maploc")mapLocate();
+  else if(act==='trackstop'){stopWatch();mapBar()}
+  else if(act==='trackclear'){track=[];saveTrack();drawTrack();mapBar()}
   else if(act==="mapdet"){detOn=!detOn;mapDetail()}
   else if(act==='geonow')geoNow();
   else if(act==='geodrop'){logGeo=null;logGeoMsg='';showGeo()}
