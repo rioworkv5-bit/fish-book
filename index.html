@@ -249,6 +249,14 @@ main[hidden]{display:none}
 .mk.pin{background:var(--brand)}
 .ak{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:rgba(14,42,68,.88);color:#fff;font:700 12px var(--font);border-radius:999px;padding:2px 10px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .ak.on{background:var(--accent)}
+.cl{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;font:700 11px var(--font);color:#134B70;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff}
+.cl.s,.pl.s{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 4px #000}
+.pl{display:inline-flex;align-items:center;gap:3px;direction:ltr;transform:translate(-50%,-50%);white-space:nowrap;font:700 11px var(--font);color:#0E2A44;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;cursor:pointer}
+.pl i{font-style:normal}.pl .pr{color:#C0392B;font-size:15px;font-weight:800;line-height:1}.pl .pw{color:#7A1F8A;font-size:13px;font-weight:800;line-height:1}
+.pl .ps{width:8px;height:8px;border-radius:50%;background:#E0553B;border:1.5px solid #fff;box-shadow:0 0 2px rgba(0,0,0,.5)}
+.pl .pa{color:#134B70;font-size:12px;line-height:1}
+.pl.t-fish{background:#0B7C88;color:#fff;text-shadow:none;border-radius:999px;padding:1px 9px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pl.t-reef{color:#0B5D45}.pl.t-isl,.pl.t-cape{font-weight:600;font-style:italic;cursor:default}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -266,6 +274,7 @@ main[hidden]{display:none}
   <div class="mtools">
     <button class="mbtn" id="mbBase" data-act="mapbase" aria-pressed="false" aria-label="بدّل بين خريطة الأعماق وصور القمر الصناعي" title="أعماق / قمر صناعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
     <button class="mbtn" id="mbSea" data-act="mapsea" aria-pressed="true" aria-label="إظهار العلامات الملاحية" title="العلامات الملاحية"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 11h8M4 14a8 8 0 0 0 16 0"/></svg></button>
+    <button class="mbtn" id="mbDet" data-act="mapdet" aria-pressed="true" aria-label="إظهار خطوط الأعماق والشعاب" title="خطوط الأعماق والشعاب"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c3-3 6 3 9 0s6 3 9 0M3 13c3-3 6 3 9 0s6 3 9 0M3 18c3-3 6 3 9 0s6 3 9 0"/></svg></button>
     <button class="mbtn" data-act="maploc" aria-label="موقعي" title="موقعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
   </div>
   <div class="mbar" id="mapBar" aria-live="polite"></div>
@@ -1074,7 +1083,7 @@ function depthLine(p){
 const mkIcon=(cls,size)=>L.divIcon({className:'',html:`<span class="${cls}"></span>`,iconSize:[size,size],iconAnchor:[size/2,cls==='medot'?size/2:size+4]});
 function mapBar(){
   const el=$('#mapBar');if(!el)return;let h;
-  if(mapSel&&mapSel.t==='pin')h=`<strong>نقطة على الخريطة</strong><div class="pos">${posText(mapSel.lat,mapSel.lon)}</div>${depthLine(mapSel)}${fromMe(mapSel)}
+  if(mapSel&&mapSel.t==='pin')h=`<strong>${mapSel.title?esc(mapSel.title):"نقطة على الخريطة"}</strong><div class="pos">${posText(mapSel.lat,mapSel.lon)}</div>${depthLine(mapSel)}${fromMe(mapSel)}
     <div class="rowbtns"><button class="btn" data-act="marksave">احفظ النقطة</button><button class="btn ghost" data-act="mapclear">إلغاء</button></div>`;
   else if(mapSel&&mapSel.t==='mark'){const m=marks.find(x=>x.id===mapSel.id);
     h=m?`<strong>${esc(m.name)}</strong><div class="pos">${posText(m.lat,m.lon)}</div>${depthLine(m)}${fromMe(m)}
@@ -1092,11 +1101,52 @@ function drawMarks(){
     .on("click",()=>{mapPin(null);mapSel={t:"mark",id:m.id};mapBar();fetchDepth(m)}).addTo(markLy));
 }
 function mapPin(p){if(pinMk){pinMk.remove();pinMk=null}if(p&&map)pinMk=L.marker([p.lat,p.lon],{icon:mkIcon('mk pin',22),interactive:false}).addTo(map)}
+/* خطوط الأعماق والشعاب: ملفين جاهزين في data/ بيتبنوا بـ tools/build-map-data.mjs
+   (خطوط من شبكة GMRT، وحدود الشعاب والحطام والصخور ومواقع الغطس من OpenStreetMap). بيغطوا من خليج السويس لحد جنوب مرسى علم. */
+let detOn=true,det=null,detLoad=false,lblLy=null;
+const unpack=(a,q)=>{const o=[];let x=0,y=0;for(let i=0;i<a.length;i+=2){x+=a[i];y+=a[i+1];o.push([y/q,x/q])}return o};
+const CMAIN=[200,1000],CMID=[50,100,200,500,1000],CBOLD=[100,200,500,1000];
+const POI={rock:'صخرة',wreck:'حطام',site:'موقع غطس',reef:'شعب',isl:'جزيرة',cape:'راس أو خليج',anch:'مرسى',fish:'طرحة صيد'};
+/* طرحات الصيد بأسماء الصيادين. مفيش مصدر مفتوح ليها، فدي قايمة يدوية بتتزوّد.
+   أبو ملح: من نقطة عامة مسجلها مستخدم على windy.app، وصاحب التطبيق راجع مكانها وأكده (نوفمبر 2026). */
+const FISH_SPOTS=[{n:'أبو ملح',lat:27.5028,lon:33.7479}];
+async function loadDetail(){
+  if(det||detLoad)return;detLoad=true;
+  try{const [c,r]=await Promise.all([getJson('data/contours.json'),getJson('data/reefs.json')]);
+    const cv=L.canvas({padding:.3}),lv={};
+    for(const k in c.levels){const lines=c.levels[k].map(a=>unpack(a,c.q));
+      lv[k]={lines,ly:L.polyline(lines,{renderer:cv,interactive:false,color:'#1F5F8B',weight:CBOLD.includes(+k)?1.6:0.9,opacity:.8})}}
+    det={lv,reef:L.polygon(r.reefs.map(x=>[unpack(x.p,r.q)]),{renderer:cv,interactive:false,color:'#1B7F5C',weight:1.3,fillColor:'#9AD9B0',fillOpacity:.5}),
+      pts:FISH_SPOTS.map(f=>({t:"fish",n:f.n,lat:f.lat,lon:f.lon})).concat(r.reefs.filter(x=>x.n).map(x=>({t:'reef',n:x.n,lat:x.c[1]/r.q,lon:x.c[0]/r.q})).concat(r.pts.map(p=>({t:p.t,n:p.n||'',lat:p.y/r.q,lon:p.x/r.q}))))};
+    lblLy=L.layerGroup().addTo(map);
+    map.attributionControl.addAttribution('خطوط: GMRT · شعاب وأسماء: © OpenStreetMap, GeoNames');
+    map.on('moveend',mapDetail);mapDetail();
+  }catch(e){detLoad=false}
+}
+/* بيتنادى مع كل تحريك: يظهر المستويات المناسبة للتكبير ويرسم الأرقام والأسماء اللي جوه الشاشة بس */
+function mapDetail(){
+  $('#mbDet').setAttribute('aria-pressed',detOn);
+  if(!map||!det)return;const z=map.getZoom(),b=map.getBounds(),sat=mapBase==='sat';
+  for(const k in det.lv){const ly=det.lv[k].ly,on=detOn&&(z>=10||(z>=8&&CMID.includes(+k))||CMAIN.includes(+k));
+    if(on){ly.setStyle({color:sat?'#EAF7FF':'#1F5F8B'});if(!map.hasLayer(ly))ly.addTo(map)}else map.removeLayer(ly)}
+  if(detOn&&z>=9){det.reef.setStyle(sat?{color:'#FFE66D',fillOpacity:0}:{color:'#1B7F5C',fillOpacity:.5});if(!map.hasLayer(det.reef))det.reef.addTo(map)}else map.removeLayer(det.reef);
+  lblLy.clearLayers();if(!detOn||z<9)return;
+  let n=0;
+  if(z>=10)for(const k in det.lv){if(!map.hasLayer(det.lv[k].ly))continue;
+    for(const ln of det.lv[k].lines){if(n>=45)break;const inb=[];for(let i=0;i<ln.length;i++)if(b.contains(ln[i]))inb.push(i);
+      if(inb.length<3)continue;n++;
+      L.marker(ln[inb[inb.length>>1]],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<span class="cl${sat?' s':''}">${k}</span>`,iconSize:[0,0]})}).addTo(lblLy)}}
+  let m=0;
+  for(const p of det.pts){if(m>=70)break;if(z<(p.t==='fish'?9:p.n?11:12)||!b.contains([p.lat,p.lon]))continue;m++;
+    const sym=p.t==='rock'?'<i class="pr">+</i>':p.t==='wreck'?'<i class="pw">✕</i>':p.t==='site'?'<i class="ps"></i>':p.t==='anch'?'<i class="pa">⚓</i>':'';
+    L.marker([p.lat,p.lon],{keyboard:false,interactive:p.t!=='isl'&&p.t!=='cape',icon:L.divIcon({className:'',html:`<span class="pl t-${p.t}${sat?' s':''}">${sym}${p.n?esc(p.n):''}</span>`,iconSize:[0,0]})})
+      .on('click',()=>{mapSel={t:'pin',lat:p.lat,lon:p.lon,title:POI[p.t]+(p.n?': '+p.n:''),name:p.n};mapPin(mapSel);mapBar();fetchDepth(mapSel)}).addTo(lblLy)}
+}
 function setMapBase(b){
   mapBase=b;if(!map)return;
   const other=b==='chart'?'sat':'chart';map.removeLayer(mapLy[other]);mapLy[b].addTo(map);
   if(mapSea)mapLy.sea.addTo(map).bringToFront();else map.removeLayer(mapLy.sea);
-  $('#mbBase').setAttribute('aria-pressed',b==='sat');$('#mbSea').setAttribute('aria-pressed',mapSea);
+  $("#mbBase").setAttribute("aria-pressed",b==="sat");$("#mbSea").setAttribute("aria-pressed",mapSea);mapDetail();
 }
 async function showMap(){
   mapBar();
@@ -1116,7 +1166,7 @@ async function showMap(){
   L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
   markLy=L.layerGroup().addTo(map);areaLy=L.layerGroup().addTo(map);
   map.on("click",e=>{mapSel={t:"pin",lat:e.latlng.lat,lon:e.latlng.lng};mapPin(mapSel);mapBar();fetchDepth(mapSel)});
-  setMapBase(mapBase);drawMarks();mapBar();
+  setMapBase(mapBase);drawMarks();mapBar();loadDetail();
   setTimeout(()=>map.invalidateSize(),0);
 }
 function mapLocate(){
@@ -1133,7 +1183,7 @@ function mapLocate(){
 function openMarkSave(){
   if(!mapSel||mapSel.t!=='pin')return;
   $('#sheet').innerHTML=`<h2>احفظ نقطة صيد</h2><span class="muted" dir="ltr" style="text-align:right">${posText(mapSel.lat,mapSel.lon)}</span>
-  <form id="markForm" novalidate><label for="mName">اسم النقطة<input id="mName" maxlength="30" placeholder="مثلاً: شعب الناجل" autocomplete="off"></label>
+  <form id="markForm" novalidate><label for="mName">اسم النقطة<input id="mName" maxlength="30" placeholder="مثلاً: شعب الناجل" autocomplete="off" value="${esc(mapSel.name||"")}"></label>
     <div class="err" id="mErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">احفظ</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>
   <span class="muted">النقط بتتحفظ على الجهاز ده بس ومحدش غيرك بيشوفها.</span>`;
@@ -1186,7 +1236,8 @@ document.addEventListener('click',e=>{
   else if(act==='share')shareTrip(Number(a.dataset.id));
   else if(act==='mapbase')setMapBase(mapBase==='chart'?'sat':'chart');
   else if(act==='mapsea'){mapSea=!mapSea;setMapBase(mapBase)}
-  else if(act==='maploc')mapLocate();
+  else if(act==="maploc")mapLocate();
+  else if(act==="mapdet"){detOn=!detOn;mapDetail()}
   else if(act==='mapclear'){mapSel=null;mapNote='';mapPin(null);mapBar()}
   else if(act==='marksave')openMarkSave();
   else if(act==='markdel'){marks=marks.filter(m=>m.id!==Number(a.dataset.id));saveMarks();mapSel=null;drawMarks();mapBar()}
