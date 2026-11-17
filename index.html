@@ -228,6 +228,29 @@ nav button[aria-current="page"]{color:#fff;font-weight:800;background:rgba(34,18
 /* دخول الصفحة عند تغيير التبويب بس */
 #main.enter>*{animation:rise .34s ease both}
 #main.enter>*:nth-child(2){animation-delay:.04s}#main.enter>*:nth-child(3){animation-delay:.08s}#main.enter>*:nth-child(n+4){animation-delay:.12s}
+.rate.wa{color:#136B3A;border-color:#BFE8CF;background:#F2FBF5}
+.trip.hl{box-shadow:0 0 0 3px var(--teal),var(--shadow)}
+/* ===== الخريطة البحرية ===== */
+nav{grid-template-columns:repeat(6,1fr)}
+nav button{font-size:11.5px}
+main[hidden]{display:none}
+#mapWrap{flex:1;min-height:0;position:relative;z-index:0;margin:6px 12px 12px;border-radius:22px;overflow:hidden;box-shadow:var(--shadow);background:#CFE6EE}
+#mapWrap[hidden]{display:none}
+#map{position:absolute;inset:0;font-family:var(--font);background:#CFE6EE}
+.mtools{position:absolute;top:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.mbtn{width:46px;height:46px;border-radius:14px;border:0;background:#fff;color:var(--ink);box-shadow:0 4px 12px rgba(14,42,68,.25);display:flex;align-items:center;justify-content:center}
+.mbtn[aria-pressed="true"]{background:var(--brand);color:#fff}
+.mbar{position:absolute;left:10px;right:10px;bottom:24px;z-index:1000;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 6px 18px rgba(14,42,68,.28);display:flex;flex-direction:column;gap:8px}
+.mbar .dep{font-size:14px;font-weight:600}.mbar .dep b{font-weight:800;font-size:16px}
+.mbar strong{font-size:15px;font-weight:800}
+.mbar .pos{direction:ltr;text-align:right;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+.mbar .rowbtns .btn{min-height:44px;padding:0 12px;font-size:14px}
+.mk{display:block;width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#E0553B;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.mk.pin{background:var(--brand)}
+.ak{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:rgba(14,42,68,.88);color:#fff;font:700 12px var(--font);border-radius:999px;padding:2px 10px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.ak.on{background:var(--accent)}
+.medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
+.leaflet-container .leaflet-control-attribution{font-size:10px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -238,9 +261,19 @@ nav button[aria-current="page"]{color:#fff;font-weight:800;background:rgba(34,18
 <div id="app">
 <header><img class="logo" src="icons/icon-192.png" width="48" height="48" alt=""><div class="hd"><h1><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></div></header>
 <main id="main"></main>
+<div id="mapWrap" hidden>
+  <div id="map" dir="ltr"></div>
+  <div class="mtools">
+    <button class="mbtn" id="mbBase" data-act="mapbase" aria-pressed="false" aria-label="بدّل بين خريطة الأعماق وصور القمر الصناعي" title="أعماق / قمر صناعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
+    <button class="mbtn" id="mbSea" data-act="mapsea" aria-pressed="true" aria-label="إظهار العلامات الملاحية" title="العلامات الملاحية"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 11h8M4 14a8 8 0 0 0 16 0"/></svg></button>
+    <button class="mbtn" data-act="maploc" aria-label="موقعي" title="موقعي"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+  </div>
+  <div class="mbar" id="mapBar" aria-live="polite"></div>
+</div>
 <nav aria-label="الأقسام">
   <button data-view="home"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/></svg>الرئيسية</button>
   <button data-view="trips"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16h18l-2 4H5z"/><path d="M12 3v10M12 4l6 8H6z"/></svg>الرحلات</button>
+  <button data-view="map"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>الخريطة</button>
   <button data-view="ask"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>اسأل</button>
   <button data-view="log"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>سجلي</button>
   <button data-view="manage"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإدارة</button>
@@ -729,6 +762,7 @@ async function loadSrv(){
   }
   render();
   syncNotif();
+  if(pendingTrip&&srv==='ok')openSharedTrip();
 }
 async function doAuth(email,pw,name){
   authMsg='';
@@ -829,11 +863,33 @@ function showBooked(t,whole,seats){
 /* ---------- Pieces ---------- */
 function tripRange(t){const a=fromIso(t.date);return t.n===1?gDate(a):'من '+gDate(a)+' لحد '+gDate(addDays(a,t.n-1))}
 function tripScore(t){let s=0,pre=false;for(let i=0;i<t.n;i++){const x=score(addDays(fromIso(t.date),i));s+=x.val;if(x.prelim)pre=true}return{val:Math.round(s/t.n),prelim:pre}}
+/* ---------- مشاركة الرحلة على واتساب ----------
+   اللينك بيفتح التطبيق على الرحلة نفسها (?trip=رقمها). الرحلات التجريبية من غير سيرفر ملهاش لينك. */
+const APP_URL='https://rioworkv5-bit.github.io/fish-book/';
+const WA_ICON='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#1FA855"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3s-.8.8-.8 2 .8 2.3 1 2.4 1.6 2.5 4 3.5c1.5.6 2 .7 2.8.6.4-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3z"/></svg>';
+let hlTrip=null,sharedMsg='',scrollToTrip=null;
+const pendingTrip=(()=>{try{const v=Number(new URLSearchParams(location.search).get('trip'));return v>0?v:null}catch(e){return null}})();
+function shareTrip(id){
+  const t=trips.find(x=>x.id===id);if(!t)return;
+  const sc=tripScore(t),fas=isFasad(hijri(fromIso(t.date)).day),link=srvOn()?APP_URL+'?trip='+t.id+'#trips':APP_URL;
+  const txt=`🎣 رحلة صيد على ${t.boat}\n${tripRange(t)} · ${dWord(t.n)}\nمؤشر الصيد ${sc.val}%${sc.prelim?' (مبدئي)':''} · ${fas?'فساد':'حمل'}\n${t.price} جنيه للفرد${t.left>0?' · فاضي '+t.left+(t.left>1?' أماكن':' مكان'):' · الرحلة كاملة'}\nاحجز من فيش بوك: ${link}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');
+}
+/* لينك رحلة متشارك: يفتح الرحلات ويعلّم على الرحلة دي */
+function openSharedTrip(){
+  if(!pendingTrip||openSharedTrip.done)return;openSharedTrip.done=true;
+  try{history.replaceState(null,'',location.pathname+'#trips')}catch(e){}
+  const t=trips.find(x=>x.id===pendingTrip&&x.date>=iso(today));
+  dur='';mode='seat';
+  if(t){hlTrip=t.id;sel=t.date;ensureH(t.date)}else sharedMsg='الرحلة اللي اتبعتت لك مبقتش متاحة (اتلغت أو عدّى ميعادها). دي الرحلات المتاحة دلوقتي.';
+  go('trips');
+  if(t){scrollToTrip=t.id;render()}
+}
 function tripCard(t){
   const sc=tripScore(t),h=hijri(fromIso(t.date));
-  return `<div class="trip"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="مؤشر الصيد">${sc.val}%${sc.prelim?' مبدئي':''}</span></div>
+  return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="مؤشر الصيد">${sc.val}%${sc.prelim?' مبدئي':''}</span></div>
     <div><span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
-    <div class="rates">${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}</div>
+    <div class="rates">${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}<button class="rate wa" data-act="share" data-id="${t.id}" aria-label="شارك الرحلة على واتساب">${WA_ICON}شارك على واتساب</button></div>
     ${mode==='boat'?`<div class="bot"><div><div class="price">${t.full} جنيه <span class="muted" style="font-weight:400">للمركب كاملة</span></div><div class="muted">تشيل لحد ${t.total} فرد</div></div>
     <button class="btn" data-act="book" data-id="${t.id}" ${wholeFree(t)?'':'disabled'}>${wholeFree(t)?'احجز المركب':'مش متاحة'}</button></div>`:
     `<div class="bot"><div><div class="price">${t.price} جنيه <span class="muted" style="font-weight:400">للفرد</span></div><div class="muted">${t.left>0?t.left+' أماكن فاضية من '+t.total:'الرحلة كاملة'}</div></div>
@@ -862,7 +918,7 @@ function home(){
   let tripsHtml;
   if(dayTrips.length)tripsHtml=dayTrips.map(tripCard).join('');
   else{
-    const near=(dur===''&&mode==='seat')?[]:trips.filter(t=>matchDur(t)&&t.date!==sel).sort(byDate).slice(0,3);
+    const near=(dur===''&&mode==='seat')?[]:trips.filter(t=>matchDur(t)&&t.date!==sel&&t.date>=iso(today)).sort(byDate).slice(0,3);
     tripsHtml=`<div class="trip"><strong>${mode==='boat'?'مفيش مركب متاحة كاملة':'مفيش رحلات'}${dur===''?'':' '+dWord(Number(dur))} بتبدأ في اليوم ده</strong><div class="bot"><span class="muted">${alerts[sel]?'هننبهك أول ما تنزل رحلة فيه.':'نبعتلك تنبيه أول ما تنزل رحلة؟'}</span><button class="btn ghost" data-act="alert" ${alerts[sel]?'disabled':''}>${alerts[sel]?'التنبيه شغال':'نبهني'}</button></div></div>`
       +(near.length?'<span class="muted" style="font-weight:700">أقرب اختيارات متاحة</span>'+near.map(tripCard).join(''):'');
   }
@@ -882,8 +938,8 @@ function home(){
   <div class="sec"><h2>رحلات تبدأ يوم ${gDate(d)}</h2>${durFilter()}${tripsHtml}</div>`;
 }
 function tripsView(){
-  const list=trips.filter(matchDur).sort(byDate);
-  return `<div class="sec"><h2>الرحلات المتاحة</h2>${srvNote()}${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
+  const list=trips.filter(t=>matchDur(t)&&t.date>=iso(today)).sort(byDate);
+  return `<div class="sec"><h2>الرحلات المتاحة</h2>${sharedMsg?'<span class="chip">'+esc(sharedMsg)+'</span>':''}${srvNote()}${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
 }
 function askView(){
   return `<div class="sec"><h2>اسأل فيش بوك</h2>
@@ -904,7 +960,7 @@ function ask(q){
     '<p class="muted">ده تقييم مبدئي من التاريخ الهجري بس. توقعات الجو بتبان قبل اليوم بـ10 أيام، ووقتها المؤشر بيتحدث.</p>';}
   else if(q==='today'){const h=hijri(today),f=isFasad(h.day),s=score(today).val;
     answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${f?'التيار ضعيف، ومناسب للصيد من المركب.':'التيار قوي، والصيد من الشاطئ أنسب.'}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
-  else{const good=trips.filter(t=>t.left>0&&tripScore(t).val>=70).sort(byDate);
+  else{const good=trips.filter(t=>t.left>0&&t.date>=iso(today)&&tripScore(t).val>=70).sort(byDate);
     answer='<h2>رحلات مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
   render();
 }
@@ -966,14 +1022,137 @@ function manageView(){
     <button class="btn" type="submit">انشر الرحلة</button></form></div>
   ${boatForm}`;
 }
+/* ---------- الخريطة البحرية (البحر الأحمر) ----------
+   الخريطة عايشة برة #main عشان render() بيمسح #main كل مرة.
+   Leaflet بيتحمّل أول مرة التبويب يتفتح بس. المصادر مجانية: أعماق Esri Ocean، صور Esri، وعلامات OpenSeaMap. */
+const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+let map=null,mapLoad=null,mapBase='chart',mapSea=true,mapLy={},mePos=null,meMk=null,pinMk=null,markLy=null,areaLy=null,mapSel=null,mapNote='';
+let marks=[];try{const m=JSON.parse(localStorage.getItem('fishbook-marks')||'[]');if(Array.isArray(m))marks=m.filter(x=>x&&typeof x.lat==='number'&&typeof x.lon==='number')}catch(e){}
+const saveMarks=()=>{try{localStorage.setItem('fishbook-marks',JSON.stringify(marks))}catch(e){}};
+function loadLeaflet(){
+  if(window.L)return Promise.resolve();
+  if(mapLoad)return mapLoad;
+  return mapLoad=new Promise((ok,no)=>{
+    const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(c);
+    const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=ok;s.onerror=()=>{mapLoad=null;s.remove();no(new Error('leaflet'))};document.head.appendChild(s)});
+}
+/* إحداثيات بالدرجات والدقايق زي أجهزة الملاحة */
+const dm=(v,p,n)=>{const t=Math.round(Math.abs(v)*60000),d=Math.floor(t/60000);return d+'°'+((t-d*60000)/1000).toFixed(3).padStart(6,'0')+'′ '+(v>=0?p:n)};
+const posText=(lat,lon)=>dm(lat,'N','S')+'   '+dm(lon,'E','W');
+/* المسافة بالميل البحري والاتجاه بالدرجات من نقطة لنقطة */
+function distBrg(a,b){const R=Math.PI/180,p1=a.lat*R,p2=b.lat*R,dl=(b.lon-a.lon)*R,h=Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  const nm=2*3440.065*Math.asin(Math.sqrt(h)),br=(Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))/R+360)%360;
+  return{nm,br:Math.round(br)%360}}
+const fromMe=p=>{if(!mePos)return '';const x=distBrg(mePos,p);return `<span class="muted">من موقعك: ${x.nm<10?x.nm.toFixed(1):Math.round(x.nm)} ميل بحري · اتجاه ${x.br}°</span>`};
+/* العمق عند نقطة: من شبكة GMRT، ولو وقعت من شبكة GEBCO. الاتنين مجانيين وبيتطلبوا من المتصفح مباشرة.
+   دي شبكات عالمية خلاياها مئات الأمتار، فالرقم تقريبي وبيغلط جنب الشعاب والساحل. */
+const depthMem={};
+const depthKey=p=>p.lat.toFixed(4)+','+p.lon.toFixed(4);
+async function getJson(u,asText){const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+  try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw new Error('http');return asText?await r.text():await r.json()}finally{clearTimeout(t)}}
+async function fetchDepth(p){
+  const k=depthKey(p);if(k in depthMem)return;depthMem[k]='loading';mapBar();
+  let v=null;
+  try{const j=await getJson('https://www.gmrt.org/services/PointServer?longitude='+p.lon.toFixed(5)+'&latitude='+p.lat.toFixed(5)+'&format=json');
+    const n=parseFloat(j&&j.elevation);if(isFinite(n))v=n}catch(e){}
+  if(v===null){try{const d=0.2,s=await getJson('https://wms.gebco.net/mapserv?service=WMS&version=1.1.1&request=GetFeatureInfo&layers=GEBCO_LATEST_2&query_layers=GEBCO_LATEST_2&styles=&format=image/png&srs=EPSG:4326&bbox='
+      +[p.lon-d,p.lat-d,p.lon+d,p.lat+d].map(x=>x.toFixed(5)).join(',')+"&width=101&height=101&x=50&y=50&info_format=text/html",true);
+    const m=/Elevation value \(m\):\s*(-?\d+(?:\.\d+)?)/.exec(s);if(m)v=parseFloat(m[1])}catch(e){}}
+  if(v===null)delete depthMem[k];else depthMem[k]=v;
+  if(v===null)depthFail[k]=true;
+  mapBar();
+}
+const depthFail={};
+function depthLine(p){
+  const k=depthKey(p),v=depthMem[k];
+  if(v==='loading')return '<span class="muted">العمق: بنجيبه...</span>';
+  if(typeof v!=='number')return depthFail[k]?'<span class="muted">العمق: معرفناش نجيبه دلوقتي.</span>':'';
+  if(v>=0)return '<span class="dep">على اليابسة أو ضحل جدًا <span class="muted">(تقريبي)</span></span>';
+  const m=Math.round(-v);
+  return `<span class="dep">العمق حوالي <b>${m} متر</b> <span class="muted">(${Math.round(m/1.8288)} باع) · تقريبي${m<60?'، وجنب الشعاب بيغلط':''}</span></span>`;
+}
+const mkIcon=(cls,size)=>L.divIcon({className:'',html:`<span class="${cls}"></span>`,iconSize:[size,size],iconAnchor:[size/2,cls==='medot'?size/2:size+4]});
+function mapBar(){
+  const el=$('#mapBar');if(!el)return;let h;
+  if(mapSel&&mapSel.t==='pin')h=`<strong>نقطة على الخريطة</strong><div class="pos">${posText(mapSel.lat,mapSel.lon)}</div>${depthLine(mapSel)}${fromMe(mapSel)}
+    <div class="rowbtns"><button class="btn" data-act="marksave">احفظ النقطة</button><button class="btn ghost" data-act="mapclear">إلغاء</button></div>`;
+  else if(mapSel&&mapSel.t==='mark'){const m=marks.find(x=>x.id===mapSel.id);
+    h=m?`<strong>${esc(m.name)}</strong><div class="pos">${posText(m.lat,m.lon)}</div>${depthLine(m)}${fromMe(m)}
+    <div class="rowbtns"><button class="btn ghost" data-act="markdel" data-id="${m.id}">امسح النقطة</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`:''}
+  else if(mapSel&&mapSel.t==='area'){const a=AREAS.find(x=>x.id===mapSel.id);
+    h=`<strong>${a.name}</strong>${fromMe(a)}<div class="rowbtns"><button class="btn" data-act="areago" data-id="${a.id}">جو ومؤشر صيد ${a.name}</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`}
+  if(!h)h=`<span class="muted">${mapNote||'دوس على أي مكان في البحر عشان تشوف إحداثياته وتحفظه نقطة صيد. الخريطة للاستدلال بس، مش بديل لخرائط الملاحة الرسمية.'}</span>`;
+  el.innerHTML=h;
+}
+function drawMarks(){
+  if(!map)return;markLy.clearLayers();areaLy.clearLayers();
+  AREAS.forEach(a=>L.marker([a.lat,a.slon||a.lon],{icon:L.divIcon({className:'',html:`<span class="ak${a===area?' on':''}">${a.name}</span>`,iconSize:[0,0]}),keyboard:false})
+    .on('click',()=>{mapPin(null);mapSel={t:'area',id:a.id};mapBar()}).addTo(areaLy));
+  marks.forEach(m=>L.marker([m.lat,m.lon],{icon:mkIcon('mk',22),title:m.name})
+    .on("click",()=>{mapPin(null);mapSel={t:"mark",id:m.id};mapBar();fetchDepth(m)}).addTo(markLy));
+}
+function mapPin(p){if(pinMk){pinMk.remove();pinMk=null}if(p&&map)pinMk=L.marker([p.lat,p.lon],{icon:mkIcon('mk pin',22),interactive:false}).addTo(map)}
+function setMapBase(b){
+  mapBase=b;if(!map)return;
+  const other=b==='chart'?'sat':'chart';map.removeLayer(mapLy[other]);mapLy[b].addTo(map);
+  if(mapSea)mapLy.sea.addTo(map).bringToFront();else map.removeLayer(mapLy.sea);
+  $('#mbBase').setAttribute('aria-pressed',b==='sat');$('#mbSea').setAttribute('aria-pressed',mapSea);
+}
+async function showMap(){
+  mapBar();
+  if(map){setTimeout(()=>map.invalidateSize(),0);return}
+  mapNote='بنحمّل الخريطة...';mapBar();
+  try{await loadLeaflet()}catch(e){mapNote='معرفناش نحمّل الخريطة. الخريطة محتاجة نت، اتأكد من الاتصال وافتح التبويب تاني.';mapBar();return}
+  if(map)return;
+  mapNote='';
+  map=L.map('map',{center:[area.lat,area.slon||area.lon],zoom:10,minZoom:5,maxZoom:17,maxBounds:[[9,29],[32.5,46]],maxBoundsViscosity:.7});
+  const esriAt='Esri, GEBCO, NOAA, Garmin';
+  mapLy.chart=L.layerGroup([
+    L.tileLayer(ESRI+'Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:13,maxZoom:17,attribution:'أعماق: '+esriAt}),
+    L.tileLayer(ESRI+'Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:13,maxZoom:17})]);
+  mapLy.sat=L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:17,maxZoom:17,attribution:'صور: Esri, Maxar'});
+  mapLy.sea=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxNativeZoom:18,maxZoom:18,attribution:'علامات: © OpenSeaMap'});
+  map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+  L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+  markLy=L.layerGroup().addTo(map);areaLy=L.layerGroup().addTo(map);
+  map.on("click",e=>{mapSel={t:"pin",lat:e.latlng.lat,lon:e.latlng.lng};mapPin(mapSel);mapBar();fetchDepth(mapSel)});
+  setMapBase(mapBase);drawMarks();mapBar();
+  setTimeout(()=>map.invalidateSize(),0);
+}
+function mapLocate(){
+  if(!navigator.geolocation){mapSel=null;mapNote='الجهاز ده مش بيدّي الموقع.';mapBar();return}
+  mapSel=null;mapNote='بنحدد موقعك...';mapBar();
+  navigator.geolocation.getCurrentPosition(p=>{
+    mePos={lat:p.coords.latitude,lon:p.coords.longitude};mapNote='';
+    if(map){if(meMk)meMk.remove();meMk=L.marker([mePos.lat,mePos.lon],{icon:mkIcon('medot',18),interactive:false,zIndexOffset:500}).addTo(map);
+      map.setView([mePos.lat,mePos.lon],Math.max(map.getZoom(),12))}
+    mapBar()},
+    e=>{mapNote=e.code===1?'محتاجين إذن الموقع عشان نوريك مكانك على الخريطة. اسمح بيه من إعدادات المتصفح.':'معرفناش نحدد موقعك دلوقتي. جرّب تاني وانت في مكان مفتوح.';mapBar()},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+function openMarkSave(){
+  if(!mapSel||mapSel.t!=='pin')return;
+  $('#sheet').innerHTML=`<h2>احفظ نقطة صيد</h2><span class="muted" dir="ltr" style="text-align:right">${posText(mapSel.lat,mapSel.lon)}</span>
+  <form id="markForm" novalidate><label for="mName">اسم النقطة<input id="mName" maxlength="30" placeholder="مثلاً: شعب الناجل" autocomplete="off"></label>
+    <div class="err" id="mErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">احفظ</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>
+  <span class="muted">النقط بتتحفظ على الجهاز ده بس ومحدش غيرك بيشوفها.</span>`;
+  $('#ovl').hidden=false;$('#mName').focus();
+}
 function render(){
+  const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
+  if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
   $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():manageView();
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
     if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
+  /* لينك رحلة متشارك: نفضل نوصل للرحلة لحد ما الجو يخلص تحميل (الصفحة بتترسم تاني) */
+  if(scrollToTrip&&view==='trips'){const el=document.querySelector('[data-trip="'+scrollToTrip+'"]'),m=$('#main');
+    if(el)m.scrollTo({top:m.scrollTop+el.getBoundingClientRect().top-m.getBoundingClientRect().top-90,behavior:'instant'});
+    if(live!=='loading')scrollToTrip=null}
 }
 let enterT=0;
-function go(v){view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
+function go(v){if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
   m.classList.remove('enter');void m.offsetWidth;m.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>m.classList.remove('enter'),520)}
 
 /* ---------- Booking sheet ---------- */
@@ -1004,6 +1183,14 @@ document.addEventListener('click',e=>{
   else if(act==='role'){if(srvOn()&&uid())setRole(a.dataset.r);else{role=a.dataset.r;render()}}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout')signOut();
+  else if(act==='share')shareTrip(Number(a.dataset.id));
+  else if(act==='mapbase')setMapBase(mapBase==='chart'?'sat':'chart');
+  else if(act==='mapsea'){mapSea=!mapSea;setMapBase(mapBase)}
+  else if(act==='maploc')mapLocate();
+  else if(act==='mapclear'){mapSel=null;mapNote='';mapPin(null);mapBar()}
+  else if(act==='marksave')openMarkSave();
+  else if(act==='markdel'){marks=marks.filter(m=>m.id!==Number(a.dataset.id));saveMarks();mapSel=null;drawMarks();mapBar()}
+  else if(act==='areago'){const id=a.dataset.id;mapSel=null;if(AREAS.find(x=>x.id===id)===area)go('home');else{view='home';try{location.hash='home'}catch(e){}setArea(id)}drawMarks()}
   else if(act==='cancelbk')openCancelBk(Number(a.dataset.id));
   else if(act==='canceltrip')openCancelTrip(Number(a.dataset.id));
   else if(act==='edittrip')openEditTrip(Number(a.dataset.id));
@@ -1026,6 +1213,12 @@ document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovl').hidden)closeSheet()});
 document.addEventListener('submit',e=>{
   e.preventDefault();
+  if(e.target.id==='markForm'){
+    const name=$('#mName').value.trim();
+    if(!name){$('#mErr').textContent='اكتب اسم للنقطة.';return}
+    if(!mapSel||mapSel.t!=='pin'){closeSheet();return}
+    const m={id:Date.now(),name,lat:mapSel.lat,lon:mapSel.lon};marks.push(m);saveMarks();
+    mapPin(null);mapSel={t:'mark',id:m.id};closeSheet();drawMarks();mapBar();return}
   if(e.target.id==='bookForm'){
     const t=trips.find(x=>x.id===Number(e.target.dataset.id));
     const name=$('#bName').value.trim(),phone=$('#bPhone').value.trim(),seats=Number($('#bSeats').value);
@@ -1123,9 +1316,9 @@ document.addEventListener('submit',e=>{
     done();
   }
 });
-function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
+function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','map','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
 window.addEventListener('hashchange',fromHash);
-const h0=(location.hash||'').slice(1);if(['home','trips','ask','log','manage'].includes(h0))view=h0;
+const h0=(location.hash||'').slice(1);if(['home','trips','map','ask','log','manage'].includes(h0))view=h0;
 /* آخر جو متحمّل (لو أحدث من 6 ساعات) يظهر فورًا، وبعدين نحدّث من النت */
 try{const c=JSON.parse(localStorage.getItem('fishbook-live')||'null');if(c&&c.area===area.id&&c.wj&&c.wj.hourly&&Date.now()-c.at<6*3600e3){applyLive(c.wj,c.mj);live='cache';liveAt=c.at}}catch(e){}
 if(live!=='cache')useSnap();
