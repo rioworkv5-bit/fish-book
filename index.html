@@ -257,6 +257,11 @@ main[hidden]{display:none}
 .pl .pa{color:#134B70;font-size:12px;line-height:1}
 .pl.t-fish{background:#0B7C88;color:#fff;text-shadow:none;border-radius:999px;padding:1px 9px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .pl.t-reef{color:#0B5D45}.pl.t-isl,.pl.t-cape{font-weight:600;font-style:italic;cursor:default}
+.rn{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#E0553B;color:#fff;font:800 13px var(--font);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.rn.a{background:#136B3A}
+.ck{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid #0B7C88;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.mbar input{min-height:42px;font-size:15px}.mbar .err{min-height:0}
+#lGeo .rate{min-height:34px;margin-inline-start:4px}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -529,7 +534,7 @@ const fishLine=d=>{const a=inSeasonOn(d),m=d.getMonth()+1;return `<div style="ma
 /* ---------- سجل الصيد ---------- */
 let logs=[];try{const x=JSON.parse(localStorage.getItem('fishbook-log')||'[]');if(Array.isArray(x))logs=x.filter(e=>e&&typeof e.date==='string').slice(0,200)}catch(e){}
 let logSrv=false; /* true: الصيدات متحملة من حساب المستخدم على السيرفر، ومبتتحفظش على الجهاز */
-const saveLogs=()=>{if(logSrv)return;try{localStorage.setItem('fishbook-log',JSON.stringify(logs.map(e=>({id:e.id,date:e.date,time:e.time,species:e.species,kg:e.kg,bait:e.bait,spot:e.spot,trip:e.trip}))))}catch(e){}};
+const saveLogs=()=>{if(logSrv)return;try{localStorage.setItem('fishbook-log',JSON.stringify(logs.map(e=>({id:e.id,date:e.date,time:e.time,species:e.species,kg:e.kg,bait:e.bait,spot:e.spot,trip:e.trip,lat:e.lat,lon:e.lon}))))}catch(e){}};
 const shots={};
 function cond(k){const d=fromIso(k),hd=hijri(d),w=weather(d);const aw=Math.round([1,2,3,4,5].reduce((a,i)=>a+w.wind[i],0)/5);return{fas:isFasad(hd.day),aw,h:hd,real:!!w.real}}
 function seasonChip(e){const f=SPECIES.find(x=>x.name===e.species);if(!f||!f.m.length)return '';
@@ -561,8 +566,42 @@ async function identify(file){
   }catch(e){say(e&&e.code==='rate_limited'?'في ضغط دلوقتي، جرّب الصورة تاني بعد شوية أو اختار النوع بنفسك.':'معرفتش أتعرف على الصورة. اختار النوع بنفسك.')}
   finally{aiBusy=false}
 }
+/* موقع الصيدة: من GPS المحفوظ جوه الصورة لو موجود، وإلا من موقع الجهاز لو الصورة لسه متصورة حالًا.
+   الموقع بيتحفظ مع الصيدة وبيفضل خاص بصاحبها (جدول catches بيتقري لصاحبه بس). */
+async function exifGps(file){
+  try{const b=new DataView(await file.slice(0,262144).arrayBuffer());if(b.getUint16(0)!==0xFFD8)return null;let o=2;
+    while(o+4<b.byteLength){const mk=b.getUint16(o),len=b.getUint16(o+2);
+      if(mk===0xFFE1&&b.getUint32(o+4)===0x45786966){const t=o+10,le=b.getUint16(t)===0x4949,u16=p=>b.getUint16(p,le),u32=p=>b.getUint32(p,le);
+        const ifd=(p,cb)=>{const n=u16(p);for(let i=0;i<n;i++)cb(u16(p+2+i*12),p+2+i*12)},rat=p=>{const d=u32(p+4);return d?u32(p)/d:0};
+        let gp=0;ifd(t+u32(t+4),(tag,e)=>{if(tag===0x8825)gp=t+u32(e+8)});if(!gp)return null;
+        const g={};ifd(gp,(tag,e)=>{if(tag===1||tag===3)g[tag]=String.fromCharCode(b.getUint8(e+8));else if(tag===2||tag===4){const p=t+u32(e+8);g[tag]=rat(p)+rat(p+8)/60+rat(p+16)/3600}});
+        if(!(2 in g)||!(4 in g))return null;const lat=g[1]==='S'?-g[2]:g[2],lon=g[3]==='W'?-g[4]:g[4];
+        return isFinite(lat)&&isFinite(lon)&&(lat||lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?{lat,lon}:null}
+      if((mk&0xFF00)!==0xFF00)break;o+=2+len}
+  }catch(e){}
+  return null;
+}
+let logGeo=null,logGeoMsg='';
+const geoLine=()=>logGeo?`موقع الصيدة اتحدد ${logGeo.src==='photo'?'من الصورة':'من موقعك دلوقتي'}: <b dir="ltr">${posText(logGeo.lat,logGeo.lon)}</b> <button type="button" class="rate" data-act="geodrop">شيل الموقع</button>`
+  :`${logGeoMsg||'موقع الصيدة بيتحدد لوحده لما تصوّر السمكة، وبيظهرلك على الخريطة. بيفضل خاص بيك.'} <button type="button" class="rate" data-act="geonow">حدد موقعي دلوقتي</button>`;
+const showGeo=()=>{const el=$('#lGeo');if(el)el.innerHTML=geoLine()};
+function geoNow(){
+  if(!navigator.geolocation){logGeoMsg='الجهاز ده مش بيدّي الموقع.';showGeo();return}
+  logGeoMsg='بنحدد موقع الصيدة...';showGeo();
+  navigator.geolocation.getCurrentPosition(p=>{logGeo={lat:p.coords.latitude,lon:p.coords.longitude,src:'gps'};logGeoMsg='';showGeo()},
+    e=>{logGeoMsg=e.code===1?'محتاجين إذن الموقع عشان نحدد مكان الصيدة. اسمح بيه من إعدادات المتصفح.':'معرفناش نحدد الموقع دلوقتي.';showGeo()},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+}
+async function photoGeo(f){
+  logGeo=null;logGeoMsg='';const g=await exifGps(f);
+  if(g){logGeo={lat:g.lat,lon:g.lon,src:'photo'};showGeo();return}
+  /* صورة لسه متصورة (آخر ربع ساعة): موقع الجهاز دلوقتي هو مكان الصيدة. صورة قديمة: منخمّنش */
+  if(Date.now()-(f.lastModified||0)<15*60e3)geoNow();
+  else{logGeoMsg='الصورة دي قديمة ومفيهاش موقع محفوظ، فمحددناش مكان.';showGeo()}
+}
 function onPhoto(f){
   if(!f||f.type.indexOf('image/')!==0)return;
+  photoGeo(f);
   let t=new Date(f.lastModified||Date.now());if(isNaN(t)||t>new Date())t=new Date();
   const dEl=$('#lDate'),tEl=$('#lTime');if(dEl)dEl.value=iso(t);if(tEl)tEl.value=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
   identify(f);
@@ -577,11 +616,12 @@ function logView(){
   const nowT=new Date(),hhmm=String(nowT.getHours()).padStart(2,'0')+':'+String(nowT.getMinutes()).padStart(2,'0');
   const bks=myBk(),ended=b=>iso(addDays(fromIso(b.date),b.n-1))<iso(today);
   const myTrips=bks.length?bks.map(b=>`<div class="trip" style="gap:6px"><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${b.range} · ${dWord(b.n)}${b.org?' · '+esc(b.org):''}</div></div><span class="chip">${b.tripOff?'الرحلة اتلغت':ended(b)?'خلصت':'قادمة'}</span></div>
-    <div class="bot"><span class="muted">${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}${b.rated?' · تقييمك '+b.rated+' من 5':''}</span>${b.tripOff?'<span class="muted">الناشر لغى الرحلة</span>':b.rated?'':(srvOn()&&!ended(b))?(b.date>iso(today)?`<button class="btn ghost sm" data-act="cancelbk" data-id="${b.id}">الغي الحجز</button>`:'<span class="muted">التقييم بعد ما الرحلة تخلص</span>'):`<button class="btn ghost sm" data-act="ratetrip" data-id="${b.id}">قيّم الرحلة</button>`}</div></div>`).join(''):'<span class="muted">لسه محجزتش رحلات. أي رحلة تحجزها هتظهر هنا بيومها، وتقدر تقيّمها.</span>';
+    <div class="bot"><span class="muted">${b.whole?'المركب كاملة ('+b.seats+' فرد)':b.seats+(b.seats>1?' أماكن':' مكان')}${b.rated?' · تقييمك '+b.rated+' من 5':''}</span>${b.tripOff?'<span class="muted">الناشر لغى الرحلة</span>':b.rated?'':(srvOn()&&!ended(b))?(b.date>iso(today)?`<button class="btn ghost sm" data-act="cancelbk" data-id="${b.id}">الغي الحجز</button>`:'<span class="muted">التقييم بعد ما الرحلة تخلص</span>'):`<button class="btn ghost sm" data-act="ratetrip" data-id="${b.id}">قيّم الرحلة</button>`}</div>${routes[b.tripId]&&!b.tripOff?`<button class="btn ghost sm" data-act="routeview" data-id="${b.tripId}">خط سير الرحلة على الخريطة</button>`:''}</div>`).join(''):'<span class="muted">لسه محجزتش رحلات. أي رحلة تحجزها هتظهر هنا بيومها، وتقدر تقيّمها.</span>';
   return `<div class="sec"><h2>سجل صيدي</h2>${ins}</div>
   <div class="card"><form id="logForm" novalidate><h2>سجّل صيدة</h2>
     <label for="lImg">صوّر السمكة أو اختار صورة<input id="lImg" type="file" accept="image/*" style="padding:10px 12px"></label>
     <div class="muted" id="lAi" aria-live="polite">من الصورة التطبيق بيحدد النوع واليوم والساعة، وإنت تراجعهم.</div>
+    <div class="muted" id="lGeo" aria-live="polite">${geoLine()}</div>
     <label for="lSp">نوع السمك<select id="lSp">${SPECIES.map(f=>`<option>${f.name}</option>`).join('')}<option value="">نوع تاني</option></select></label>
     <label for="lOther">لو نوع تاني اكتبه<input id="lOther" maxlength="30" autocomplete="off"></label>
     <label for="lKg">الوزن بالكيلو<input id="lKg" type="number" inputmode="decimal" min="0" step="0.1"></label>
@@ -594,7 +634,7 @@ function logView(){
     <button class="btn" type="submit">سجّل</button></form></div>
   <div class="sec"><h2>صيداتي (${n})</h2>${n?logs.slice().sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?1:-1).map(e=>{const c=cond(e.date),d=fromIso(e.date);
     return `<div class="trip" style="gap:4px"><div class="top"><div><strong>${esc(e.species)} · ${e.kg} كجم</strong><div class="muted">${gDate(d)} ${d.getFullYear()}${e.time?' · الساعة '+esc(e.time):''} · ${c.h.day} ${HM[c.h.month]}</div></div><button class="btn ghost sm" data-act="dellog" data-id="${e.id}">امسح</button></div>
-    <div><span class="chip">${c.fas?'فساد':'حمل'}</span> <span class="chip">رياح ${c.aw} عقدة${c.real?'':' (تقريبي)'}</span>${seasonChip(e)}${e.bait?' <span class="chip">طُعم: '+esc(e.bait)+'</span>':''}${e.spot?' <span class="chip">'+esc(e.spot)+'</span>':''}</div>${e.trip?'<span class="muted">رحلة: '+esc(e.trip)+'</span>':''}${shots[e.id]?`<img class="shot" src="${shots[e.id]}" alt="صورة ${esc(e.species)}">`:''}</div>`}).join(''):'<span class="muted">لسه مسجلتش حاجة.</span>'}</div>
+    <div><span class="chip">${c.fas?'فساد':'حمل'}</span> <span class="chip">رياح ${c.aw} عقدة${c.real?'':' (تقريبي)'}</span>${seasonChip(e)}${e.bait?' <span class="chip">طُعم: '+esc(e.bait)+'</span>':''}${e.spot?' <span class="chip">'+esc(e.spot)+'</span>':''}${typeof e.lat==='number'?` <button class="rate" data-act="logmap" data-id="${e.id}">مكانها على الخريطة</button>`:''}</div>${e.trip?'<span class="muted">رحلة: '+esc(e.trip)+'</span>':''}${shots[e.id]?`<img class="shot" src="${shots[e.id]}" alt="صورة ${esc(e.species)}">`:''}</div>`}).join(''):'<span class="muted">لسه مسجلتش حاجة.</span>'}</div>
   <div class="sec"><h2>رحلاتي (${bks.length})</h2>${myTrips}
   <span class="muted">الرياح مع كل صيدة حقيقية لو يومها في آخر شهر، والأقدم من كده تقريبي. ${logSrv?'الصيدات والرحلات محفوظة على حسابك. الصور لسه بتروح لما تقفل الصفحة.':'الصيدات محفوظة على الجهاز ده بس، والصور والرحلات بتروح لما تقفل الصفحة.'+(srvOn()?' ادخل بحسابك من الإدارة عشان تتحفظ على حسابك.':'')}</span></div>`;
 }
@@ -726,14 +766,21 @@ async function srvRun(form,errSel,fn){
   const btn=form.querySelector('[type=submit]'),er=$(errSel);if(btn)btn.disabled=true;if(er)er.textContent='';
   try{await fn()}catch(e){const x=$(errSel);if(x)x.textContent=srvErr(e);if(btn&&btn.isConnected)btn.disabled=false}
 }
+/* عمودين الموقع (lat, lon) بيتضافوا بملف 006. لو لسه متشغّلش، الصيدة تتسجل من غير موقع بدل ما تفشل. */
+async function postCatches(body,prefer){
+  try{return await sbFetch('/rest/v1/catches',{method:'POST',prefer,body})}
+  catch(e){const strip=r=>{const c=Object.assign({},r);delete c.lat;delete c.lon;return c};
+    if(!/PGRST204|lat|lon/.test(String(e.code)+' '+e.message))throw e;
+    return await sbFetch('/rest/v1/catches',{method:'POST',prefer,body:Array.isArray(body)?body.map(strip):strip(body)})}
+}
 async function loadCatches(){
   if(!logSrv&&logs.length){ /* صيدات اتسجلت على الجهاز قبل الدخول: تترفع على الحساب مرة واحدة */
-    await sbFetch('/rest/v1/catches',{method:'POST',body:logs.map(e=>({caught_on:e.date,caught_at:e.time||null,species:e.species,kg:e.kg,bait:e.bait||'',spot:e.spot||'',area:area.id}))});
+    await postCatches(logs.map(e=>({caught_on:e.date,caught_at:e.time||null,species:e.species,kg:e.kg,bait:e.bait||'',spot:e.spot||'',area:area.id,lat:typeof e.lat==='number'?e.lat:null,lon:typeof e.lon==='number'?e.lon:null})));
     try{localStorage.removeItem('fishbook-log')}catch(e){}
   }
   const cs=await sbFetch('/rest/v1/catches?select=*&order=caught_on.desc&limit=500');
   logs=cs.map(c=>{const b=bookings.find(x=>x.mine&&x.tripId===c.trip_id);
-    return{id:c.id,date:c.caught_on,time:c.caught_at?String(c.caught_at).slice(0,5):'',species:c.species,kg:Number(c.kg),bait:c.bait,spot:c.spot,trip:b?b.boat+' · '+b.range:''}});
+    return{id:c.id,date:c.caught_on,time:c.caught_at?String(c.caught_at).slice(0,5):'',species:c.species,kg:Number(c.kg),bait:c.bait,spot:c.spot,trip:b?b.boat+' · '+b.range:'',lat:c.lat==null?null:Number(c.lat),lon:c.lon==null?null:Number(c.lon)}});
   logSrv=true;
 }
 async function loadSrv(){
@@ -764,6 +811,7 @@ async function loadSrv(){
         tripOff:tr.status==='cancelled',mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()})});
     me=pf[0]||null;if(me)role=me.role==='owner'?'owner':'org';
     srv='ok';
+    if(uid())await loadRoutes();else Object.keys(routes).forEach(k=>delete routes[k]);
     if(uid())await loadCatches();else if(logSrv){logSrv=false;logs=[]}
   }catch(e){
     if(e.status===401&&ses){saveSes(null);me=null;return loadSrv()}
@@ -772,6 +820,7 @@ async function loadSrv(){
   render();
   syncNotif();
   if(pendingTrip&&srv==='ok')openSharedTrip();
+  if(pendingRoute&&srv==='ok')openSharedRoute();
 }
 async function doAuth(email,pw,name){
   authMsg='';
@@ -982,7 +1031,7 @@ function tripTable(mine){
   <ul class="list">${mine.map(t=>{const bk=t.total-t.left;let sq='';for(let i=0;i<t.total;i++)sq+='<i class="seat'+(i<bk?' on':'')+'"></i>';
     const st=t.left===0?['كاملة','s-good']:bk===0?['لسه فاضية','s-bad']:['ناقص '+t.left,'s-mid'];
     return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)} · ${dWord(t.n)}</div></div><span class="pill ${st[1]}">${st[0]}</span></div>
-    <div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div><span class="muted">محجوز ${bk} · فاضي ${t.left} · ${t.price} جنيه للفرد${t.full>0?' · '+t.full+' للمركب كاملة':''}</span>${srvOn()?`<div class="rowbtns"><button class="btn ghost sm" data-act="edittrip" data-id="${t.id}">عدّل</button><button class="btn ghost sm" data-act="canceltrip" data-id="${t.id}">الغي الرحلة</button></div>`:''}</li>`}).join('')}</ul></div>`;
+    <div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div><span class="muted">محجوز ${bk} · فاضي ${t.left} · ${t.price} جنيه للفرد${t.full>0?' · '+t.full+' للمركب كاملة':''}</span><div class="rowbtns"><button class="btn ghost sm" data-act="routeedit" data-id="${t.id}">${routes[t.id]?'خط السير':'ارسم خط السير'}</button>${srvOn()?`<button class="btn ghost sm" data-act="edittrip" data-id="${t.id}">عدّل</button><button class="btn ghost sm" data-act="canceltrip" data-id="${t.id}">الغي الرحلة</button>`:''}</div></li>`}).join('')}</ul></div>`;
 }
 function ownerCal(){
   const N=28;
@@ -1083,7 +1132,11 @@ function depthLine(p){
 const mkIcon=(cls,size)=>L.divIcon({className:'',html:`<span class="${cls}"></span>`,iconSize:[size,size],iconAnchor:[size/2,cls==='medot'?size/2:size+4]});
 function mapBar(){
   const el=$('#mapBar');if(!el)return;let h;
-  if(mapSel&&mapSel.t==='pin')h=`<strong>${mapSel.title?esc(mapSel.title):"نقطة على الخريطة"}</strong><div class="pos">${posText(mapSel.lat,mapSel.lon)}</div>${depthLine(mapSel)}${fromMe(mapSel)}
+  if(rt&&!mapSel){el.innerHTML=routeBar();return}
+  if(mapSel&&mapSel.t==='catch'){const c=logs.find(x=>x.id===mapSel.id);
+    h=c?`<strong>صيدة: ${esc(c.species)} · ${c.kg} كجم</strong><span class="muted">${gDate(fromIso(c.date))}${c.time?' · الساعة '+esc(c.time):''}${c.bait?' · طُعم: '+esc(c.bait):''}</span><div class="pos">${posText(c.lat,c.lon)}</div>${depthLine(c)}${fromMe(c)}
+    <div class="rowbtns"><button class="btn ghost" data-act="mapclear">قفل</button></div>`:''}
+  else if(mapSel&&mapSel.t==='pin')h=`<strong>${mapSel.title?esc(mapSel.title):"نقطة على الخريطة"}</strong><div class="pos">${posText(mapSel.lat,mapSel.lon)}</div>${depthLine(mapSel)}${fromMe(mapSel)}
     <div class="rowbtns"><button class="btn" data-act="marksave">احفظ النقطة</button><button class="btn ghost" data-act="mapclear">إلغاء</button></div>`;
   else if(mapSel&&mapSel.t==='mark'){const m=marks.find(x=>x.id===mapSel.id);
     h=m?`<strong>${esc(m.name)}</strong><div class="pos">${posText(m.lat,m.lon)}</div>${depthLine(m)}${fromMe(m)}
@@ -1099,6 +1152,77 @@ function drawMarks(){
     .on('click',()=>{mapPin(null);mapSel={t:'area',id:a.id};mapBar()}).addTo(areaLy));
   marks.forEach(m=>L.marker([m.lat,m.lon],{icon:mkIcon('mk',22),title:m.name})
     .on("click",()=>{mapPin(null);mapSel={t:"mark",id:m.id};mapBar();fetchDepth(m)}).addTo(markLy));
+  /* صيداتي اللي ليها موقع: بتظهر لصاحبها بس */
+  logs.filter(c=>typeof c.lat==='number'&&typeof c.lon==='number').forEach(c=>L.marker([c.lat,c.lon],{icon:L.divIcon({className:'',html:CATCH_ICON,iconSize:[28,28],iconAnchor:[14,14]}),title:c.species+' '+c.kg+' كجم'})
+    .on('click',()=>{mapPin(null);mapSel={t:'catch',id:c.id};mapBar();fetchDepth(c)}).addTo(markLy));
+}
+const CATCH_ICON='<span class="ck"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#0B7C88"><path d="M2 12c4-6 11-6 15 0-4 6-11 6-15 0zm15 0l5-4v8z"/><circle cx="7" cy="11" r="1.2" fill="#fff"/></svg></span>';
+/* فتح الخريطة على مكان معين من شاشة تانية (صيدة من السجل، أو خط سير رحلة) */
+let mapGo=null;
+function mapApplyGo(){
+  if(!map)return;drawMarks();drawRoute();
+  const g=mapGo;mapGo=null;if(!g){mapBar();return}
+  if(g.fit&&rt&&rt.pts.length>1)map.fitBounds(L.latLngBounds(rt.pts).pad(.3),{animate:false});
+  else if(g.fit&&rt&&rt.pts.length)map.setView(rt.pts[0],12,{animate:false});
+  else if(typeof g.lat==='number'){map.setView([g.lat,g.lon],Math.max(map.getZoom(),g.z||13),{animate:false});if(g.sel){mapPin(null);mapSel=g.sel;const c=logs.find(x=>x.id===g.sel.id);if(c)fetchDepth(c)}}
+  mapBar();
+}
+/* ---------- خط سير الرحلة ----------
+   الناشر بيرسم المسار نقطة نقطة على الخريطة، وبيتحفظ في جدول trip_routes (ملف 006).
+   بيشوفه الناشر وصاحب المركب والحاجزين في الرحلة بس، والحاجزين بيوصلهم إشعار أول ما يتحفظ أو يتعدّل. */
+const routes={};let rt=null,rtLy=null;
+const routeNm=p=>{let s=0;for(let i=1;i<p.length;i++)s+=distBrg({lat:p[i-1][0],lon:p[i-1][1]},{lat:p[i][0],lon:p[i][1]}).nm;return s};
+const rtTitle=id=>{const t=trips.find(x=>x.id===id),b=bookings.find(x=>x.tripId===id);return t?t.boat+' · '+tripRange(t):b?b.boat+' · '+b.range:'رحلة'};
+const rtCanEdit=id=>{const t=trips.find(x=>x.id===id);return !!t&&(srvOn()?t.pub===uid():true)};
+function openRoute(id,edit){
+  const r=routes[id];if(!edit&&!r)return;
+  rt={id,edit:!!edit,pts:r?r.pts.map(p=>[p[0],p[1]]):[],note:r?r.note:'',msg:''};
+  mapSel=null;mapNote='';mapGo={fit:true};go('map');
+}
+function drawRoute(){
+  if(!map)return;if(!rtLy)rtLy=L.layerGroup().addTo(map);rtLy.clearLayers();if(!rt)return;
+  if(rt.pts.length>1)L.polyline(rt.pts,{color:'#E0553B',weight:4,opacity:.95,dashArray:rt.edit?'8 8':null,interactive:false}).addTo(rtLy);
+  rt.pts.forEach((p,i)=>{const mk=L.marker(p,{draggable:rt.edit,interactive:rt.edit,keyboard:false,zIndexOffset:800,
+      icon:L.divIcon({className:'',html:`<span class="rn${i===0?' a':''}">${i+1}</span>`,iconSize:[26,26],iconAnchor:[13,13]})});
+    if(rt.edit)mk.on('dragend',()=>{const q=mk.getLatLng();rt.pts[i]=[q.lat,q.lng];drawRoute();mapBar()});
+    mk.addTo(rtLy)});
+}
+function routeBar(){
+  const n=rt.pts.length,nm=routeNm(rt.pts),len=n>1?`${n} نقط · ${nm<10?nm.toFixed(1):Math.round(nm)} ميل بحري`:'';
+  if(rt.edit)return `<strong>ارسم خط سير: ${esc(rtTitle(rt.id))}</strong>
+    <span class="muted">${len||'دوس على الخريطة بالترتيب: مكان التحرك، أماكن الصيد، وبعدين الرجوع.'}${n?' · اسحب أي نقطة عشان تعدّل مكانها.':''}</span>
+    <input id="rtNote" maxlength="200" autocomplete="off" aria-label="ملاحظات للصيادين" placeholder="ملاحظات للصيادين: ميعاد ومكان التحرك..." value="${esc(rt.note)}">
+    ${rt.msg?`<span class="err" role="alert">${esc(rt.msg)}</span>`:''}
+    <div class="rowbtns"><button class="btn" data-act="rtsave" ${n<2?'disabled':''}>احفظ وابعت</button><button class="btn ghost" data-act="rtundo" ${n?'':'disabled'}>تراجع</button><button class="btn ghost" data-act="rtclose">إلغاء</button></div>`;
+  return `<strong>خط سير: ${esc(rtTitle(rt.id))}</strong><span class="muted">${len}</span>
+    ${rt.note?`<span>${esc(rt.note)}</span>`:''}${rt.msg?`<span class="chip">${esc(rt.msg)}</span>`:''}
+    <div class="rowbtns">${rtCanEdit(rt.id)?'<button class="btn ghost" data-act="rtedit">عدّل</button><button class="btn ghost" data-act="rtshare">واتساب</button>':''}<button class="btn ghost" data-act="rtclose">قفل</button></div>`;
+}
+async function saveRoute(){
+  if(!rt||!rt.edit||rt.pts.length<2)return;
+  const id=rt.id,pts=rt.pts.map(p=>[Math.round(p[0]*1e5)/1e5,Math.round(p[1]*1e5)/1e5]),note=rt.note.trim().slice(0,200),on=srvOn()&&!!uid();
+  if(on){rt.msg='بنحفظ خط السير...';mapBar();
+    try{await sbFetch('/rest/v1/trip_routes?on_conflict=trip_id',{method:'POST',prefer:'resolution=merge-duplicates',body:{trip_id:id,points:pts,note,updated_at:new Date().toISOString()}});kick()}
+    catch(e){if(rt&&rt.id===id){rt.msg=/trip_routes|PGRST205|42P01|schema cache/i.test(String(e.code)+' '+e.message)?'خط السير لسه مش متفعّل على السيرفر: ملف 006_map_features.sql لازم يتشغّل الأول.':'معرفناش نحفظ خط السير: '+srvErr(e);mapBar()}return}}
+  routes[id]={pts,note};
+  if(rt&&rt.id===id){rt={id,edit:false,pts,note,msg:on?'اتحفظ، والحاجزين هيوصلهم إشعار.':'اتحفظ على الجهاز ده بس (نسخة تجريبية).'};drawRoute();mapBar()}
+}
+function shareRoute(){
+  if(!rt)return;const nm=routeNm(rt.pts);
+  const txt=`🧭 خط سير رحلة ${rtTitle(rt.id)}\n${rt.pts.length} نقط · حوالي ${nm<10?nm.toFixed(1):Math.round(nm)} ميل بحري${rt.note?'\n'+rt.note:''}\nشوفه على الخريطة (للحاجزين في الرحلة): ${APP_URL}?route=${rt.id}#map`;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');
+}
+async function loadRoutes(){
+  try{const rr=await sbFetch('/rest/v1/trip_routes?select=trip_id,points,note');Object.keys(routes).forEach(k=>delete routes[k]);
+    rr.forEach(r=>{if(Array.isArray(r.points)&&r.points.length>1)routes[r.trip_id]={pts:r.points.map(p=>[Number(p[0]),Number(p[1])]),note:r.note||''}})}catch(e){}
+}
+/* لينك خط سير (من الإشعار أو واتساب): ?route=رقم الرحلة */
+const pendingRoute=(()=>{try{const v=Number(new URLSearchParams(location.search).get('route'));return v>0?v:null}catch(e){return null}})();
+function openSharedRoute(){
+  if(!pendingRoute||openSharedRoute.done)return;openSharedRoute.done=true;
+  try{history.replaceState(null,'',location.pathname+'#map')}catch(e){}
+  if(routes[pendingRoute])openRoute(pendingRoute,false);
+  else{mapSel=null;mapNote=uid()?'خط السير ده بيظهر للحاجزين في الرحلة بس، أو لسه متحددش.':'خط سير الرحلة بيظهر للحاجزين بس. ادخل بحسابك من تبويب الإدارة وافتح اللينك تاني.';go('map')}
 }
 function mapPin(p){if(pinMk){pinMk.remove();pinMk=null}if(p&&map)pinMk=L.marker([p.lat,p.lon],{icon:mkIcon('mk pin',22),interactive:false}).addTo(map)}
 /* خطوط الأعماق والشعاب: ملفين جاهزين في data/ بيتبنوا بـ tools/build-map-data.mjs
@@ -1150,11 +1274,11 @@ function setMapBase(b){
 }
 async function showMap(){
   mapBar();
-  if(map){setTimeout(()=>map.invalidateSize(),0);return}
-  mapNote='بنحمّل الخريطة...';mapBar();
+  if(map){setTimeout(()=>{map.invalidateSize();mapApplyGo()},0);return}
+  const keep=mapNote;mapNote='بنحمّل الخريطة...';mapBar();
   try{await loadLeaflet()}catch(e){mapNote='معرفناش نحمّل الخريطة. الخريطة محتاجة نت، اتأكد من الاتصال وافتح التبويب تاني.';mapBar();return}
   if(map)return;
-  mapNote='';
+  mapNote=keep;
   map=L.map('map',{center:[area.lat,area.slon||area.lon],zoom:10,minZoom:5,maxZoom:17,maxBounds:[[9,29],[32.5,46]],maxBoundsViscosity:.7});
   const esriAt='Esri, GEBCO, NOAA, Garmin';
   mapLy.chart=L.layerGroup([
@@ -1165,9 +1289,11 @@ async function showMap(){
   map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
   L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
   markLy=L.layerGroup().addTo(map);areaLy=L.layerGroup().addTo(map);
-  map.on("click",e=>{mapSel={t:"pin",lat:e.latlng.lat,lon:e.latlng.lng};mapPin(mapSel);mapBar();fetchDepth(mapSel)});
+  map.on("click",e=>{
+    if(rt&&rt.edit){if(rt.pts.length<60){rt.pts.push([e.latlng.lat,e.latlng.lng]);rt.msg='';drawRoute()}mapBar();return}
+    mapSel={t:"pin",lat:e.latlng.lat,lon:e.latlng.lng};mapPin(mapSel);mapBar();fetchDepth(mapSel)});
   setMapBase(mapBase);drawMarks();mapBar();loadDetail();
-  setTimeout(()=>map.invalidateSize(),0);
+  setTimeout(()=>{map.invalidateSize();mapApplyGo()},0);
 }
 function mapLocate(){
   if(!navigator.geolocation){mapSel=null;mapNote='الجهاز ده مش بيدّي الموقع.';mapBar();return}
@@ -1238,6 +1364,16 @@ document.addEventListener('click',e=>{
   else if(act==='mapsea'){mapSea=!mapSea;setMapBase(mapBase)}
   else if(act==="maploc")mapLocate();
   else if(act==="mapdet"){detOn=!detOn;mapDetail()}
+  else if(act==='geonow')geoNow();
+  else if(act==='geodrop'){logGeo=null;logGeoMsg='';showGeo()}
+  else if(act==='logmap'){const c=logs.find(x=>String(x.id)===a.dataset.id);if(c&&typeof c.lat==='number'){rt=null;mapGo={lat:c.lat,lon:c.lon,z:13,sel:{t:'catch',id:c.id}};go('map')}}
+  else if(act==='routeedit'){const id=Number(a.dataset.id);openRoute(id,!routes[id])}
+  else if(act==='routeview')openRoute(Number(a.dataset.id),false);
+  else if(act==='rtedit'){if(rt&&rtCanEdit(rt.id)){rt.edit=true;rt.msg='';drawRoute();mapBar()}}
+  else if(act==='rtundo'){if(rt&&rt.edit){rt.pts.pop();drawRoute();mapBar()}}
+  else if(act==='rtsave')saveRoute();
+  else if(act==='rtshare')shareRoute();
+  else if(act==='rtclose'){rt=null;drawRoute();mapBar()}
   else if(act==='mapclear'){mapSel=null;mapNote='';mapPin(null);mapBar()}
   else if(act==='marksave')openMarkSave();
   else if(act==='markdel'){marks=marks.filter(m=>m.id!==Number(a.dataset.id));saveMarks();mapSel=null;drawMarks();mapBar()}
@@ -1261,6 +1397,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target.files&&e.target.files[0]);return}
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
+document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovl').hidden)closeSheet()});
 document.addEventListener('submit',e=>{
   e.preventDefault();
@@ -1282,7 +1419,7 @@ document.addEventListener('submit',e=>{
       await sbFetch('/rest/v1/rpc/book_trip',{method:'POST',body:{p_trip:t.id,p_seats:seats,p_whole:whole,p_name:name,p_phone:phone}});
       kick();showBooked(t,whole,seats);await loadSrv()});return}
     if(whole)t.left=0;else t.left-=seats;
-    bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0});
+    bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0,tripId:t.id});
     showBooked(t,whole,seats);
     render();
   }else if(e.target.id==='authForm'){
@@ -1328,10 +1465,11 @@ document.addEventListener('submit',e=>{
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>iso(today)){$('#lErr').textContent='اختار يوم الصيد، النهارده أو قبله.';return}
     const f=$('#lImg').files&&$('#lImg').files[0];
     const add=id=>{if(f&&f.type.indexOf('image/')===0){try{shots[id]=URL.createObjectURL(f)}catch(err){}}
-      logs.push({id,date,time,species,kg,bait,spot,trip});saveLogs();render()};
+      logs.push({id,date,time,species,kg,bait,spot,trip,lat:geo?geo.lat:null,lon:geo?geo.lon:null});logGeo=null;logGeoMsg='';saveLogs();render()};
+    const geo=logGeo?{lat:Math.round(logGeo.lat*1e5)/1e5,lon:Math.round(logGeo.lon*1e5)/1e5}:null;
     if(logSrv){const bk=myBk().find(b=>b.boat+' · '+b.range===trip);
       srvRun(e.target,'#lErr',async()=>{
-        const r=await sbFetch('/rest/v1/catches',{method:'POST',prefer:'return=representation',body:{caught_on:date,caught_at:time||null,species,kg,bait,spot,trip_id:bk?bk.tripId:null,area:area.id}});
+        const r=await postCatches({caught_on:date,caught_at:time||null,species,kg,bait,spot,trip_id:bk?bk.tripId:null,area:area.id,lat:geo?geo.lat:null,lon:geo?geo.lon:null},'return=representation');
         add(r[0].id)});return}
     add(Date.now());
   }else if(e.target.id==='tripRateForm'){
