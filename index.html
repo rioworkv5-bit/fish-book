@@ -48,9 +48,10 @@ nav button[aria-current="page"]{color:var(--brand);font-weight:800}
 .day[aria-pressed="true"] .wd{color:#D5E6F2}
 .day{flex:0 0 62px;font-family:inherit;color:inherit;border:0;box-shadow:var(--shadow)}
 .day .wd{white-space:nowrap}
-.day .pill{font-size:11px;padding:0 7px;background:var(--soft)}
-.day .pill.s-good{background:var(--good)}.day .pill.s-ok{background:var(--ok)}.day .pill.s-mid{background:var(--mid)}.day .pill.s-bad{background:var(--bad)}
-.day[aria-pressed="true"] .pill{box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.day{background:var(--wc,var(--card))}
+.day .pill{font-size:11px;padding:0 7px;background:rgba(255,255,255,.8);color:var(--ink)}
+.day[aria-pressed="true"]{background:var(--wc,var(--card));color:var(--ink);box-shadow:0 0 0 3px var(--brand),var(--shadow)}
+.day[aria-pressed="true"] .wd{color:var(--ink);font-weight:800}
 .pill{display:inline-block;font-size:13px;font-weight:800;border-radius:8px;padding:0 8px;font-variant-numeric:tabular-nums}
 .s-good{background:var(--good);color:#fff}.s-ok{background:var(--ok);color:#0A3F36}.s-mid{background:var(--mid);color:#5A3A00}.s-bad{background:var(--bad);color:#6B1D0E}
 .card{margin:16px 20px 0;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 1px 2px rgba(11,42,63,.05)}
@@ -204,6 +205,7 @@ ul.list li{border-radius:18px}
 .bar .bt{border-bottom:0}
 .bar .bf{border-radius:8px;max-width:22px;transition:height .45s cubic-bezier(.2,.8,.2,1)}
 .bar .bf.pre{border:2px dashed #7F97A8;border-radius:8px}
+.bar .bf.wn{box-shadow:inset 0 0 0 1.5px rgba(14,42,68,.22)}
 .bar.more{border-color:#9AD3D9;color:#0B6F7A;border-radius:14px}
 .pill{border-radius:999px;padding:1px 10px}
 .chip{background:#E1F2F4;color:#0B5560;border-radius:999px;padding:3px 12px}
@@ -974,13 +976,13 @@ function durFilter(){
 function home(){
   const d=fromIso(sel),w=weather(d),h=hijri(d),s=score(d),fas=isFasad(h.day),tideChips=`<span class="chip">${fas?'فساد · تيار ضعيف':'حمل · تيار قوي'}</span>${isTurn(h.day)?' <span class="chip">يوم تحول</span>':''}`;
   const vd=viewDays(),fv=fdays.map(x=>score(x).val),mx=Math.max.apply(null,fv),bestDay=fdays[fv.indexOf(mx)];
-  const bars=vd.map((x,i)=>{const sc=score(x),v=sc.val,k=iso(x),hx=hijri(x);
-    return `<button class="bar" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${gDate(x)} · ${sc.prelim?'تقييم مبدئي':'مؤشر'} ${v}% · ${isFasad(hx.day)?'فساد':'حمل'}" aria-label="${gDate(x)}، ${sc.prelim?'تقييم مبدئي':'مؤشر'} ${v}%"><span class="bt">${(!sc.prelim&&v===mx)?'<span class="best">الأفضل</span>':''}<span class="bn">${v}%</span><span class="bf ${sc.prelim?'pre':sClass(v)}" style="height:${Math.round(v*0.9)}px"></span></span><span class="wd">${WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="mo">${(i===0||x.getDate()===1)?GM[x.getMonth()]:''}</span></button>`}).join('')
+  const bars=vd.map((x,i)=>{const sc=score(x),v=sc.val,k=iso(x),hx=hijri(x),ww=sc.prelim?null:weather(x).wind,aw=ww?Math.round((ww[1]+ww[2]+ww[3]+ww[4]+ww[5])/5):0;
+    return `<button class="bar" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${gDate(x)} · ${sc.prelim?"تقييم مبدئي":"مؤشر"} ${v}%${sc.prelim?"":" · رياح "+aw+" عقدة"} · ${isFasad(hx.day)?"فساد":"حمل"}" aria-label="${gDate(x)}، ${sc.prelim?"تقييم مبدئي":"مؤشر"} ${v}%${sc.prelim?"":"، رياح "+aw+" عقدة"}"><span class="bt">${(!sc.prelim&&v===mx)?'<span class="best">الأفضل</span>':''}<span class="bn">${v}%</span><span class="bf ${sc.prelim?"pre":"wn"}" style="height:${Math.round(v*0.9)}px${sc.prelim?"":";background:"+windColor(aw)}"></span></span><span class="wd">${WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="mo">${(i===0||x.getDate()===1)?GM[x.getMonth()]:''}</span></button>`}).join('')
     +'<button class="bar more" data-act="more">شهر كمان</button>';
   const chart=`<div class="card chart"><h2>أفضل أيام الصيد</h2>
     <div class="muted">أحسن يوم في توقعات الجو ${gDate(bestDay)}. اسحب لقدام تشوف الشهور الجاية، واضغط على أي يوم.</div>
     <div class="bars" id="bars">${bars}</div>
-    <div class="legend"><span><i class="g1"></i>80% وأكتر ممتاز</span><span><i class="g2"></i>70% كويس</span><span><i class="g3"></i>50% متوسط</span><span><i class="g4"></i>أقل من 50% ضعيف</span><span><i class="pre"></i>مبدئي من الهجري، من غير جو</span></div>${liveNote()}</div>`;
+    <div class="legend"><span style="flex-basis:100%">الرقم فوق العمود مؤشر الصيد، ولون العمود سرعة الرياح في النهار:</span><span><i style="background:${windColor(6)};border-color:#9CC3DE"></i>هادية لحد 9 عقدة</span><span><i style="background:${windColor(12)};border-color:#7CC9AE"></i>10 لـ 13</span><span><i style="background:${windColor(15)};border-color:#D9C25A"></i>14 لـ 16</span><span><i style="background:${windColor(19)};border-color:#E39F52"></i>17 لـ 20</span><span><i style="background:${windColor(25)};border-color:#DB7F6C"></i>أكتر من 20 شديدة</span><span><i class="pre"></i>مبدئي من الهجري، من غير جو</span></div>${liveNote()}</div>`;
   const rows=SLOTS.map((t,i)=>`<div class="row"><span>${t}</span>
     <span class="wind" style="background:${windColor(w.wind[i])}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#0B2A3F" style="transform:rotate(${w.dir[i]}deg)"><path d="M12 2l6 18-6-4-6 4z"/></svg>${w.wind[i]} <small>عقدة · ${dirName(w.dir[i])}</small></span>
     <span>${w.wave[i].toFixed(1)} م</span>
@@ -988,7 +990,8 @@ function home(){
   /* شريط أيام فوق جدول الجو: أيام التوقعات، ومعاها اليوم المختار لو بعدها */
   const sd=fdays.some(x=>iso(x)===sel)?fdays:fdays.concat([d]);
   const strip=`<div class="sec" style="margin-bottom:-6px"><h2>حالة الجو يوم ${gDate(d)}</h2></div><div class="strip" id="dstrip" role="group" aria-label="اختار اليوم">${sd.map(x=>{const k=iso(x),sc=score(x);
-    return `<button class="day" data-act="day" data-d="${k}" aria-pressed="${k===sel}" aria-label="${gDate(x)}، مؤشر ${sc.val}%"><span class="wd">${k===iso(today)?'النهارده':WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="pill ${sc.prelim?'':sClass(sc.val)}">${sc.val}%</span></button>`}).join('')}</div>`;
+    const ww=sc.prelim?null:weather(x).wind,aw=ww?Math.round((ww[1]+ww[2]+ww[3]+ww[4]+ww[5])/5):0;
+    return `<button class="day" data-act="day" data-d="${k}" aria-pressed="${k===sel}" ${ww?`style="--wc:${windColor(aw)}"`:""} title="${ww?"رياح "+aw+" عقدة":"من غير توقعات جو"}" aria-label="${gDate(x)}، مؤشر ${sc.val}%${ww?"، رياح "+aw+" عقدة":""}"><span class="wd">${k===iso(today)?'النهارده':WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="pill">${sc.val}%</span></button>`}).join('')}</div>`;
   const dayTrips=trips.filter(t=>t.date===sel&&matchDur(t));
   let tripsHtml;
   if(dayTrips.length)tripsHtml=dayTrips.map(tripCard).join('');
