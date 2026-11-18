@@ -278,6 +278,13 @@ main[hidden]{display:none}
 .medot.h i{display:block}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
+/* ===== علامة الحساب في الشريط العلوي ===== */
+#hAcct{margin-inline-start:auto;flex:0 1 auto;min-width:0;display:flex}
+.hacct{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;border:0;border-radius:999px;background:#fff;color:var(--ink);padding:4px;padding-inline-end:14px;box-shadow:var(--shadow);font-weight:800;font-size:13px}
+.hacct .nm{color:var(--ink);font-size:13px;font-weight:800;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hacct .avw{position:relative;display:flex;flex:0 0 auto}
+.hacct .avw::after{content:"";position:absolute;bottom:-1px;inset-inline-end:-1px;width:11px;height:11px;border-radius:50%;background:#1FA855;border:2px solid #fff}
+.hacct.out{padding:0 18px;background:var(--brand);color:#fff}
 /* ===== المجتمع ===== */
 nav{grid-template-columns:repeat(7,1fr);padding-inline:2px}
 nav button{font-size:10.5px}
@@ -368,7 +375,7 @@ select.fchip{padding:0 10px}
 </head>
 <body>
 <div id="app">
-<header><img class="logo" src="icons/icon-192.png" width="48" height="48" alt=""><div class="hd"><h1><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></div></header>
+<header><img class="logo" src="icons/icon-192.png" width="48" height="48" alt=""><div class="hd"><h1><span class="wm"><span>فيش</span> <span class="wm2">بوك</span><svg class="wv" viewBox="0 0 80 6" preserveAspectRatio="none" aria-hidden="true"><path d="M1 4q5-4 10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" fill="none" stroke="#2BB3D6" stroke-width="1.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></h1><span id="hArea">الغردقة · نسخة تجريبية</span></div><div id="hAcct"></div></header>
 <main id="main"></main>
 <div id="mapWrap" hidden>
   <div id="map" dir="ltr"></div>
@@ -1832,7 +1839,25 @@ function openMarkSave(){
   <span class="muted">النقط بتتحفظ على الجهاز ده بس ومحدش غيرك بيشوفها.</span>`;
   $('#ovl').hidden=false;$('#mName').focus();
 }
+/* علامة الحساب في الشريط العلوي، ظاهرة في كل الشاشات: صورة واسم لو داخل، وزرار "دخول" لو لأ */
+function acctChip(){
+  if(!uid())return srvOn()?'<button class="hacct out" data-act="acct">دخول</button>':'';
+  const nm=String((me&&me.name)||'').trim()||'حسابي';
+  return `<button class="hacct" data-act="acct" aria-label="داخل بحساب ${esc(nm)}. افتح الحساب"><span class="avw">${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}</span><span class="nm">${esc(nm.split(/\s+/)[0])}</span></button>`;
+}
+function openAcct(){
+  if(!uid()){openAuth('ادخل بحسابك أو اعمل حساب جديد.');return}
+  const nm=String((me&&me.name)||'').trim()||'حسابي';
+  $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
+      <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}</div></div></div>
+    <button class="q" data-act="myav">صورة الحساب</button>
+    <button class="q" data-act="acctgo" data-v="log">سجلي ورحلاتي</button>
+    <button class="q" data-act="acctgo" data-v="manage">الإدارة</button>
+    <div class="rowbtns"><button class="btn ghost" type="button" data-act="signout">خروج من الحساب</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
+  $('#ovl').hidden=false;
+}
 function render(){
+  $('#hAcct').innerHTML=acctChip();
   const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
   if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
   $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():view==='community'?communityView():manageView();
@@ -1878,7 +1903,9 @@ document.addEventListener('click',e=>{
   else if(act==='alert'){alerts[sel]=true;render()}
   else if(act==='role'){if(srvOn()&&uid())setRole(a.dataset.r);else{role=a.dataset.r;render()}}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
-  else if(act==='signout')signOut();
+  else if(act==='signout'){closeSheet();signOut()}
+  else if(act==='acct')openAcct();
+  else if(act==='acctgo'){closeSheet();go(a.dataset.v)}
   else if(act==='share')shareTrip(Number(a.dataset.id));
   else if(act==='mapbase')setMapBase(mapBase==='chart'?'sat':'chart');
   else if(act==='mapsea'){mapSea=!mapSea;setMapBase(mapBase)}
