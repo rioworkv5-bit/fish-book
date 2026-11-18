@@ -278,6 +278,8 @@ main[hidden]{display:none}
 .medot.h i{display:block}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
+.lnk{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:0;min-height:36px}
+.lnk:hover{text-decoration:underline}
 /* ===== علامة الحساب في الشريط العلوي ===== */
 #hAcct{margin-inline-start:auto;flex:0 1 auto;min-width:0;display:flex}
 .hacct{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;border:0;border-radius:999px;background:#fff;color:var(--ink);padding:4px;padding-inline-end:14px;box-shadow:var(--shadow);font-weight:800;font-size:13px}
@@ -863,6 +865,8 @@ function srvErr(e){
   if(/invalid_credentials|Invalid login/i.test(c+m))return 'الإيميل أو كلمة السر غلط.';
   if(/user_already_exists|already registered/i.test(c+m))return 'الإيميل ده متسجل قبل كده. اختار "دخول" وادخل بيه.';
   if(/email_not_confirmed|not confirmed/i.test(c+m))return 'لازم تأكد الإيميل الأول من الرسالة اللي وصلتك.';
+  if(/same_password/i.test(c))return 'دي نفس كلمة السر القديمة. اكتب واحدة جديدة.';
+  if(/over_email_send_rate_limit/i.test(c))return 'اتبعت إيميلات كتير في وقت قصير. جرّب بعد شوية.';
   if(/weak_password/i.test(c))return 'كلمة السر ضعيفة. اكتب 6 حروف أو أرقام على الأقل.';
   if(/email_address_invalid|validation_failed/i.test(c))return 'اكتب إيميل صحيح.';
   if(e.status===429)return 'محاولات كتير. جرّب بعد شوية.';
@@ -931,12 +935,14 @@ async function loadSrv(){
   if(pendingTrip&&srv==='ok')openSharedTrip();
   if(pendingRoute&&srv==='ok')openSharedRoute();
 }
-async function doAuth(email,pw,name){
+async function doAuth(email,pw,name,phone){
   authMsg='';
   if(authMode==='up'){
-    const j=await sbFetch('/auth/v1/signup',{method:'POST',noAuth:true,body:{email,password:pw,data:{name}}});
+    const j=await sbFetch('/auth/v1/signup',{method:'POST',noAuth:true,body:{email,password:pw,data:{name,phone}}});
     if(!j||!j.access_token){authMode='in';authMsg='بعتنالك رسالة تأكيد على الإيميل. افتحها واضغط اللينك، وبعدين ادخل من هنا.';return}
     saveSes(j);
+    /* رقم الموبايل بيتحفظ في profiles.phone (خاص بصاحبه). لسه من غير تأكيد برسالة SMS. */
+    try{await sbFetch('/rest/v1/profiles?id=eq.'+uid(),{method:'PATCH',body:{phone}})}catch(e){}
   }else saveSes(await sbFetch('/auth/v1/token?grant_type=password',{method:'POST',noAuth:true,body:{email,password:pw}}));
   await loadSrv();
 }
@@ -951,15 +957,49 @@ async function setRole(r){
   render();
 }
 function authCard(note){
+  if(authMode==='forgot')return `<form id="forgotForm" novalidate><h2>نسيت كلمة السر</h2><span class="muted">اكتب إيميل حسابك، وهنبعتلك عليه لينك تعمل بيه كلمة سر جديدة.</span>
+    <label for="fEmail">الإيميل<input id="fEmail" type="email" inputmode="email" maxlength="80" autocomplete="email" dir="ltr"></label>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت اللينك</button><button class="btn ghost" type="button" data-act="authmode" data-m="in">رجوع</button></div></form>`;
   const up=authMode==='up';
   return `<form id="authForm" novalidate><h2>${up?'حساب جديد':'دخول'}</h2>${note?'<span class="muted">'+note+'</span>':''}
     <div class="seg" role="group" aria-label="دخول أو حساب جديد"><button type="button" data-act="authmode" data-m="in" aria-pressed="${!up}">دخول</button><button type="button" data-act="authmode" data-m="up" aria-pressed="${up}">حساب جديد</button></div>
     ${authMsg?'<span class="chip">'+esc(authMsg)+'</span>':''}
-    ${up?'<label for="aName">الاسم<input id="aName" maxlength="40" autocomplete="name"></label>':''}
+    ${up?'<label for="aName">الاسم<input id="aName" maxlength="40" autocomplete="name"></label><label for="aPhone">رقم الموبايل<input id="aPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel" dir="ltr" placeholder="01xxxxxxxxx"></label>':''}
     <label for="aEmail">الإيميل<input id="aEmail" type="email" inputmode="email" maxlength="80" autocomplete="email" dir="ltr"></label>
     <label for="aPw">كلمة السر${up?' (6 حروف أو أرقام على الأقل)':''}<input id="aPw" type="password" maxlength="72" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
+    ${up?'':'<button type="button" class="lnk" data-act="authmode" data-m="forgot">نسيت كلمة السر؟</button>'}
     <div class="err" id="aErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">${up?'اعمل الحساب':'ادخل'}</button>${sheetAuth?'<button class="btn ghost" type="button" data-act="close">إلغاء</button>':''}</div></form>`;
+}
+/* ----- نسيت كلمة السر -----
+   السيرفر بيبعت إيميل فيه لينك. اللينك بيرجّع للتطبيق ومعاه #access_token=...&type=recovery،
+   فالتطبيق يدخّل صاحبه ويفتحله نافذة كلمة سر جديدة. اللينك بيرجع على "Site URL" المكتوب في إعدادات Supabase. */
+let recov=null;
+(()=>{const h=(location.hash||'').slice(1);if(!/(^|&)(access_token|error_code)=/.test(h))return;
+  const p=new URLSearchParams(h);try{history.replaceState(null,'',location.pathname+location.search+'#home')}catch(e){}
+  if(p.get('type')==='recovery'&&p.get('access_token'))recov={access_token:p.get('access_token'),refresh_token:p.get('refresh_token')||'',expires_in:Number(p.get('expires_in'))||3600};
+  else if(p.get('error_code'))recov={bad:true}})();
+function recovBad(){
+  $('#sheet').innerHTML='<h2>اللينك مبقاش شغال</h2><span class="muted">لينك كلمة السر انتهت مدته أو اتستخدم قبل كده. اطلب لينك جديد.</span><div class="rowbtns"><button class="btn" type="button" data-act="authmode" data-m="forgot">اطلب لينك جديد</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>';
+  sheetAuth=true;$('#ovl').hidden=false;
+}
+async function startRecovery(){
+  const r=recov;recov=null;
+  if(r.bad){await loadSrv();recovBad();return}
+  try{
+    const res=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+r.access_token}});
+    if(!res.ok)throw new Error('expired');
+    saveSes({access_token:r.access_token,refresh_token:r.refresh_token,expires_in:r.expires_in,user:await res.json()});
+    await loadSrv();
+    $('#sheet').innerHTML=`<h2>كلمة سر جديدة</h2><span class="muted" dir="ltr" style="text-align:right">${esc(ses.user.email)}</span>
+    <form id="newPwForm" novalidate>
+      <label for="nPw">كلمة السر الجديدة (6 حروف أو أرقام على الأقل)<input id="nPw" type="password" maxlength="72" autocomplete="new-password" dir="ltr"></label>
+      <label for="nPw2">اكتبها تاني<input id="nPw2" type="password" maxlength="72" autocomplete="new-password" dir="ltr"></label>
+      <div class="err" id="nErr" role="alert"></div>
+      <div class="rowbtns"><button class="btn" type="submit">احفظ كلمة السر</button></div></form>`;
+    $('#ovl').hidden=false;
+  }catch(e){await loadSrv();recovBad()}
 }
 /* الإشعارات (Web Push): الاشتراك بيتحفظ في push_subs، والإرسال من دالة push على السيرفر */
 const pushOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&/^https?:$/.test(location.protocol);
@@ -1885,7 +1925,7 @@ function openBook(id){
   $('#sheet').innerHTML=`<h2>${whole?'حجز المركب كاملة: ':'حجز مكان في '}${esc(t.boat)}</h2><span class="muted">${tripRange(t)} · ${dWord(t.n)} · ${whole?t.full+' جنيه للمركب كاملة':t.price+' جنيه للفرد'}</span>
   <form id="bookForm" data-id="${t.id}" data-kind="${whole?'boat':'seat'}" novalidate>
     <label for="bName">الاسم<input id="bName" maxlength="40" autocomplete="name" value="${esc((srvOn()&&me&&me.name)||'')}"></label>
-    <label for="bPhone">رقم الموبايل<input id="bPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel"></label>
+    <label for="bPhone">رقم الموبايل<input id="bPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel" value="${esc((srvOn()&&me&&me.phone)||'')}"></label>
     <label for="bSeats">${whole?'هتطلعوا كام فرد':'عدد الأماكن'}<select id="bSeats">${o}</select></label>
     <div class="err" id="bErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
@@ -2001,13 +2041,28 @@ document.addEventListener('submit',e=>{
     bookings.push({id:Date.now(),name,phone,seats,whole,boat:t.boat,range:tripRange(t),by:t.by,org:t.org,date:t.date,n:t.n,rated:0,tripId:t.id});
     showBooked(t,whole,seats);
     render();
+  }else if(e.target.id==='forgotForm'){
+    const email=$('#fEmail').value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('#fErr').textContent='اكتب إيميل صحيح.';return}
+    srvRun(e.target,'#fErr',async()=>{
+      await sbFetch('/auth/v1/recover?redirect_to='+encodeURIComponent(/^https:$/.test(location.protocol)?location.origin+location.pathname:APP_URL),{method:'POST',noAuth:true,body:{email}});
+      authMode='in';authMsg='لو الإيميل ده عليه حساب، هيوصله لينك خلال دقايق. افتح الإيميل (وبص في الرسائل غير المرغوبة) واضغط اللينك.';
+      if(sheetAuth)$('#sheet').innerHTML=authCard();else render()});
+  }else if(e.target.id==='newPwForm'){
+    const pw=$('#nPw').value;
+    if(pw.length<6){$('#nErr').textContent='كلمة السر 6 حروف أو أرقام على الأقل.';return}
+    if(pw!==$('#nPw2').value){$('#nErr').textContent='الكلمتين مش زي بعض.';return}
+    srvRun(e.target,'#nErr',async()=>{
+      await sbFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});
+      $('#sheet').innerHTML='<h2>كلمة السر اتغيرت</h2><span class="muted">إنت داخل بحسابك دلوقتي. المرة الجاية ادخل بكلمة السر الجديدة.</span><button class="btn" type="button" data-act="close">تمام</button>'});
   }else if(e.target.id==='authForm'){
-    const email=$('#aEmail').value.trim(),pw=$('#aPw').value,name=$('#aName')?$('#aName').value.trim():'';
+    const email=$('#aEmail').value.trim(),pw=$('#aPw').value,name=$('#aName')?$('#aName').value.trim():'',phone=$('#aPhone')?$('#aPhone').value.trim().replace(/[\s-]/g,''):'';
     if(authMode==='up'&&name.length<2){$('#aErr').textContent='اكتب اسمك.';return}
+    if(authMode==='up'&&!/^\+?\d{10,14}$/.test(phone)){$('#aErr').textContent='اكتب رقم موبايل صحيح، أرقام بس.';return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('#aErr').textContent='اكتب إيميل صحيح.';return}
     if(pw.length<6){$('#aErr').textContent='كلمة السر 6 حروف أو أرقام على الأقل.';return}
     srvRun(e.target,'#aErr',async()=>{
-      await doAuth(email,pw,name);
+      await doAuth(email,pw,name,phone);
       if(!uid()){if(sheetAuth)$('#sheet').innerHTML=authCard();else render();return}
       if(sheetAuth)closeSheet();render()});
   }else if(e.target.id==='cancelBk'){
@@ -2093,7 +2148,7 @@ if(live!=='cache')useSnap();
 $('#hArea').textContent=area.name+' · نسخة تجريبية';
 render();
 loadLive();
-loadSrv();
+if(recov)startRecovery();else loadSrv();
 // التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
