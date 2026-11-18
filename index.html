@@ -278,6 +278,34 @@ main[hidden]{display:none}
 .medot.h i{display:block}
 .medot{display:block;width:18px;height:18px;border-radius:50%;background:#1E88E5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25)}
 .leaflet-container .leaflet-control-attribution{font-size:10px}
+/* ===== المجتمع ===== */
+nav{grid-template-columns:repeat(7,1fr);padding-inline:2px}
+nav button{font-size:10.5px}
+textarea{font-family:inherit;font-size:16px;color:inherit;width:100%;min-height:76px;border:1.5px solid #CFE0E6;border-radius:14px;background:#F8FCFD;padding:10px 12px;resize:vertical;line-height:1.5;transition:border-color .2s,box-shadow .2s}
+textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(34,184,196,.18);outline:0}
+.post p,.cml p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.post .who{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pics{display:grid;gap:3px;border-radius:14px;overflow:hidden}
+.pics.n2,.pics.n3,.pics.n4{grid-template-columns:1fr 1fr}
+.pics button{border:0;padding:0;background:#DCEBEF;display:block;min-width:0}
+.pics img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:1}
+.pics.n1 img{aspect-ratio:auto;max-height:440px}
+.pics.n3 button:first-child{grid-column:1/-1}.pics.n3 button:first-child img{aspect-ratio:2}
+.vid{position:relative;display:block;width:100%;aspect-ratio:16/9;border:0;padding:0;border-radius:14px;overflow:hidden;background:#0E2A44}
+.vid img,.vid iframe{display:block;width:100%;height:100%;object-fit:cover;border:0}
+.vid .pb{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(14,42,68,.82);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.vid .pb::after{content:"";position:absolute;left:23px;top:17px;border:12px solid transparent;border-left:18px solid #fff;border-right:0}
+.pacts{display:flex;gap:6px;flex-wrap:wrap}
+a.rate{text-decoration:none;color:inherit}
+.rate[data-act="like"][aria-pressed="true"]{color:#A3241B;border-color:#F3C4BE;background:#FFF4F2}
+.rate[data-act="like"][aria-pressed="true"] svg{fill:#D9483B;stroke:#D9483B}
+.cml li{background:var(--ground);box-shadow:none;display:flex;flex-direction:column;gap:6px}
+.cml .rate{min-height:34px;background:transparent}
+.prev{display:flex;gap:8px;flex-wrap:wrap}.prev:empty{display:none}
+.pv{position:relative;width:72px;height:72px;border-radius:12px;overflow:hidden;background:#DCEBEF}
+.pv img{width:100%;height:100%;object-fit:cover;display:block}
+.pv button{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(14,42,68,.85);color:#fff;font-weight:800;line-height:1;padding:0}
+.zoom{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:14px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -303,6 +331,7 @@ main[hidden]{display:none}
   <button data-view="home"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/></svg>الرئيسية</button>
   <button data-view="trips"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16h18l-2 4H5z"/><path d="M12 3v10M12 4l6 8H6z"/></svg>الرحلات</button>
   <button data-view="map"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>الخريطة</button>
+  <button data-view="community"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.8c2.1.6 3.5 2.4 3.5 5.2"/></svg>المجتمع</button>
   <button data-view="ask"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>اسأل</button>
   <button data-view="log"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>سجلي</button>
   <button data-view="manage"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإدارة</button>
@@ -765,6 +794,10 @@ function srvErr(e){
   if(/cannot_cancel/.test(m))return 'الحجز ده مينفعش يتلغي دلوقتي. الإلغاء لحد اليوم اللي قبل الرحلة.';
   if(/seats_below_booked/.test(m))return 'مينفعش الأماكن تبقى أقل من المحجوز.';
   if(/trip_has_bookings/.test(m))return 'الرحلة عليها حجوزات، فالتاريخ والمدة والسعر مبيتغيروش.';
+  if(/post_limit/.test(m))return 'وصلت للحد الأقصى: 10 بوستات في اليوم. جرّب بكرة.';
+  if(/comment_limit/.test(m))return 'كتبت تعليقات كتير النهارده. جرّب بكرة.';
+  if(/bad_photo/.test(m))return 'في صورة معرفناش نجهّزها. شيلها وجرّب صورة تانية.';
+  if(/Payload too large|exceeded the maximum/i.test(m)||e.status===413)return 'الصورة حجمها كبير. جرّب صورة تانية.';
   if(/not_signed_in/.test(m)||e.status===401)return 'ادخل بحسابك الأول.';
   if(/invalid_credentials|Invalid login/i.test(c+m))return 'الإيميل أو كلمة السر غلط.';
   if(/user_already_exists|already registered/i.test(c+m))return 'الإيميل ده متسجل قبل كده. اختار "دخول" وادخل بيه.';
@@ -1100,6 +1133,239 @@ function manageView(){
     <button class="btn" type="submit">انشر الرحلة</button></form></div>
   ${boatForm}`;
 }
+/* ---------- المجتمع (منتدى المشتركين) ----------
+   بوستات بنص وصور ولينك فيديو، تعليقات، إعجابات، وبلاغات. الجداول في supabase/007_community.sql.
+   بيشتغل مع السيرفر بس. الصور بتتصغّر على الجهاز وبتترفع على Storage (bucket اسمه community).
+   comState: new لسه متحملش، loading، ok، fail مفيش اتصال، none الجداول لسه متعملتش على السيرفر. */
+const POST_KINDS=[['catch','صيدة'],['boat','مركب'],['question','سؤال'],['general','عام']];
+const ROLE_NAME={angler:'صياد',organizer:'منظم رحلات',owner:'صاحب مركب'};
+const REP_REASONS=['إعلان أو سبام','محتوى مسيء أو شتيمة','ملوش علاقة بالصيد','حاجة تانية'];
+const POSTS_PAGE=20,PIC_MAX=4;
+const PIC_URL=p=>SB_URL+'/storage/v1/object/public/community/'+p;
+const HEART='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5S3.5 15.4 3.5 9.2A4.6 4.6 0 0 1 12 6.8a4.6 4.6 0 0 1 8.5 2.4c0 6.2-8.5 11.3-8.5 11.3z"/></svg>';
+const CMT_ICON='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+let posts=[],comState='new',comUid=null,comErr='',comKind='',comArea='',comMore=false,comSeq=0,reps=[],postFiles=[],cmts=null,cmtPost=null,cmtErr='';
+const isAdmin=()=>!!(me&&me.is_admin);
+function ago(ts){
+  const s=Math.max(0,(Date.now()-new Date(ts).getTime())/1000),m=Math.round(s/60),h=Math.round(s/3600),d=Math.round(s/86400);
+  if(s<90)return 'دلوقتي';
+  if(m<60)return m===2?'من دقيقتين':'من '+m+(m<=10?' دقايق':' دقيقة');
+  if(h<24)return h===1?'من ساعة':h===2?'من ساعتين':'من '+h+(h<=10?' ساعات':' ساعة');
+  if(d<7)return d===1?'امبارح':d===2?'من يومين':'من '+d+' أيام';
+  const x=new Date(ts);return x.getDate()+' '+GM[x.getMonth()]+(x.getFullYear()!==today.getFullYear()?' '+x.getFullYear():'');
+}
+/* لينك الفيديو: يوتيوب بيتشغّل جوه البوست، والباقي بيفتح في تطبيقه. نفس القائمة في قيد video_url على السيرفر. */
+function videoInfo(u){
+  let x;try{x=new URL(u)}catch(e){return null}
+  if(x.protocol!=='https:')return null;
+  const h=x.hostname.replace(/^(www|m|vm|vt|web)\./,'');
+  if(h==='youtu.be'||h==='youtube.com'){
+    const m=x.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]+)/),id=h==='youtu.be'?x.pathname.slice(1).split('/')[0]:m?m[1]:(x.searchParams.get('v')||'');
+    return /^[\w-]{6,20}$/.test(id)?{site:'يوتيوب',yt:id}:null}
+  if(h==='facebook.com'||h==='fb.watch')return{site:'فيسبوك'};
+  if(h==='tiktok.com')return{site:'تيك توك'};
+  if(h==='instagram.com')return{site:'إنستجرام'};
+  return null;
+}
+function videoHtml(p){
+  const v=p.video_url?videoInfo(p.video_url):null;if(!v)return '';
+  return v.yt?`<button class="vid" data-act="ytplay" data-id="${v.yt}" aria-label="شغّل الفيديو"><img loading="lazy" src="https://i.ytimg.com/vi/${v.yt}/hqdefault.jpg" alt=""><span class="pb"></span></button>`
+    :`<div><a class="rate" href="${esc(p.video_url)}" target="_blank" rel="noopener noreferrer">▶ شوف الفيديو على ${v.site}</a></div>`;
+}
+function postCard(p){
+  const mine=p.user_id===uid(),kn=(POST_KINDS.find(k=>k[0]===p.kind)||[])[1],ar=AREAS.find(a=>a.id===p.area),ph=(p.photos||[]).slice(0,PIC_MAX),nm=esc(p.author_name||'عضو');
+  return `<div class="trip post" data-post="${p.id}"><div class="top"><div><div class="who"><strong>${nm}</strong>${p.author_verified?'<span class="chip">موثّق</span>':''}</div>
+    <div class="muted">${ROLE_NAME[p.author_role]||'صياد'} · ${ago(p.created_at)}${ar?' · '+ar.name:''}</div></div>${kn?'<span class="chip">'+kn+'</span>':''}</div>
+    ${p.body?'<p>'+esc(p.body)+'</p>':''}
+    ${ph.length?`<div class="pics n${ph.length}">`+ph.map((x,i)=>`<button data-act="photo" data-src="${esc(PIC_URL(x))}" aria-label="كبّر الصورة ${i+1}"><img loading="lazy" src="${esc(PIC_URL(x))}" alt="صورة ${i+1} من بوست ${nm}"></button>`).join('')+'</div>':''}
+    ${videoHtml(p)}
+    <div class="pacts"><button class="rate" data-act="like" data-id="${p.id}" aria-pressed="${!!p.liked}" aria-label="إعجاب">${HEART}<span>${p.like_count||0}</span></button>
+      <button class="rate" data-act="cmts" data-id="${p.id}">${CMT_ICON}<span>${p.comment_count||0}</span> تعليق</button>
+      ${mine?'':`<button class="rate" data-act="report" data-pid="${p.id}">بلّغ</button>`}${mine||isAdmin()?`<button class="rate" data-act="delpost" data-id="${p.id}">امسح</button>`:''}</div></div>`;
+}
+/* تحديث عدّادات بوست واحد من غير إعادة رسم الصفحة (عشان فيديو شغال ميقفش) */
+function syncPost(p){
+  const el=document.querySelector('[data-post="'+p.id+'"]');if(!el)return;
+  const lk=el.querySelector('[data-act="like"]'),cm=el.querySelector('[data-act="cmts"] span');
+  if(lk){lk.setAttribute('aria-pressed',p.liked?'true':'false');lk.querySelector('span').textContent=p.like_count||0}
+  if(cm)cm.textContent=p.comment_count||0;
+}
+function communityView(){
+  const head=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>المجتمع</h2>${srvOn()&&comState!=='none'?'<button class="btn sm" data-act="newpost">اكتب بوست</button>':''}</div>
+    <span class="muted">صور صيدك ومركبك وأسئلتك، مع صيادين ومنظمين وأصحاب مراكب البحر الأحمر.</span>`;
+  if(!srvOn())return `<div class="sec">${head}<span class="muted">${srv==='fail'?'المجتمع محتاج اتصال بالسيرفر. اتأكد من النت وافتح التطبيق تاني.':'بنحمّل...'}</span></div>`;
+  if(comState==='new'||comUid!==uid())loadPosts(true);
+  if(comState==='none')return `<div class="sec">${head}<span class="muted">المجتمع لسه متفعّلش على السيرفر.</span></div>`;
+  const filt=`<div class="filter"><label for="cKind">النوع<select id="cKind"><option value="">الكل</option>${POST_KINDS.map(k=>`<option value="${k[0]}" ${k[0]===comKind?'selected':''}>${k[1]}</option>`).join('')}</select></label>
+    <label for="cArea">المنطقة<select id="cArea"><option value="">الكل</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===comArea?'selected':''}>${a.name}</option>`).join('')}</select></label></div>`;
+  const repBlock=isAdmin()&&reps.length?`<div class="sec"><h2>بلاغات (${reps.length})</h2><ul class="list">${reps.map(r=>{const t=r.comment_id?(r.comments&&r.comments.body):(r.posts&&r.posts.body);
+    return `<li><strong>${r.comment_id?'تعليق':'بوست'}</strong> · ${esc(r.reason||'من غير سبب')}<br><span class="muted">${esc(String(t||'(من غير نص)').slice(0,140))}</span>
+      <div class="rowbtns" style="margin-top:8px"><button class="btn ghost sm" data-act="repdel" data-id="${r.id}">امسح المحتوى</button><button class="btn ghost sm" data-act="repskip" data-id="${r.id}">تجاهل البلاغ</button></div></li>`}).join('')}</ul></div>`:'';
+  let body;
+  if(comState==='fail')body=`<span class="err" role="alert">${esc(comErr)}</span><button class="btn ghost" data-act="comreload">جرّب تاني</button>`;
+  else if(!posts.length)body=`<span class="muted">${comState==='loading'?'بنحمّل البوستات...':comKind||comArea?'مفيش بوستات بالاختيارات دي.':'لسه مفيش بوستات. ابدأ إنت بأول بوست.'}</span>`;
+  else body=posts.map(postCard).join('')+(comMore?`<button class="btn ghost" data-act="commore" ${comState==='loading'?'disabled':''}>بوستات أقدم</button>`:'');
+  return `${repBlock}<div class="sec">${head}${filt}${body}</div>`;
+}
+async function loadPosts(reset){
+  const my=++comSeq;comState='loading';comUid=uid();comErr='';
+  if(reset){posts=[];comMore=false}
+  try{
+    const last=posts.length?posts[posts.length-1].id:0;
+    const rows=await sbFetch('/rest/v1/posts_public?select=*&order=id.desc&limit='+POSTS_PAGE+(comKind?'&kind=eq.'+comKind:'')+(comArea?'&area=eq.'+comArea:'')+(last?'&id=lt.'+last:''));
+    let rp=[];
+    if(isAdmin())try{rp=await sbFetch('/rest/v1/reports?select=id,reason,post_id,comment_id,posts!reports_post_id_fkey(body),comments!reports_comment_id_fkey(body,post_id)&order=id.desc&limit=50')}catch(e){}
+    if(my!==comSeq)return;
+    posts=posts.concat(rows);comMore=rows.length===POSTS_PAGE;reps=rp;comState='ok';
+  }catch(e){
+    if(my!==comSeq)return;
+    comState=(e.status===404||/PGRST205|42P01/.test(String(e.code)))?'none':'fail';comErr=srvErr(e);
+  }
+  if(view==='community')render();
+}
+/* ----- بوست جديد ----- */
+function dropPostFiles(){postFiles.forEach(x=>URL.revokeObjectURL(x.url));postFiles=[]}
+function drawPrev(){const el=$('#pPrev');if(el)el.innerHTML=postFiles.map((x,i)=>`<div class="pv"><img src="${x.url}" alt="صورة ${i+1}"><button type="button" data-act="pfdrop" data-i="${i}" aria-label="شيل الصورة ${i+1}">×</button></div>`).join('')}
+function addPostFiles(list){
+  const er=$('#pErr');if(er)er.textContent='';
+  for(const f of Array.from(list||[])){
+    if(f.type.indexOf('image/')!==0)continue;
+    if(postFiles.length>=PIC_MAX){if(er)er.textContent='أقصى عدد '+PIC_MAX+' صور في البوست.';break}
+    postFiles.push({f,url:URL.createObjectURL(f)});
+  }
+  drawPrev();
+}
+function openNewPost(){
+  dropPostFiles();
+  $('#sheet').innerHTML=`<h2>بوست جديد</h2>
+  <form id="postForm" novalidate>
+    <label for="pKind">نوع البوست<select id="pKind">${POST_KINDS.map(k=>`<option value="${k[0]}">${k[1]}</option>`).join('')}</select></label>
+    <label for="pBody">اكتب اللي عايز تقوله<textarea id="pBody" maxlength="2000" rows="4"></textarea></label>
+    <label for="pImg">صور (لحد ${PIC_MAX})<input id="pImg" type="file" accept="image/*" multiple style="padding:10px 12px"></label>
+    <div class="prev" id="pPrev"></div>
+    <label for="pVid">لينك فيديو (اختياري): يوتيوب، فيسبوك، تيك توك، أو إنستجرام<input id="pVid" type="url" inputmode="url" maxlength="300" dir="ltr" autocomplete="off" placeholder="https://"></label>
+    <label for="pArea">المنطقة<select id="pArea">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label>
+    <span class="muted">الصور بتتصغّر قبل الرفع وبيتشال منها مكان التصوير، فمحدش يعرف مكان صيدك من الصورة. البوست بيظهر لكل الناس.</span>
+    <div class="err" id="pErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">انشر</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+/* تصغير الصورة لـ 1280 بكسل JPEG. إعادة الرسم بتشيل بيانات الصورة (ومنها مكان التصوير). لو فشل: null ومبنرفعش الأصل. */
+async function shrinkPic(file){
+  try{const bmp=await createImageBitmap(file),k=Math.min(1,1280/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(bmp.width*k));c.height=Math.max(1,Math.round(bmp.height*k));c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b&&b.type==='image/jpeg'?b:null),'image/jpeg',0.8))}catch(e){return null}
+}
+const picId=()=>{try{return crypto.randomUUID()}catch(e){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12)}};
+async function sbUpload(path,blob){
+  if(ses&&ses.exp-Date.now()<60e3)await refreshSes();
+  const r=await fetch(SB_URL+'/storage/v1/object/community/'+path,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+(ses?ses.access_token:''),'Content-Type':'image/jpeg'},body:blob});
+  if(!r.ok){let j=null;try{j=await r.json()}catch(e){}const er=new Error((j&&(j.message||j.error))||('HTTP '+r.status));er.status=r.status;throw er}
+}
+const dropPics=paths=>sbFetch('/storage/v1/object/community',{method:'DELETE',body:{prefixes:paths}}).catch(()=>{});
+function submitPost(form){
+  const kind=$('#pKind').value,body=$('#pBody').value.trim(),vid=$('#pVid').value.trim(),ar=$('#pArea').value,files=postFiles.slice(),er=$('#pErr');
+  if(!body&&!files.length&&!vid){er.textContent='اكتب حاجة، أو ضيف صورة أو لينك فيديو.';return}
+  if(vid&&!videoInfo(vid)){er.textContent='لينك الفيديو لازم يكون لفيديو على يوتيوب أو فيسبوك أو تيك توك أو إنستجرام، ويبدأ بـ https.';return}
+  const btn=form.querySelector('[type=submit]');
+  srvRun(form,'#pErr',async()=>{
+    const paths=[];btn.textContent=files.length?'بنرفع الصور...':'بننشر...';
+    try{
+      for(const x of files){const b=await shrinkPic(x.f);if(!b){const e=new Error('bad_photo');e.status=400;throw e}
+        const path=uid()+'/'+picId()+'.jpg';await sbUpload(path,b);paths.push(path)}
+      await sbFetch('/rest/v1/posts',{method:'POST',body:{kind,area:ar,body,photos:paths,video_url:vid}});
+    }catch(e){if(paths.length)dropPics(paths);btn.textContent='انشر';throw e}
+    closeSheet();
+    if(comKind&&comKind!==kind)comKind='';if(comArea&&comArea!==ar)comArea='';
+    await loadPosts(true);$('#main').scrollTop=0;
+  });
+}
+/* ----- إعجاب ----- */
+async function toggleLike(id){
+  if(!uid()){openAuth('ادخل بحسابك عشان تتفاعل مع البوستات.');return}
+  const p=posts.find(x=>x.id===id);if(!p||p.busy)return;
+  const was=!!p.liked,set=on=>{p.liked=on;p.like_count=Math.max(0,Number(p.like_count||0)+(on?1:-1));syncPost(p)};
+  p.busy=true;set(!was);
+  try{
+    if(was)await sbFetch('/rest/v1/post_likes?post_id=eq.'+id+'&user_id=eq.'+uid(),{method:'DELETE'});
+    else await sbFetch('/rest/v1/post_likes',{method:'POST',body:{post_id:id},prefer:'resolution=ignore-duplicates'});
+  }catch(e){set(was)}
+  p.busy=false;
+}
+/* ----- تعليقات ----- */
+function drawCmts(){
+  const list=cmts===null?'<span class="muted">بنحمّل التعليقات...</span>':cmts.length?'<ul class="list cml">'+cmts.map(c=>`<li><div><strong>${esc(c.author_name||'عضو')}</strong>${c.author_verified?' <span class="chip">موثّق</span>':''} <span class="muted">${ROLE_NAME[c.author_role]||'صياد'} · ${ago(c.created_at)}</span></div><p>${esc(c.body)}</p>
+    <div class="pacts">${c.user_id===uid()?'':`<button class="rate" data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id===uid()||isAdmin()?`<button class="rate" data-act="delcmt" data-id="${c.id}">امسح</button>`:''}</div></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش تعليقات. اكتب أول تعليق.</span>';
+  $('#sheet').innerHTML=`<h2>التعليقات</h2>${cmtErr?'<span class="err" role="alert">'+esc(cmtErr)+'</span>':''}${list}
+  ${uid()?`<form id="cmtForm" novalidate><label for="cmText">تعليقك<textarea id="cmText" maxlength="600" rows="2"></textarea></label>
+    <div class="err" id="cmErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت</button><button class="btn ghost" type="button" data-act="close">قفل</button></div></form>`
+  :'<span class="muted">عشان تعلّق، ادخل بحسابك من تبويب الإدارة.</span><button class="btn ghost" type="button" data-act="close">قفل</button>'}`;
+}
+async function fetchCmts(id){
+  try{const r=await sbFetch('/rest/v1/comments_public?select=*&post_id=eq.'+id+'&order=id.asc&limit=300');if(cmtPost!==id)return;cmts=r;cmtErr=''}
+  catch(e){if(cmtPost!==id)return;if(cmts===null)cmts=[];cmtErr=srvErr(e)}
+  const p=posts.find(x=>x.id===id);if(p&&!cmtErr){p.comment_count=cmts.length;syncPost(p)}
+  drawCmts();
+}
+function openCmts(id){cmtPost=id;cmts=null;cmtErr='';drawCmts();$('#ovl').hidden=false;fetchCmts(id)}
+function submitCmt(form){
+  const id=cmtPost,body=$('#cmText').value.trim();
+  if(!id)return;
+  if(!body){$('#cmErr').textContent='اكتب التعليق الأول.';return}
+  srvRun(form,'#cmErr',async()=>{await sbFetch('/rest/v1/comments',{method:'POST',body:{post_id:id,body}});await fetchCmts(id)});
+}
+async function delCmt(id,btn){
+  const pid=cmtPost;btn.disabled=true;
+  try{await sbFetch('/rest/v1/comments?id=eq.'+id,{method:'DELETE'});await fetchCmts(pid)}catch(e){btn.disabled=false}
+}
+/* ----- مسح بوست ----- */
+function openDelPost(id){
+  const p=posts.find(x=>x.id===id);if(!p)return;
+  $('#sheet').innerHTML=`<h2>تمسح البوست؟</h2><span class="muted">البوست وصوره وتعليقاته هيتمسحوا، والمسح مبيرجعش.</span>
+  <form id="delPostForm" data-id="${id}" novalidate><div class="err" id="dpErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">امسح البوست</button><button class="btn ghost" type="button" data-act="close">رجوع</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+async function delPost(id){
+  let p=posts.find(x=>x.id===id);
+  if(!p)p=(await sbFetch('/rest/v1/posts?select=id,photos&id=eq.'+id))[0];
+  if(!p)return;
+  await sbFetch('/rest/v1/posts?id=eq.'+id,{method:'DELETE'});
+  if(p.photos&&p.photos.length)dropPics(p.photos);
+  posts=posts.filter(x=>x.id!==id);reps=reps.filter(r=>r.post_id!==id&&!(r.comments&&r.comments.post_id===id));
+}
+/* ----- بلاغات ----- */
+function openReport(pid,cid){
+  if(!uid()){openAuth('ادخل بحسابك عشان تبلّغ عن محتوى.');return}
+  cmtPost=null;
+  $('#sheet').innerHTML=`<h2>بلاغ عن ${cid?'تعليق':'بوست'}</h2><span class="muted">البلاغ بيوصل لإدارة فيش بوك بس، وصاحب المحتوى مش بيعرف مين اللي بلّغ.</span>
+  <form id="repForm" ${cid?'data-cid="'+cid+'"':'data-pid="'+pid+'"'} novalidate>
+    <label for="rpWhy">السبب<select id="rpWhy">${REP_REASONS.map(r=>`<option>${r}</option>`).join('')}</select></label>
+    <div class="err" id="rpErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت البلاغ</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+function submitReport(form){
+  const body={reason:$('#rpWhy').value};
+  if(form.dataset.cid)body.comment_id=Number(form.dataset.cid);else body.post_id=Number(form.dataset.pid);
+  srvRun(form,'#rpErr',async()=>{
+    try{await sbFetch('/rest/v1/reports',{method:'POST',body})}catch(e){if(String(e.code)!=='23505')throw e}
+    $('#sheet').innerHTML='<h2>البلاغ وصل</h2><span class="muted">شكرًا. الإدارة هتراجع المحتوى.</span><button class="btn" type="button" data-act="close">تمام</button>';
+  });
+}
+/* الإدارة: امسح المحتوى اللي عليه البلاغ، أو تجاهل البلاغ */
+async function repAct(id,del,btn){
+  const r=reps.find(x=>x.id===id);if(!r)return;btn.disabled=true;
+  try{
+    if(!del)await sbFetch('/rest/v1/reports?id=eq.'+id,{method:'DELETE'});
+    else if(r.comment_id){await sbFetch('/rest/v1/comments?id=eq.'+r.comment_id,{method:'DELETE'});
+      const p=posts.find(x=>r.comments&&x.id===r.comments.post_id);if(p)p.comment_count=Math.max(0,Number(p.comment_count||0)-1)}
+    else await delPost(r.post_id);
+    reps=reps.filter(x=>del?(r.comment_id?x.comment_id!==r.comment_id:x.post_id!==r.post_id):x.id!==id);
+    render();
+  }catch(e){btn.disabled=false}
+}
 /* ---------- الخريطة البحرية (البحر الأحمر) ----------
    الخريطة عايشة برة #main عشان render() بيمسح #main كل مرة.
    Leaflet بيتحمّل أول مرة التبويب يتفتح بس. المصادر مجانية: أعماق Esri Ocean، صور Esri، وعلامات OpenSeaMap. */
@@ -1403,7 +1669,7 @@ function openMarkSave(){
 function render(){
   const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
   if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
-  $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():manageView();
+  $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():view==='community'?communityView():manageView();
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
     if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
@@ -1434,7 +1700,7 @@ function openBook(id){
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;$('#bName').focus();
 }
-function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false}
+function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;cmtPost=null;dropPostFiles()}
 
 document.addEventListener('click',e=>{
   const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
@@ -1482,9 +1748,25 @@ document.addEventListener('click',e=>{
   else if(act==='dellog'){const id=Number(a.dataset.id),drop=()=>{logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()};
     if(logSrv){a.disabled=true;sbFetch('/rest/v1/catches?id=eq.'+id,{method:'DELETE'}).then(drop).catch(()=>{a.disabled=false})}else drop()}
   else if(act==='rate')openRate(a.dataset.k);
+  else if(act==='newpost'){if(uid())openNewPost();else openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تنشر في المجتمع. بعد الدخول اضغط "اكتب بوست" تاني.')}
+  else if(act==='like')toggleLike(Number(a.dataset.id));
+  else if(act==='cmts')openCmts(Number(a.dataset.id));
+  else if(act==='delpost')openDelPost(Number(a.dataset.id));
+  else if(act==='delcmt')delCmt(Number(a.dataset.id),a);
+  else if(act==='report')openReport(a.dataset.pid?Number(a.dataset.pid):null,a.dataset.cid?Number(a.dataset.cid):null);
+  else if(act==='photo'){$('#sheet').innerHTML='<img class="zoom" src="'+esc(a.dataset.src)+'" alt="الصورة بحجم أكبر"><button class="btn ghost" type="button" data-act="close">قفل</button>';$('#ovl').hidden=false}
+  else if(act==='ytplay'){if(/^[\w-]{6,20}$/.test(a.dataset.id))a.outerHTML='<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+a.dataset.id+'?autoplay=1" title="فيديو يوتيوب" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>'}
+  else if(act==='pfdrop'){const x=postFiles.splice(Number(a.dataset.i),1)[0];if(x)URL.revokeObjectURL(x.url);drawPrev()}
+  else if(act==='comreload')loadPosts(true);
+  else if(act==='commore'){a.disabled=true;loadPosts(false)}
+  else if(act==='repdel')repAct(Number(a.dataset.id),true,a);
+  else if(act==='repskip')repAct(Number(a.dataset.id),false,a);
   else if(act==='star'){starSel=Number(a.dataset.n);document.querySelectorAll('.st').forEach((b,i)=>{b.classList.toggle('on',i<starSel);b.setAttribute('aria-pressed',i<starSel?'true':'false')})}
 });
 document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target.files&&e.target.files[0]);return}
+  if(e.target.id==='pImg'){addPostFiles(e.target.files);e.target.value='';return}
+  if(e.target.id==='cKind'){comKind=e.target.value;loadPosts(true);render();return}
+  if(e.target.id==='cArea'){comArea=e.target.value;loadPosts(true);render();return}
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value});
@@ -1497,6 +1779,10 @@ document.addEventListener('submit',e=>{
     if(!mapSel||mapSel.t!=='pin'){closeSheet();return}
     const m={id:Date.now(),name,lat:mapSel.lat,lon:mapSel.lon};marks.push(m);saveMarks();
     mapPin(null);mapSel={t:'mark',id:m.id};closeSheet();drawMarks();mapBar();return}
+  if(e.target.id==='postForm'){submitPost(e.target);return}
+  if(e.target.id==='cmtForm'){submitCmt(e.target);return}
+  if(e.target.id==='repForm'){submitReport(e.target);return}
+  if(e.target.id==='delPostForm'){const id=Number(e.target.dataset.id);srvRun(e.target,'#dpErr',async()=>{await delPost(id);closeSheet();render()});return}
   if(e.target.id==='bookForm'){
     const t=trips.find(x=>x.id===Number(e.target.dataset.id));
     const name=$('#bName').value.trim(),phone=$('#bPhone').value.trim(),seats=Number($('#bSeats').value);
@@ -1595,9 +1881,9 @@ document.addEventListener('submit',e=>{
     done();
   }
 });
-function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','map','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
+function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','map','community','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
 window.addEventListener('hashchange',fromHash);
-const h0=(location.hash||'').slice(1);if(['home','trips','map','ask','log','manage'].includes(h0))view=h0;
+const h0=(location.hash||'').slice(1);if(['home','trips','map','community','ask','log','manage'].includes(h0))view=h0;
 /* آخر جو متحمّل (لو أحدث من 6 ساعات) يظهر فورًا، وبعدين نحدّث من النت */
 try{const c=JSON.parse(localStorage.getItem('fishbook-live')||'null');if(c&&c.area===area.id&&c.wj&&c.wj.hourly&&Date.now()-c.at<6*3600e3){applyLive(c.wj,c.mj);live='cache';liveAt=c.at}}catch(e){}
 if(live!=='cache')useSnap();
