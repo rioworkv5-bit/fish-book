@@ -145,6 +145,22 @@ ul.list .top{display:flex;justify-content:space-between;gap:10px;align-items:fle
 .cd small{font-size:10px;font-weight:600}
 .cd.trip{background:var(--mid);border-color:var(--mid);color:#5A3A00}
 .cd.full{background:var(--good);border-color:var(--good);color:#fff}
+/* جدول الشهر في لوحة المنظم وصاحب المركب: كل مركب بلون، واسمها مكتوب على أيام رحلتها */
+.mcalh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mcalh strong{font-size:17px}
+.mcalh button{min-width:48px;font-size:22px;font-weight:800;line-height:1;padding:0;font-family:system-ui,sans-serif}
+.mcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.mcal .wd{font-size:10.5px;font-weight:700;color:var(--muted);text-align:center;padding-bottom:2px}
+.md{min-height:62px;min-width:0;border-radius:10px;border:1.5px solid #D5DEE6;background:#fff;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;font:inherit;color:inherit;line-height:1.25}
+.md b{font-size:14px;font-weight:800}
+.md small{font-size:9.5px;font-weight:700;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;text-align:center;line-height:1.2;overflow-wrap:anywhere}
+.md.gone{color:#9FB0BC;border-color:#E6ECF1}
+.md.on{background:var(--c);border-color:var(--cb);color:#0E2A44}
+.md.on.gone{opacity:.6}
+.md.now{outline:2.5px solid var(--accent);outline-offset:1px}
+.md.sel{box-shadow:0 0 0 3px var(--brand)}
+.mdot{display:inline-block;width:14px;height:14px;border-radius:5px;border:1.5px solid;flex:none}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;text-align:start;border:0;background:none;font:inherit;color:inherit;padding:0;min-height:44px}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:600;color:var(--muted)}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid #9FB0BC;background:#fff;vertical-align:-2px;margin-inline-end:4px}
 .legend i.trip{background:var(--mid);border-color:var(--mid)}.legend i.full{background:var(--good);border-color:var(--good)}
@@ -1013,7 +1029,7 @@ function oauthBad(){
 }
 /* حساب اتعمل حالًا بجوجل: نسأله نوع الحساب، لأن فورم "حساب جديد" هو اللي كان بيسأل */
 function firstRoleSheet(){
-  $('#sheet').innerHTML=`<h2>أهلًا ${esc(String(me.name||'').trim().split(' ')[0]||'بيك')}</h2><span class="muted">حسابك اتعمل. هتستخدم فيش بوك كإيه؟ تقدر تغيّرها بعدين من الإدارة.</span>
+  $('#sheet').innerHTML=`<h2>أهلًا ${esc(String(me.name||'').trim().split(' ')[0]||'بيك')}</h2><span class="muted">حسابك اتعمل. هتستخدم فيش بوك كإيه؟ تقدر تغيّرها بعدين من زرار الحساب.</span>
     <button class="q" data-act="firstrole" data-r="angler">صياد: أحجز رحلات وأسجّل صيدي</button>
     <button class="q" data-act="firstrole" data-r="org">منظم رحلات: أنشر رحلات على مراكب</button>
     <button class="q" data-act="firstrole" data-r="owner">صاحب مركب: أسجّل مراكبي وأنشر عليها</button>`;
@@ -1270,6 +1286,31 @@ function mgTrip(t,past){
     ${past?'':`<div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div>`}<span class="muted">محجوز ${bk} · فاضي ${t.left} · ${money(t.price)} جنيه للفرد${t.full>0?' · '+money(t.full)+' للمركب كاملة':''}</span>
     ${past?'':`<div class="rowbtns wrap">${bk?`<button class="btn ghost sm" data-act="mpeople" data-id="${t.id}">المشتركين (${bk})</button>`:''}${own||routes[t.id]?`<button class="btn ghost sm" data-act="routeedit" data-id="${t.id}">${routes[t.id]?'خط السير':'ارسم خط السير'}</button>`:''}${srvOn()&&own?`<button class="btn ghost sm" data-act="edittrip" data-id="${t.id}">عدّل</button><button class="btn ghost sm" data-act="canceltrip" data-id="${t.id}">الغي</button>`:''}<button class="btn ghost sm" data-act="share" data-id="${t.id}">شارك</button></div>`}</li>`;
 }
+/* جدول الشهر: شبكة أيام الشهر (الأسبوع بيبدأ السبت). اليوم اللي عليه رحلة بياخد لون مركبها واسمها.
+   mcal: فرق الشهور عن الشهر الحالي. mcalDay: اليوم المتعلّم عليه (تفاصيل رحلاته بتظهر تحت الجدول). */
+let mcal=0,mcalDay=null;
+const MCOL=[['#BDEBEF','#22B8C4'],['#FCE0B5','#E59A2F'],['#D9D4FA','#7C6FE0'],['#C9EBD6','#3FA36C'],['#F9CFDA','#DE5E80'],['#CFE1F8','#4F8FDD']];
+const MWD=['سبت','حد','اتنين','تلات','أربع','خميس','جمعة'];
+function mgMonth(d){
+  const first=new Date(today.getFullYear(),today.getMonth()+mcal,1,12),Y=first.getFullYear(),M=first.getMonth(),nDays=new Date(Y,M+1,0).getDate();
+  const bKey=t=>t.boatId?'i'+t.boatId:'n'+t.boat,keys=[...new Set(d.mine.map(bKey))],col=t=>MCOL[keys.indexOf(bKey(t))%MCOL.length];
+  const mIso=n=>iso(new Date(Y,M,n,12)),a=mIso(1),z=mIso(nDays),now=iso(today);
+  const inM=d.mine.filter(t=>t.date<=z&&tEnd(t)>=a);
+  let cells=MWD.map(w=>`<div class="wd">${w}</div>`).join('');
+  for(let i=0,pad=(first.getDay()+1)%7;i<pad;i++)cells+='<div></div>';
+  for(let n=1;n<=nDays;n++){const k=mIso(n),ts=inM.filter(t=>k>=t.date&&k<=tEnd(t)),cls=(k<now?' gone':'')+(k===now?' now':'')+(k===mcalDay?' sel':'');
+    if(!ts.length){cells+=`<div class="md${cls}"><b>${n}</b></div>`;continue}
+    const c=col(ts[0]);
+    cells+=`<button class="md on${cls}" style="--c:${c[0]};--cb:${c[1]}" data-act="mcalday" data-k="${k}" aria-pressed="${k===mcalDay}" aria-label="${n} ${GM[M]}: ${esc(ts.map(t=>t.boat).join(' و'))}"><b>${n}</b><small>${esc(ts[0].boat)}</small>${ts.length>1?`<small>+${ts.length-1}</small>`:''}</button>`}
+  const day=mcalDay&&mcalDay>=a&&mcalDay<=z?inM.filter(t=>mcalDay>=t.date&&mcalDay<=tEnd(t)):[];
+  const rows=inM.map(t=>{const c=col(t),bk=t.total-t.left,past=isPast(t);
+    return `<li><button class="mrow" data-act="mcalday" data-k="${t.date<a?a:t.date}"><i class="mdot" style="background:${c[0]};border-color:${c[1]}"></i><span style="flex:1;min-width:0"><strong>${esc(t.boat)}</strong><span class="muted" style="display:block">${tripRange(t)} · ${dWord(t.n)}</span></span><span class="${past?'chip':t.left===0?'pill s-good':bk?'pill s-mid':'pill s-bad'}">${past?'خلصت':t.left===0?'كاملة':'محجوز '+bk+' من '+t.total}</span></button></li>`}).join('');
+  return `<div class="sec"><div class="mcalh"><button class="btn ghost sm" data-act="mcal" data-d="-1" aria-label="الشهر اللي قبله" ${mcal<=-2?'disabled':''}>→</button><strong>${GM[M]} ${Y}</strong><button class="btn ghost sm" data-act="mcal" data-d="1" aria-label="الشهر اللي بعده" ${mcal>=11?'disabled':''}>←</button></div>
+    <div class="mcal">${cells}</div>
+    ${inM.length?`<span class="muted">${inM.length===1?'رحلة واحدة':inM.length===2?'رحلتين':inM.length+' رحلات'} في ${GM[M]}. دوس على يوم ملوّن عشان تشوف تفاصيله.</span>`:`<span class="muted">مفيش رحلات في ${GM[M]}.</span>`}
+    ${day.length?`<ul class="list">${day.map(t=>mgTrip(t,isPast(t))).join('')}</ul>`:rows?`<ul class="list">${rows}</ul>`:''}
+    ${day.length?'<button class="btn ghost sm" data-act="mcalday" data-k="">رجوع لكل رحلات الشهر</button>':''}</div>`;
+}
 function mgOver(d){
   if(!d.mine.length&&!d.myB.length)return `<div class="card"><h2>${d.owner?'ابدأ شغلك على فيش بوك':'ابدأ تنظيم رحلاتك'}</h2><ol class="steps">
       <li><div><strong>${d.owner?'سجّل مراكبك':'ضيف المركب اللي هتطلع بيها'}</strong><div class="muted">الاسم وعدد الأفراد.</div></div></li>
@@ -1279,7 +1320,7 @@ function mgOver(d){
   const ids=new Set(d.up.map(t=>t.id)),bkUp=d.myB.filter(b=>ids.has(b.tripId));
   const booked=d.up.reduce((s,t)=>s+(t.total-t.left),0),free=d.up.reduce((s,t)=>s+t.left,0),tot=booked+free,pct=tot?Math.round(booked/tot*100):0,val=bkUp.reduce((s,b)=>s+bkAmount(b),0);
   const nx=d.up[0],last=d.myB.slice(0,3);
-  return `<div class="sec"><h2>نظرة عامة</h2>
+  return `${mgMonth(d)}<div class="sec"><h2>نظرة عامة</h2>
     <div class="tiles t2"><div class="tile"><b>${d.up.length}</b><span>رحلة قادمة</span></div><div class="tile"><b>${booked}</b><span>مكان محجوز</span></div><div class="tile"><b>${free}</b><span>مكان لسه فاضي</span></div><div class="tile"><b>${money(val)}</b><span>قيمة الحجوزات بالجنيه</span></div></div>
     ${tot?`<div class="trip" style="gap:8px"><div class="top"><strong>نسبة امتلاء الرحلات القادمة</strong><span class="pill ${pct>=80?'s-good':pct>=50?'s-ok':pct>=25?'s-mid':'s-bad'}">${pct}%</span></div><span class="bkb"><i class="s-good" style="width:${pct}%"></i></span><span class="muted">${booked} محجوز من ${tot}${d.owner?' · عندك '+d.ownB.length+(d.ownB.length===1?' مركب':' مراكب'):''} · ${d.past.length} رحلة خلصت في آخر شهرين</span></div>`:''}
     <span class="muted">قيمة الحجوزات هي السعر في عدد الأماكن المحجوزة. الدفع لسه بينك وبين الصياد مباشرة.</span></div>
@@ -1397,6 +1438,8 @@ function manageView(){
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
   const body=mtab==='adm'?mgAdmin():mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
+  /* نوع الحساب بيتختار وقت التسجيل وبيتغيّر من نافذة الحساب. هنا بيظهر في العرض التجريبي بس (من غير سيرفر) */
+  if(on)return `${head}${chips}${body}`;
   return `${head}${chips}${body}
   <div class="sec"><h2>نوع الحساب</h2><div class="seg s3" role="group" aria-label="نوع الحساب">${pick('angler','صياد')}${pick('org','منظم رحلات')}${pick('owner','صاحب مركب')}</div>
     <span class="muted">${R==='angler'?'بتنظم رحلات أو عندك مركب؟ غيّر نوع حسابك وهتظهرلك لوحة الشغل.':'تقدر تغيّر نوع الحساب في أي وقت. رحلاتك وحجوزاتك بتفضل محفوظة.'}</span></div>`;
@@ -2052,12 +2095,21 @@ function acctChip(){
   const nm=String((me&&me.name)||'').trim()||'حسابي';
   return `<button class="hacct" data-act="acct" aria-label="داخل بحساب ${esc(nm)}. افتح الحساب"><span class="avw">${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}</span><span class="nm">${esc(nm.split(/\s+/)[0])}</span></button>`;
 }
+function openRole(){
+  const cur=role==='owner'?'owner':role==='angler'?'angler':'org';
+  const b=(r,t,d)=>`<button class="q" data-act="roleset" data-r="${r}" ${cur===r?'aria-current="true"':''}><strong>${t}${cur===r?' (الحالي)':''}</strong><br><span class="muted">${d}</span></button>`;
+  $('#sheet').innerHTML=`<h2>نوع الحساب</h2><span class="muted">اختار اللي يناسب شغلك. رحلاتك وحجوزاتك بتفضل محفوظة لو غيّرته.</span>
+    ${b('angler','صياد','أحجز رحلات وأسجّل صيدي')}${b('org','منظم رحلات','أنشر رحلات على مراكب')}${b('owner','صاحب مركب','أسجّل مراكبي وأنشر عليها')}
+    <div class="rowbtns"><button class="btn ghost" type="button" data-act="acct">رجوع</button></div>`;
+  $('#ovl').hidden=false;
+}
 function openAcct(){
   if(!uid()){openAuth('ادخل بحسابك أو اعمل حساب جديد.');return}
   const nm=String((me&&me.name)||'').trim()||'حسابي';
   $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
       <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}</div></div></div>
     <button class="q" data-act="myav">صورة الحساب</button>
+    <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
     <button class="q" data-act="acctgo" data-v="manage">رحلاتي والإدارة</button>
     <button class="q" data-act="acctgo" data-v="log">سجل صيدي</button>
@@ -2116,6 +2168,10 @@ document.addEventListener('click',e=>{
   else if(act==='admver'){if(/^[0-9a-f-]{36}$/.test(a.dataset.id))admVerify(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='mpeople'){mtab='people';mgFocus=Number(a.dataset.id);render();const el=document.querySelector('[data-mtrip="'+mgFocus+'"]'),m=$('#main');m.scrollTop=el?el.offsetTop-90:0}
   else if(act==='gauth')googleAuth(a);
+  else if(act==='mcal'||act==='mcalday'){if(act==='mcal'){mcal=Math.max(-2,Math.min(11,mcal+Number(a.dataset.d)));mcalDay=null}else mcalDay=a.dataset.k&&a.dataset.k!==mcalDay?a.dataset.k:null;
+    const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}
+  else if(act==='roleopen')openRole();
+  else if(act==='roleset'){$('#ovl').hidden=true;mtab='over';if(uid())setRole(a.dataset.r)}
   else if(act==='firstrole'){$('#ovl').hidden=true;if(a.dataset.r!=='angler'&&uid())setRole(a.dataset.r)}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
