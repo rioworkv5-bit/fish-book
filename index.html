@@ -301,8 +301,8 @@ main[hidden]{display:none}
 .hacct .avw::after{content:"";position:absolute;bottom:-1px;inset-inline-end:-1px;width:11px;height:11px;border-radius:50%;background:#1FA855;border:2px solid #fff}
 .hacct.out{padding:0 18px;background:var(--brand);color:#fff}
 /* ===== المجتمع ===== */
-nav{grid-template-columns:repeat(7,1fr);padding-inline:2px}
-nav button{font-size:10.5px}
+nav{grid-template-columns:repeat(6,1fr)}
+nav button{font-size:11.5px}
 textarea{font-family:inherit;font-size:16px;color:inherit;width:100%;min-height:76px;border:1.5px solid #CFE0E6;border-radius:14px;background:#F8FCFD;padding:10px 12px;resize:vertical;line-height:1.5;transition:border-color .2s,box-shadow .2s}
 textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(34,184,196,.18);outline:0}
 .sec.feed{margin:14px 12px 0;gap:12px}
@@ -409,7 +409,6 @@ select.fchip{padding:0 10px}
   <button data-view="map"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>الخريطة</button>
   <button data-view="community"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.8c2.1.6 3.5 2.4 3.5 5.2"/></svg>المجتمع</button>
   <button data-view="ask"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>اسأل</button>
-  <button data-view="log"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>سجلي</button>
   <button data-view="manage"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإدارة</button>
 </nav>
 </div>
@@ -753,7 +752,7 @@ function logView(){
   <div class="sec"><h2>صيداتي (${n})</h2>${n?logs.slice().sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?1:-1).map(e=>{const c=cond(e.date),d=fromIso(e.date);
     return `<div class="trip" style="gap:4px"><div class="top"><div><strong>${esc(e.species)} · ${e.kg} كجم</strong><div class="muted">${gDate(d)} ${d.getFullYear()}${e.time?' · الساعة '+esc(e.time):''} · ${c.h.day} ${HM[c.h.month]}</div></div><button class="btn ghost sm" data-act="dellog" data-id="${e.id}">امسح</button></div>
     <div><span class="chip">${c.fas?'فساد':'حمل'}</span> <span class="chip">رياح ${c.aw} عقدة${c.real?'':' (تقريبي)'}</span>${seasonChip(e)}${e.bait?' <span class="chip">طُعم: '+esc(e.bait)+'</span>':''}${e.spot?' <span class="chip">'+esc(e.spot)+'</span>':''}${typeof e.lat==='number'?` <button class="rate" data-act="logmap" data-id="${e.id}">مكانها على الخريطة</button>`:''}</div>${e.trip?'<span class="muted">رحلة: '+esc(e.trip)+'</span>':''}${shots[e.id]?`<img class="shot" src="${shots[e.id]}" alt="صورة ${esc(e.species)}">`:''}</div>`}).join(''):'<span class="muted">لسه مسجلتش حاجة.</span>'}</div>
-  <div class="sec"><button class="q" data-act="nav" data-v="manage">رحلاتي المحجوزة وتقييمها (${bks.length})</button>
+  <div class="sec">
   <span class="muted">الرياح مع كل صيدة حقيقية لو يومها في آخر شهر، والأقدم من كده تقريبي. ${logSrv?'الصيدات والرحلات محفوظة على حسابك. الصور لسه بتروح لما تقفل الصفحة.':'الصيدات محفوظة على الجهاز ده بس، والصور والرحلات بتروح لما تقفل الصفحة.'+(srvOn()?' ادخل بحسابك من الإدارة عشان تتحفظ على حسابك.':'')}</span></div>`;
 }
 function openTripRate(id){
@@ -1218,8 +1217,7 @@ function mgAngler(full){
   const bks=myBk().slice().sort(byDate),up=bks.filter(b=>!b.tripOff&&!isPast(b)),old=bks.filter(b=>b.tripOff||isPast(b)).reverse(),done=old.filter(b=>!b.tripOff),need=done.filter(b=>!b.rated).length;
   const tiles=full?`<div class="tiles"><div class="tile"><b>${up.length}</b><span>رحلة قادمة</span></div><div class="tile"><b>${done.length}</b><span>رحلة خلصت</span></div><div class="tile"><b>${need}</b><span>محتاجة تقييم</span></div></div>`:'';
   return `<div class="sec"><h2>رحلاتي القادمة (${up.length})</h2>${tiles}${up.length?up.map(bkCard).join(''):`<span class="muted">مفيش رحلات محجوزة قادمة.</span><button class="btn" data-act="nav" data-v="trips">شوف الرحلات المتاحة</button>`}</div>
-  ${old.length?`<div class="sec"><h2>رحلات خلصت (${old.length})</h2>${need?`<span class="muted">${need===1?'في رحلة مستنية تقييمك':'في '+need+' رحلات مستنية تقييمك'}. تقييمك بيساعد باقي الصيادين يختاروا.</span>`:''}${old.map(bkCard).join('')}</div>`:''}
-  ${full?`<div class="sec"><button class="q" data-act="nav" data-v="log">سجل صيدي: الصيدات والأرقام القياسية</button></div>`:''}`;
+  ${old.length?`<div class="sec"><h2>رحلات خلصت (${old.length})</h2>${need?`<span class="muted">${need===1?'في رحلة مستنية تقييمك':'في '+need+' رحلات مستنية تقييمك'}. تقييمك بيساعد باقي الصيادين يختاروا.</span>`:''}${old.map(bkCard).join('')}</div>`:''}`;
 }
 /* صف رحلة في لوحة المنظم وصاحب المركب */
 function mgTrip(t,past){
@@ -1293,14 +1291,14 @@ function mgBoats(d){
 }
 function manageView(){
   const on=srvOn();
-  if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تتابع رحلاتك وحجوزاتك. الحساب بيتعمل كصياد أو منظم رحلات أو صاحب مركب، ولكل واحد لوحة مناسبة لشغله.</span></div><div class="card">${authCard()}</div>`;
+  if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تتابع رحلاتك وحجوزاتك. الحساب بيتعمل كصياد أو منظم رحلات أو صاحب مركب، ولكل واحد لوحة مناسبة لشغله.</span></div><div class="card">${authCard()}</div>${logView()}`;
   const d=mgData(),R=role==='owner'?'owner':role==='angler'?'angler':'org',nm=String((me&&me.name)||'').trim()||'حسابي';
   const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
     :`<div class="sec"><h2>الإدارة</h2>${srvNote()}<span class="muted">ده عرض تجريبي للوحة ${R==='owner'?'صاحب المركب':R==='angler'?'الصياد':'منظم الرحلات'}. غيّر نوع الحساب من تحت عشان تشوف الباقي.</span></div>`;
-  const tabs=R==='angler'?[]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[]);
+  const tabs=R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]);
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
-  const body=R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
+  const body=mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
   return `${head}${chips}${body}
   <div class="sec"><h2>نوع الحساب</h2><div class="seg s3" role="group" aria-label="نوع الحساب">${pick('angler','صياد')}${pick('org','منظم رحلات')}${pick('owner','صاحب مركب')}</div>
@@ -1985,7 +1983,7 @@ function render(){
     if(live!=='loading')scrollToTrip=null}
 }
 let enterT=0;
-function go(v){if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
+function go(v){if(v==='log'){v='manage';mtab='log'}if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
   m.classList.remove('enter');void m.offsetWidth;m.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>m.classList.remove('enter'),520)}
 
 /* ---------- Booking sheet ---------- */
@@ -2213,9 +2211,9 @@ document.addEventListener('submit',e=>{
     done();
   }
 });
-function fromHash(){const h=(location.hash||'').slice(1);if(['home','trips','map','community','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
+function fromHash(){let h=(location.hash||'').slice(1);if(h==='log'){h='manage';mtab='log'}if(['home','trips','map','community','ask','log','manage'].includes(h)&&h!==view){view=h;render()}}
 window.addEventListener('hashchange',fromHash);
-const h0=(location.hash||'').slice(1);if(['home','trips','map','community','ask','log','manage'].includes(h0))view=h0;
+let h0=(location.hash||'').slice(1);if(h0==='log'){h0='manage';mtab='log'}if(['home','trips','map','community','ask','log','manage'].includes(h0))view=h0;
 /* آخر جو متحمّل (لو أحدث من 6 ساعات) يظهر فورًا، وبعدين نحدّث من النت */
 try{const c=JSON.parse(localStorage.getItem('fishbook-live')||'null');if(c&&c.area===area.id&&c.wj&&c.wj.hourly&&Date.now()-c.at<6*3600e3){applyLive(c.wj,c.mj);live='cache';liveAt=c.at}}catch(e){}
 if(live!=='cache')useSnap();
