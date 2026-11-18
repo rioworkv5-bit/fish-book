@@ -1,7 +1,7 @@
 // فيش بوك: التطبيق يفتح من غير نت بعد أول زيارة.
 // ملفات التطبيق: النت الأول، ولو مفيش نت يتفتح المحفوظ.
 // بيانات الجو (Open-Meteo) مش بتتحفظ هنا، التطبيق بيحفظها بنفسه في localStorage.
-const CACHE = 'fishbook-v15';
+const CACHE = 'fishbook-v16';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/badge-96.png'];
 
 self.addEventListener('install', e => {

@@ -901,6 +901,7 @@ function srvErr(e){
   if(!e||!e.status)return 'مفيش اتصال بالسيرفر. جرّب تاني.';
   if(/not_enough_seats/.test(m))return 'عدد الأماكن المتاحة أقل من المطلوب.';
   if(/whole_boat_not_available/.test(m))return 'المركب اتحجز فيها أماكن ومبقتش متاحة كاملة.';
+  if(/booking_closed/.test(m))return 'الحجز على الرحلة دي اتقفل، لأنها بتبدأ النهارده.';
   if(/trip_not_available/.test(m))return 'الرحلة دي مبقتش متاحة.';
   if(/cannot_cancel/.test(m))return 'الحجز ده مينفعش يتلغي دلوقتي. الإلغاء لحد اليوم اللي قبل الرحلة.';
   if(/seats_below_booked/.test(m))return 'مينفعش الأماكن تبقى أقل من المحجوز.';
@@ -1191,14 +1192,15 @@ function openSharedTrip(){
   if(t){scrollToTrip=t.id;render()}
 }
 function tripCard(t){
-  const sc=tripScore(t),h=hijri(fromIso(t.date));
+  /* الحجز بيتقفل أول ما يوم الرحلة يبدأ (نفس قاعدة book_trip في supabase/011_booking_cutoff.sql) */
+  const sc=tripScore(t),h=hijri(fromIso(t.date)),shut=t.date<=iso(today);
   return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="مؤشر الصيد">${sc.val}%${sc.prelim?' مبدئي':''}</span></div>
     <div><span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
     <div class="rates">${(bb=>bb&&(boatPics(bb).length||specLine(bb))?`<button class="rate" data-act="boatinfo" data-id="${bb.id}">${bb.specs.cls==='vip'?'VIP · ':''}صور ومواصفات المركب</button>`:'')(boats.find(x=>x.id===t.boatId))}${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}<button class="rate wa" data-act="share" data-id="${t.id}" aria-label="شارك الرحلة على واتساب">${WA_ICON}شارك على واتساب</button></div>
     ${mode==='boat'?`<div class="bot"><div><div class="price">${t.full} جنيه <span class="muted" style="font-weight:400">للمركب كاملة</span></div><div class="muted">تشيل لحد ${t.total} فرد</div></div>
-    <button class="btn" data-act="book" data-id="${t.id}" ${wholeFree(t)?'':'disabled'}>${wholeFree(t)?'احجز المركب':'مش متاحة'}</button></div>`:
-    `<div class="bot"><div><div class="price">${t.price} جنيه <span class="muted" style="font-weight:400">للفرد</span></div><div class="muted">${t.left>0?t.left+' أماكن فاضية من '+t.total:'الرحلة كاملة'}</div></div>
-    <button class="btn" data-act="book" data-id="${t.id}" ${t.left>0?'':'disabled'}>${t.left>0?'احجز مكان':'كاملة'}</button></div>`}</div>`;
+    <button class="btn" data-act="book" data-id="${t.id}" ${wholeFree(t)&&!shut?'':'disabled'}>${shut?'الحجز اتقفل':wholeFree(t)?'احجز المركب':'مش متاحة'}</button></div>`:
+    `<div class="bot"><div><div class="price">${t.price} جنيه <span class="muted" style="font-weight:400">للفرد</span></div><div class="muted">${shut?'الرحلة بدأت النهارده':t.left>0?'فاضي '+seatsW(t.left)+' من '+t.total:'الرحلة كاملة'}</div></div>
+    <button class="btn" data-act="book" data-id="${t.id}" ${t.left>0&&!shut?'':'disabled'}>${shut?'الحجز اتقفل':t.left>0?'احجز مكان':'كاملة'}</button></div>`}</div>`;
 }
 function durFilter(){
   const ns=[...new Set(trips.map(t=>t.n))].sort((a,b)=>a-b);
