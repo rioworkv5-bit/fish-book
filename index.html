@@ -284,6 +284,9 @@ main[hidden]{display:none}
 .tiles.t2{grid-template-columns:1fr 1fr}
 .seg.s3{grid-template-columns:repeat(3,1fr)}.seg.s3 button{font-size:13px;padding:0 4px}
 .rowbtns.wrap{flex-wrap:wrap;margin-top:10px}.rowbtns.wrap .btn{flex:1 1 auto;min-height:40px;padding:0 12px}
+.mgu{display:flex;gap:10px;align-items:flex-start}
+.rowbtns.wrap .rate{min-height:40px}
+input[type=search]{-webkit-appearance:none;appearance:none}
 .plist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column}
 .plist li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .plist strong{font-size:15px}
@@ -871,6 +874,7 @@ function srvErr(e){
   if(/comment_limit/.test(m))return 'كتبت تعليقات كتير النهارده. جرّب بكرة.';
   if(/bad_photo/.test(m))return 'في صورة معرفناش نجهّزها. شيلها وجرّب صورة تانية.';
   if(/Payload too large|exceeded the maximum/i.test(m)||e.status===413)return 'الصورة حجمها كبير. جرّب صورة تانية.';
+  if(/not_admin/.test(m))return 'الصفحة دي لإدارة التطبيق بس.';
   if(/not_signed_in/.test(m)||e.status===401)return 'ادخل بحسابك الأول.';
   if(/invalid_credentials|Invalid login/i.test(c+m))return 'الإيميل أو كلمة السر غلط.';
   if(/user_already_exists|already registered/i.test(c+m))return 'الإيميل ده متسجل قبل كده. اختار "دخول" وادخل بيه.';
@@ -959,7 +963,7 @@ async function doAuth(email,pw,name,phone,kind){
 async function signOut(){
   await dropSub(false); /* الإشعارات متكملش توصل للجهاز ده بعد الخروج */
   try{await sbFetch('/auth/v1/logout',{method:'POST'})}catch(e){}
-  notifOn=false;notifMsg='';saveSes(null);me=null;bookings.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
+  notifOn=false;notifMsg='';saveSes(null);me=null;adm={st:'new',stats:null,users:[],trips:[],q:'',sub:'users',err:''};bookings.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
   await loadSrv();
 }
 async function setRole(r){
@@ -1289,16 +1293,70 @@ function mgBoats(d){
     <div class="err" id="bbErr" role="alert"></div>
     <button class="btn" type="submit">${d.owner?'سجّل المركب':'ضيف المركب'}</button></form></div>`;
 }
+/* ----- لوحة المالك: للحساب اللي is_admin بتاعه true بس. البيانات من دوال admin_* في supabase/009_admin.sql -----
+   adm.st: new لسه متحملتش، loading، ok، none الدوال لسه متعملتش على السيرفر، fail */
+let adm={st:'new',stats:null,users:[],trips:[],q:'',sub:'users',err:''};
+const rpc=(fn,body)=>sbFetch('/rest/v1/rpc/'+fn,{method:'POST',body:body||{}});
+async function loadAdm(){
+  adm.st='loading';adm.err='';
+  try{const [st,us,ts]=await Promise.all([rpc('admin_stats'),rpc('admin_users'),rpc('admin_trips')]);
+    adm.stats=st||{};adm.users=us||[];adm.trips=ts||[];adm.st='ok'}
+  catch(e){adm.st=(e.status===404||/PGRST202|42883/.test(String(e.code)))?'none':'fail';adm.err=srvErr(e)}
+  if(view==='manage'&&mtab==='adm')render();
+}
+const dShort=ts=>{if(!ts)return '';const x=new Date(ts);return x.getDate()+' '+GM[x.getMonth()]+(x.getFullYear()!==today.getFullYear()?' '+x.getFullYear():'')};
+function admUsersHtml(){
+  const q=adm.q.trim().toLowerCase(),list=q?adm.users.filter(u=>[u.name,u.phone,u.email].some(v=>String(v||'').toLowerCase().includes(q))):adm.users;
+  if(!list.length)return '<span class="muted">'+(q?'مفيش مشترك بالاسم أو الرقم ده.':'لسه مفيش مشتركين.')+'</span>';
+  return '<ul class="list">'+list.slice(0,200).map(u=>{const pro=u.role!=='angler',ph=telNum(u.phone);
+    return `<li><div class="mgu">${avatar(u.id,u.name,'sm')}<div class="fbn"><div class="who"><strong>${esc(u.name||'من غير اسم')}</strong>${u.verified?VERIFIED:''}<span class="chip">${ROLE_NAME[u.role]||'صياد'}</span>${u.is_admin?'<span class="chip">إدارة</span>':''}</div>
+        <div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(u.email||'')}</div>
+        <div class="muted">سجّل ${dShort(u.created_at)}${u.last_seen?' · آخر دخول '+ago(u.last_seen):''}</div>
+        <div class="muted">${Number(u.bookings)||0} حجز · ${Number(u.trips)||0} رحلة منشورة · ${Number(u.posts)||0} بوست</div></div></div>
+      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}</div></li>`}).join('')+'</ul>'
+    +(list.length>200?'<span class="muted">ظاهر أول 200. اكتب في البحث عشان توصل للباقي.</span>':'');
+}
+function admTripsHtml(){
+  if(!adm.trips.length)return '<span class="muted">مفيش رحلات في آخر 30 يوم ولا قادمة.</span>';
+  return '<ul class="list">'+adm.trips.map(t=>{const tt={date:String(t.start_date).slice(0,10),n:t.days},bk=Number(t.seats_booked)||0,off=t.status!=='open',past=isPast(tt),ph=telNum(t.publisher_phone);
+    return `<li><div class="top"><div><strong>${esc(t.boat_name)}</strong><div class="muted">${tripRange(tt)} · ${dWord(t.days)}</div></div><span class="${off?'chip':past?'chip':bk>=t.seats_total?'pill s-good':bk?'pill s-mid':'pill s-bad'}">${off?'اتلغت':past?'خلصت':bk>=t.seats_total?'كاملة':'محجوز '+bk+' من '+t.seats_total}</span></div>
+      <span class="muted">${ROLE_NAME[t.publisher_role]||''}: ${esc(t.publisher_name||'من غير اسم')} · ${money(t.price_seat)} جنيه للفرد${past||off?' · محجوز '+bk+' من '+t.seats_total:''}</span>
+      ${ph?`<div class="rowbtns wrap"><a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(t.publisher_phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(t.publisher_phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب الناشر">${WA_ICON}</a></div>`:''}</li>`}).join('')+'</ul>';
+}
+function mgAdmin(){
+  if(adm.st==='new')loadAdm();
+  if(adm.st==='none')return '<div class="sec"><h2>لوحة المالك</h2><span class="muted">لوحة المالك لسه متفعّلتش على السيرفر. شغّل ملف 009_admin.sql من SQL Editor في Supabase.</span><button class="btn ghost" data-act="admload">جرّب تاني</button></div>';
+  if(adm.st==='fail')return `<div class="sec"><h2>لوحة المالك</h2><span class="err" role="alert">${esc(adm.err)}</span><button class="btn ghost" data-act="admload">جرّب تاني</button></div>`;
+  if(!adm.stats)return '<div class="sec"><h2>لوحة المالك</h2><span class="muted">بنحمّل أرقام التطبيق...</span></div>';
+  const s=adm.stats,n=k=>Number(s[k])||0;
+  return `<div class="sec"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>المشتركين</h2><button class="btn ghost sm" data-act="admload" ${adm.st==='loading'?'disabled':''}>${adm.st==='loading'?'بنحدّث...':'حدّث الأرقام'}</button></div>
+    <div class="tiles"><div class="tile"><b>${n('users')}</b><span>كل المشتركين</span></div><div class="tile"><b>${n('new_week')}</b><span>جداد آخر 7 أيام</span></div><div class="tile"><b>${n('new_today')}</b><span>جداد النهارده</span></div></div>
+    <div><span class="chip">${n('anglers')} صياد</span> <span class="chip">${n('organizers')} منظم رحلات</span> <span class="chip">${n('owners')} صاحب مركب</span> <span class="chip">${n('verified')} موثّق</span></div></div>
+  <div class="sec"><h2>نشاط التطبيق</h2>
+    <div class="tiles t2"><div class="tile"><b>${n('trips_upcoming')}</b><span>رحلة قادمة من ${n('trips_total')} منشورة</span></div><div class="tile"><b>${n('bookings')}</b><span>حجز شغال (${n('seats')} مكان)</span></div><div class="tile"><b>${n('bookings_week')}</b><span>حجز آخر 7 أيام</span></div><div class="tile"><b>${n('boats')}</b><span>مركب مسجلة</span></div><div class="tile"><b>${n('posts')}</b><span>بوست و${n('comments')} تعليق</span></div><div class="tile"><b>${n('catches')}</b><span>صيدة في السجلات</span></div></div>
+    ${n('reports')?`<button class="q" data-act="nav" data-v="community">في ${n('reports')===1?'بلاغ واحد مستني':n('reports')+' بلاغات مستنية'} مراجعتك في المجتمع</button>`:''}</div>
+  <div class="sec"><div class="seg" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button></div>
+    ${adm.sub==='users'?`<input id="admQ" type="search" maxlength="60" autocomplete="off" placeholder="دوّر بالاسم أو الموبايل أو الإيميل" aria-label="بحث في المشتركين" value="${esc(adm.q)}"><div id="admList" style="display:flex;flex-direction:column;gap:8px">${admUsersHtml()}</div>`
+      :`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
+}
+async function admVerify(id,on,btn){
+  btn.disabled=true;
+  try{await rpc('admin_set_verified',{p_user:id,p_on:on});
+    const u=adm.users.find(x=>x.id===id);if(u){const was=!!u.verified;u.verified=on;if(adm.stats&&was!==on)adm.stats.verified=Math.max(0,(Number(adm.stats.verified)||0)+(on?1:-1))}
+    if(me&&me.id===id)me.verified=on;
+    const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){btn.disabled=false;btn.textContent=srvErr(e)}
+}
 function manageView(){
   const on=srvOn();
   if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تتابع رحلاتك وحجوزاتك. الحساب بيتعمل كصياد أو منظم رحلات أو صاحب مركب، ولكل واحد لوحة مناسبة لشغله.</span></div><div class="card">${authCard()}</div>${logView()}`;
   const d=mgData(),R=role==='owner'?'owner':role==='angler'?'angler':'org',nm=String((me&&me.name)||'').trim()||'حسابي';
   const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
     :`<div class="sec"><h2>الإدارة</h2>${srvNote()}<span class="muted">ده عرض تجريبي للوحة ${R==='owner'?'صاحب المركب':R==='angler'?'الصياد':'منظم الرحلات'}. غيّر نوع الحساب من تحت عشان تشوف الباقي.</span></div>`;
-  const tabs=R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]);
+  const tabs=(R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[])).concat(on&&isAdmin()?[['adm','لوحة المالك']]:[]);
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
-  const body=mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
+  const body=mtab==='adm'?mgAdmin():mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
   return `${head}${chips}${body}
   <div class="sec"><h2>نوع الحساب</h2><div class="seg s3" role="group" aria-label="نوع الحساب">${pick('angler','صياد')}${pick('org','منظم رحلات')}${pick('owner','صاحب مركب')}</div>
@@ -2013,6 +2071,9 @@ document.addEventListener('click',e=>{
   else if(act==='alert'){alerts[sel]=true;render()}
   else if(act==='role'){mtab='over';if(srvOn()&&uid())setRole(a.dataset.r);else{role=a.dataset.r;render()}}
   else if(act==='mtab'){mtab=a.dataset.t;mgFocus=null;render();const m=$('#main');if(a.closest('.fchips'))return;const el=mtab==='trips'&&a.classList.contains('btn')&&!a.classList.contains('ghost')?$('#mgNew'):null;m.scrollTop=el?el.offsetTop-80:0}
+  else if(act==='admload')loadAdm().then(()=>{}),render();
+  else if(act==='admsub'){adm.sub=a.dataset.s;const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}
+  else if(act==='admver'){if(/^[0-9a-f-]{36}$/.test(a.dataset.id))admVerify(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='mpeople'){mtab='people';mgFocus=Number(a.dataset.id);render();const el=document.querySelector('[data-mtrip="'+mgFocus+'"]'),m=$('#main');m.scrollTop=el?el.offsetTop-90:0}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
@@ -2084,7 +2145,8 @@ document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target
   if(e.target.id==='cArea'){comArea=e.target.value;comMsg='';hlPost=null;loadPosts(true);render();return}
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
-document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value});
+document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value;
+  if(e.target.id==='admQ'){adm.q=e.target.value;const el=$('#admList');if(el)el.innerHTML=admUsersHtml()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovl').hidden)closeSheet()});
 document.addEventListener('submit',e=>{
   e.preventDefault();
