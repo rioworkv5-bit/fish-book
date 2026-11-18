@@ -1353,7 +1353,7 @@ function manageView(){
   const d=mgData(),R=role==='owner'?'owner':role==='angler'?'angler':'org',nm=String((me&&me.name)||'').trim()||'حسابي';
   const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
     :`<div class="sec"><h2>الإدارة</h2>${srvNote()}<span class="muted">ده عرض تجريبي للوحة ${R==='owner'?'صاحب المركب':R==='angler'?'الصياد':'منظم الرحلات'}. غيّر نوع الحساب من تحت عشان تشوف الباقي.</span></div>`;
-  const tabs=(R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[])).concat(on&&isAdmin()?[['adm','لوحة المالك']]:[]);
+  const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
   const body=mtab==='adm'?mgAdmin():mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
@@ -2019,6 +2019,7 @@ function openAcct(){
   $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
       <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}</div></div></div>
     <button class="q" data-act="myav">صورة الحساب</button>
+    ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
     <button class="q" data-act="acctgo" data-v="manage">رحلاتي والإدارة</button>
     <button class="q" data-act="acctgo" data-v="log">سجل صيدي</button>
     <div class="rowbtns"><button class="btn ghost" type="button" data-act="signout">خروج من الحساب</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
@@ -2041,7 +2042,7 @@ function render(){
     if(live!=='loading')scrollToTrip=null}
 }
 let enterT=0;
-function go(v){if(v==='log'){v='manage';mtab='log'}if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
+function go(v){if(v==='log'){v='manage';mtab='log'}if(v==='adm'){v='manage';mtab='adm'}if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
   m.classList.remove('enter');void m.offsetWidth;m.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>m.classList.remove('enter'),520)}
 
 /* ---------- Booking sheet ---------- */
