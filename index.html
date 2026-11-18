@@ -294,6 +294,11 @@ input[type=search]{-webkit-appearance:none;appearance:none}
 .steps{counter-reset:st;list-style:none;margin:14px 0;padding:0;display:flex;flex-direction:column;gap:12px}
 .steps li{display:flex;gap:12px;align-items:center}
 .steps li::before{counter-increment:st;content:counter(st);flex:0 0 30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;border:1.5px solid #D5DEE6;border-radius:14px;background:#fff;color:#0E2A44;font:inherit;font-weight:700;font-size:15px}
+.gbtn svg{width:20px;height:20px;flex:none}
+.gbtn:disabled{opacity:.6}
+.orline{display:flex;align-items:center;gap:10px;color:var(--muted,#6B7C8C);font-size:13px}
+.orline::before,.orline::after{content:"";flex:1;height:1px;background:#D5DEE6}
 .lnk{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:0;min-height:36px}
 .lnk:hover{text-decoration:underline}
 /* ===== علامة الحساب في الشريط العلوي ===== */
@@ -985,7 +990,34 @@ function authCard(note){
     <label for="aPw">كلمة السر${up?' (6 حروف أو أرقام على الأقل)':''}<input id="aPw" type="password" maxlength="72" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
     ${up?'':'<button type="button" class="lnk" data-act="authmode" data-m="forgot">نسيت كلمة السر؟</button>'}
     <div class="err" id="aErr" role="alert"></div>
-    <div class="rowbtns"><button class="btn" type="submit">${up?'اعمل الحساب':'ادخل'}</button>${sheetAuth?'<button class="btn ghost" type="button" data-act="close">إلغاء</button>':''}</div></form>`;
+    <div class="rowbtns"><button class="btn" type="submit">${up?'اعمل الحساب':'ادخل'}</button>${sheetAuth?'<button class="btn ghost" type="button" data-act="close">إلغاء</button>':''}</div>
+    ${extAuth.google?`<div class="orline">أو</div><button class="gbtn" type="button" data-act="gauth">${G_ICON}<span>${up?'اعمل حساب بجوجل':'ادخل بحساب جوجل'}</span></button>`:''}</form>`;
+}
+/* ----- الدخول بحساب جوجل -----
+   الزرار بيظهر بس لو Google متفعّل في Supabase (Authentication > Providers)، وده بنعرفه من /auth/v1/settings.
+   الضغط بيودّي لصفحة جوجل، وبعد الموافقة بيرجع للتطبيق ومعاه #access_token=... من غير type. */
+const G_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.500 5.500 0 0 1-2.400 3.600v3h3.900c2.300-2.100 3.500-5.200 3.500-8.700z"/><path fill="#34A853" d="M12 24c3.200 0 6-1.100 8-2.900l-3.900-3c-1.100.7-2.500 1.200-4.100 1.200-3.100 0-5.800-2.100-6.700-5H1.300v3.100A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.300 14.300a7.200 7.200 0 0 1 0-4.600V6.600H1.300a12 12 0 0 0 0 10.800l4-3.100z"/><path fill="#EA4335" d="M12 4.800c1.800 0 3.300.6 4.600 1.800l3.400-3.400A12 12 0 0 0 1.300 6.600l4 3.100c.9-2.800 3.600-4.900 6.700-4.900z"/></svg>';
+let extAuth={google:false};
+async function loadExtAuth(){
+  try{const j=await sbFetch('/auth/v1/settings',{noAuth:true});extAuth.google=!!(j&&j.external&&j.external.google)}catch(e){}
+  if(extAuth.google&&!uid()){if(sheetAuth&&!$('#ovl').hidden&&$('#authForm'))$('#sheet').innerHTML=authCard();else if($('#main #authForm'))render()}
+}
+function googleAuth(btn){
+  btn.disabled=true;
+  try{sessionStorage.setItem('fishbook-oauth','1')}catch(e){}
+  location.href=SB_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname);
+}
+function oauthBad(){
+  $('#sheet').innerHTML='<h2>الدخول بجوجل مكملش</h2><span class="muted">العملية اتلغت أو حصلت مشكلة. جرّب تاني، أو ادخل بالإيميل وكلمة السر.</span><div class="rowbtns"><button class="btn" type="button" data-act="authmode" data-m="in">جرّب تاني</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>';
+  sheetAuth=true;$('#ovl').hidden=false;
+}
+/* حساب اتعمل حالًا بجوجل: نسأله نوع الحساب، لأن فورم "حساب جديد" هو اللي كان بيسأل */
+function firstRoleSheet(){
+  $('#sheet').innerHTML=`<h2>أهلًا ${esc(String(me.name||'').trim().split(' ')[0]||'بيك')}</h2><span class="muted">حسابك اتعمل. هتستخدم فيش بوك كإيه؟ تقدر تغيّرها بعدين من الإدارة.</span>
+    <button class="q" data-act="firstrole" data-r="angler">صياد: أحجز رحلات وأسجّل صيدي</button>
+    <button class="q" data-act="firstrole" data-r="org">منظم رحلات: أنشر رحلات على مراكب</button>
+    <button class="q" data-act="firstrole" data-r="owner">صاحب مركب: أسجّل مراكبي وأنشر عليها</button>`;
+  sheetAuth=false;$('#ovl').hidden=false;
 }
 /* ----- نسيت كلمة السر -----
    السيرفر بيبعت إيميل فيه لينك. اللينك بيرجّع للتطبيق ومعاه #access_token=...&type=recovery،
@@ -994,19 +1026,26 @@ let recov=null;
 (()=>{const h=(location.hash||'').slice(1);if(!/(^|&)(access_token|error_code)=/.test(h))return;
   const p=new URLSearchParams(h);try{history.replaceState(null,'',location.pathname+location.search+'#home')}catch(e){}
   if(p.get('type')==='recovery'&&p.get('access_token'))recov={access_token:p.get('access_token'),refresh_token:p.get('refresh_token')||'',expires_in:Number(p.get('expires_in'))||3600};
+  else if(p.get('access_token'))recov={oauth:true,access_token:p.get('access_token'),refresh_token:p.get('refresh_token')||'',expires_in:Number(p.get('expires_in'))||3600};
   else if(p.get('error_code'))recov={bad:true}})();
+/* جوجل ساعات بيرجّع الغلط في ?error= مش في الـ hash */
+(()=>{let was=false;try{was=sessionStorage.getItem('fishbook-oauth')==='1';sessionStorage.removeItem('fishbook-oauth')}catch(e){}
+  const q=new URLSearchParams(location.search);
+  if(q.get('error')||q.get('error_code')){try{history.replaceState(null,'',location.pathname+'#home')}catch(e){}if(!recov)recov={bad:true}}
+  if(recov&&recov.bad&&was)recov.oauth=true})();
 function recovBad(){
   $('#sheet').innerHTML='<h2>اللينك مبقاش شغال</h2><span class="muted">لينك كلمة السر انتهت مدته أو اتستخدم قبل كده. اطلب لينك جديد.</span><div class="rowbtns"><button class="btn" type="button" data-act="authmode" data-m="forgot">اطلب لينك جديد</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>';
   sheetAuth=true;$('#ovl').hidden=false;
 }
 async function startRecovery(){
   const r=recov;recov=null;
-  if(r.bad){await loadSrv();recovBad();return}
+  if(r.bad){await loadSrv();if(r.oauth)oauthBad();else recovBad();return}
   try{
     const res=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+r.access_token}});
     if(!res.ok)throw new Error('expired');
     saveSes({access_token:r.access_token,refresh_token:r.refresh_token,expires_in:r.expires_in,user:await res.json()});
     await loadSrv();
+    if(r.oauth){if(me&&me.created_at&&Date.now()-new Date(me.created_at).getTime()<180e3)firstRoleSheet();return}
     $('#sheet').innerHTML=`<h2>كلمة سر جديدة</h2><span class="muted" dir="ltr" style="text-align:right">${esc(ses.user.email)}</span>
     <form id="newPwForm" novalidate>
       <label for="nPw">كلمة السر الجديدة (6 حروف أو أرقام على الأقل)<input id="nPw" type="password" maxlength="72" autocomplete="new-password" dir="ltr"></label>
@@ -1014,7 +1053,7 @@ async function startRecovery(){
       <div class="err" id="nErr" role="alert"></div>
       <div class="rowbtns"><button class="btn" type="submit">احفظ كلمة السر</button></div></form>`;
     $('#ovl').hidden=false;
-  }catch(e){await loadSrv();recovBad()}
+  }catch(e){await loadSrv();if(r.oauth)oauthBad();else recovBad()}
 }
 /* الإشعارات (Web Push): الاشتراك بيتحفظ في push_subs، والإرسال من دالة push على السيرفر */
 const pushOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&/^https?:$/.test(location.protocol);
@@ -2076,6 +2115,8 @@ document.addEventListener('click',e=>{
   else if(act==='admsub'){adm.sub=a.dataset.s;const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}
   else if(act==='admver'){if(/^[0-9a-f-]{36}$/.test(a.dataset.id))admVerify(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='mpeople'){mtab='people';mgFocus=Number(a.dataset.id);render();const el=document.querySelector('[data-mtrip="'+mgFocus+'"]'),m=$('#main');m.scrollTop=el?el.offsetTop-90:0}
+  else if(act==='gauth')googleAuth(a);
+  else if(act==='firstrole'){$('#ovl').hidden=true;if(a.dataset.r!=='angler'&&uid())setRole(a.dataset.r)}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
   else if(act==='acct')openAcct();
@@ -2284,6 +2325,7 @@ $('#hArea').textContent=area.name+' · نسخة تجريبية';
 render();
 loadLive();
 if(recov)startRecovery();else loadSrv();
+loadExtAuth();
 // التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
