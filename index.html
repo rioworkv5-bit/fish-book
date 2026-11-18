@@ -283,24 +283,78 @@ nav{grid-template-columns:repeat(7,1fr);padding-inline:2px}
 nav button{font-size:10.5px}
 textarea{font-family:inherit;font-size:16px;color:inherit;width:100%;min-height:76px;border:1.5px solid #CFE0E6;border-radius:14px;background:#F8FCFD;padding:10px 12px;resize:vertical;line-height:1.5;transition:border-color .2s,box-shadow .2s}
 textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(34,184,196,.18);outline:0}
-.post p,.cml p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.post .who{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.pics{display:grid;gap:3px;border-radius:14px;overflow:hidden}
+.sec.feed{margin:14px 12px 0;gap:12px}
+/* كارت البوست: من غير حشو، عشان الصور والفيديو ياخدوا عرض الكارت كله */
+.fb{background:var(--card);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.fb.hl{box-shadow:0 0 0 3px var(--teal),var(--shadow)}
+.fbh{display:flex;align-items:center;gap:10px;padding:14px 14px 10px}
+.fbn{flex:1;min-width:0}
+.fbn strong{font-size:15px;font-weight:800}
+.fbn .muted{font-size:12px}
+.fbn .who{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fbn .chip{font-size:11px;padding:1px 9px}
+.vf{flex:0 0 auto;vertical-align:-3px}
+.av{flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;line-height:1}
+.av.sm{flex-basis:32px;width:32px;height:32px;font-size:14px}
+.av.lg{flex-basis:84px;width:84px;height:84px;font-size:34px}
+img.av{object-fit:cover;background:#DCEBEF}
+.avb,.nmb{border:0;padding:0;background:none;display:flex;border-radius:50%;flex:0 0 auto;text-align:inherit}
+.nmb{border-radius:6px}.nmb:hover strong{text-decoration:underline}
+.fbm{flex:0 0 40px;width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.fbm:hover{background:var(--ground)}
+.fbt{margin:0;padding:0 14px 10px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.fbt.clamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:0;margin-bottom:2px}
+.fbmore{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:0 14px 8px;min-height:34px}
+.pics{display:grid;gap:3px;overflow:hidden}
 .pics.n2,.pics.n3,.pics.n4{grid-template-columns:1fr 1fr}
 .pics button{border:0;padding:0;background:#DCEBEF;display:block;min-width:0}
 .pics img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:1}
-.pics.n1 img{aspect-ratio:auto;max-height:440px}
+.pics.n1 img{aspect-ratio:auto;max-height:480px}
 .pics.n3 button:first-child{grid-column:1/-1}.pics.n3 button:first-child img{aspect-ratio:2}
-.vid{position:relative;display:block;width:100%;aspect-ratio:16/9;border:0;padding:0;border-radius:14px;overflow:hidden;background:#0E2A44}
+.vid{position:relative;display:block;width:100%;aspect-ratio:16/9;border:0;padding:0;overflow:hidden;background:#0E2A44}
 .vid img,.vid iframe{display:block;width:100%;height:100%;object-fit:cover;border:0}
-.vid .pb{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(14,42,68,.82);box-shadow:0 2px 10px rgba(0,0,0,.4)}
-.vid .pb::after{content:"";position:absolute;left:23px;top:17px;border:12px solid transparent;border-left:18px solid #fff;border-right:0}
-.pacts{display:flex;gap:6px;flex-wrap:wrap}
-a.rate{text-decoration:none;color:inherit}
-.rate[data-act="like"][aria-pressed="true"]{color:#A3241B;border-color:#F3C4BE;background:#FFF4F2}
-.rate[data-act="like"][aria-pressed="true"] svg{fill:#D9483B;stroke:#D9483B}
-.cml li{background:var(--ground);box-shadow:none;display:flex;flex-direction:column;gap:6px}
-.cml .rate{min-height:34px;background:transparent}
+.pb{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(14,42,68,.82);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.pb::after{content:"";position:absolute;left:23px;top:17px;border:12px solid transparent;border-left:18px solid #fff;border-right:0}
+/* لينك فيديو مش يوتيوب: كارت بيفتح الفيديو في تطبيقه */
+.fbl{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--ground);border-block:1px solid var(--line);text-decoration:none;color:inherit}
+.fbl .pb{position:relative;left:auto;top:auto;margin:0;flex:0 0 44px;width:44px;height:44px;box-shadow:none}
+.fbl .pb::after{left:17px;top:12px;border-width:10px;border-left-width:15px}
+.fbl b{display:block;font-weight:800;font-size:14px}.fbl small{color:var(--muted);font-size:12px}
+.fbc{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px 6px;font-size:13px;color:var(--muted);min-height:36px}
+.fbc.z{display:none}
+.fbc button{border:0;background:none;color:inherit;font-size:inherit;padding:4px 0;min-height:28px}
+.fbc button:hover{text-decoration:underline}
+.fbc .lk{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.fbc .lk i{width:20px;height:20px;border-radius:50%;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.fba{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-top:1px solid var(--line);padding:4px 6px}
+.fba button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:0;border-radius:10px;background:none;color:var(--muted);font-weight:700;font-size:13.5px}
+.fba button:hover{background:var(--ground)}
+.fba [aria-pressed="true"]{color:var(--accent);font-weight:800}
+.fba [aria-pressed="true"] svg{fill:rgba(34,184,196,.28)}
+.fbnew .ask{flex:1;min-width:0;min-height:42px;border:0;border-radius:999px;background:var(--ground);color:var(--muted);text-align:right;padding:0 16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* التعليقات تحت البوست */
+.cmbox:empty{display:none}
+.cms{border-top:1px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.cm{display:flex;gap:8px;align-items:flex-start}
+.cmb{min-width:0}
+.bub{display:inline-block;max-width:100%;background:var(--ground);border-radius:16px;padding:7px 12px}
+.bub strong{display:block;font-size:13px;font-weight:800}
+.bub p{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cmm{display:flex;gap:14px;align-items:center;padding:0 12px;font-size:12px;color:var(--muted)}
+.cmm button{border:0;background:none;color:inherit;font-weight:700;font-size:12px;padding:4px 0;min-height:28px}
+.cmf{flex-direction:row;align-items:center;gap:8px}
+.cmf input{flex:1;width:auto;min-width:0;min-height:40px;border-radius:999px;font-size:15px;background:var(--ground);border-color:transparent;padding:0 16px}
+.cmf button{flex:0 0 40px;width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--accent);display:flex;align-items:center;justify-content:center}
+.cmf button[disabled]{opacity:.4}
+.cmlogin{border:0;background:var(--ground);border-radius:999px;min-height:40px;color:var(--muted);font-weight:700}
+/* فلتر البوستات: شرايح بتتسحب */
+.fchips{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{flex:0 0 auto;width:auto;min-height:38px;padding:0 14px;border-radius:999px;border:0;background:var(--card);color:var(--muted);font-weight:700;font-size:13px;box-shadow:0 1px 2px rgba(14,60,90,.1)}
+.fchip[aria-pressed="true"]{background:var(--brand);color:#fff}
+select.fchip{padding:0 10px}
+/* فورم البوست الجديد */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .prev{display:flex;gap:8px;flex-wrap:wrap}.prev:empty{display:none}
 .pv{position:relative;width:72px;height:72px;border-radius:12px;overflow:hidden;background:#DCEBEF}
 .pv img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1134,18 +1188,34 @@ function manageView(){
   ${boatForm}`;
 }
 /* ---------- المجتمع (منتدى المشتركين) ----------
-   بوستات بنص وصور ولينك فيديو، تعليقات، إعجابات، وبلاغات. الجداول في supabase/007_community.sql.
+   فيد بشكل الشبكات الاجتماعية: صندوق كتابة فوق، بوستات بنص وصور ولينك فيديو، أعجبني وتعليق ومشاركة،
+   وتعليقات بتفتح تحت البوست. الجداول في supabase/007_community.sql.
    بيشتغل مع السيرفر بس. الصور بتتصغّر على الجهاز وبتترفع على Storage (bucket اسمه community).
    comState: new لسه متحملش، loading، ok، fail مفيش اتصال، none الجداول لسه متعملتش على السيرفر. */
-const POST_KINDS=[['catch','صيدة'],['boat','مركب'],['question','سؤال'],['general','عام']];
+const POST_KINDS=[['catch','صيدة','صيدات'],['boat','مركب','مراكب'],['question','سؤال','أسئلة'],['general','عام','عام']];
 const ROLE_NAME={angler:'صياد',organizer:'منظم رحلات',owner:'صاحب مركب'};
 const REP_REASONS=['إعلان أو سبام','محتوى مسيء أو شتيمة','ملوش علاقة بالصيد','حاجة تانية'];
 const POSTS_PAGE=20,PIC_MAX=4;
 const PIC_URL=p=>SB_URL+'/storage/v1/object/public/community/'+p;
-const HEART='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5S3.5 15.4 3.5 9.2A4.6 4.6 0 0 1 12 6.8a4.6 4.6 0 0 1 8.5 2.4c0 6.2-8.5 11.3-8.5 11.3z"/></svg>';
-const CMT_ICON='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>';
-let posts=[],comState='new',comUid=null,comErr='',comKind='',comArea='',comMore=false,comSeq=0,reps=[],postFiles=[],cmts=null,cmtPost=null,cmtErr='';
+const ic=(d,z,x)=>`<svg aria-hidden="true" width="${z||18}" height="${z||18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${x||''}>${d}</svg>`;
+const LIKE_D='<path d="M7 10v11H3V10z"/><path d="M7 10l4-7a3 3 0 0 1 3 3v3h5a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"/>';
+const CMT_D='<path d="M4 5h16v11H9l-5 4z"/>';
+const SHARE_D='<path d="M14 5l7 7-7 7v-4c-5 0-8 1.5-10 5 0-6 3-11 10-11z"/>';
+const DOTS='<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+const SEND=ic('<path d="M21 3L3 10.500l7 2.5 2.5 7z"/><path d="M21 3l-11 10"/>',20,' style="transform:scaleX(-1)"');
+const VERIFIED='<svg class="vf" role="img" aria-label="موثّق" width="16" height="16" viewBox="0 0 24 24"><title>موثّق</title><circle cx="12" cy="12" r="10" fill="#0B7C88"/><path d="M7.5 12.500l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const AV_COLORS=['#0B7C88','#14506C','#A35F00','#7A1F8A','#136B3A','#B5352A','#2F6FA5'];
+let posts=[],comState='new',comUid=null,comErr='',comMsg='',comKind='',comArea='',comMore=false,comSeq=0,reps=[],postFiles=[],openCm={},hlPost=null,ppDone=false,comUser=null;
+const pendingPost=(()=>{try{const v=Number(new URLSearchParams(location.search).get('post'));return v>0?v:null}catch(e){return null}})();
 const isAdmin=()=>!!(me&&me.is_admin);
+/* صورة العضو: صورة حسابه لو حاطط واحدة (عمود profiles.avatar من ملف 008)، وإلا دايرة ملوّنة فيها أول حرف من اسمه. */
+const AV_RE=/^[0-9a-f-]{36}\/[\w-]{8,60}\.jpg$/;
+function avatar(id,name,cls,path){
+  if(path&&AV_RE.test(path))return `<img class="av${cls?' '+cls:''}" src="${esc(PIC_URL(path))}" alt="" loading="lazy" onerror="this.removeAttribute('src')">`;
+  let h=0;const s=String(id||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+  const ch=Array.from(String(name||'').trim())[0]||'ع';
+  return `<span class="av${cls?' '+cls:''}" style="background:${AV_COLORS[h%AV_COLORS.length]}" aria-hidden="true">${esc(ch)}</span>`;
+}
 function ago(ts){
   const s=Math.max(0,(Date.now()-new Date(ts).getTime())/1000),m=Math.round(s/60),h=Math.round(s/3600),d=Math.round(s/86400);
   if(s<90)return 'دلوقتي';
@@ -1154,6 +1224,7 @@ function ago(ts){
   if(d<7)return d===1?'امبارح':d===2?'من يومين':'من '+d+' أيام';
   const x=new Date(ts);return x.getDate()+' '+GM[x.getMonth()]+(x.getFullYear()!==today.getFullYear()?' '+x.getFullYear():'');
 }
+const cWord=n=>n===1?'تعليق واحد':n===2?'تعليقين':n<=10?n+' تعليقات':n+' تعليق';
 /* لينك الفيديو: يوتيوب بيتشغّل جوه البوست، والباقي بيفتح في تطبيقه. نفس القائمة في قيد video_url على السيرفر. */
 function videoInfo(u){
   let x;try{x=new URL(u)}catch(e){return null}
@@ -1170,53 +1241,72 @@ function videoInfo(u){
 function videoHtml(p){
   const v=p.video_url?videoInfo(p.video_url):null;if(!v)return '';
   return v.yt?`<button class="vid" data-act="ytplay" data-id="${v.yt}" aria-label="شغّل الفيديو"><img loading="lazy" src="https://i.ytimg.com/vi/${v.yt}/hqdefault.jpg" alt=""><span class="pb"></span></button>`
-    :`<div><a class="rate" href="${esc(p.video_url)}" target="_blank" rel="noopener noreferrer">▶ شوف الفيديو على ${v.site}</a></div>`;
+    :`<a class="fbl" href="${esc(p.video_url)}" target="_blank" rel="noopener noreferrer"><span class="pb"></span><span><b>فيديو على ${v.site}</b><small>اضغط عشان تفتحه</small></span></a>`;
+}
+/* سطر العدّادات فوق شريط الأزرار: عدد الإعجابات، وعدد التعليقات (بيفتح التعليقات) */
+function countsHtml(p){
+  const lc=Number(p.like_count||0),cc=Number(p.comment_count||0);
+  return `<span class="lk">${lc?'<i>'+ic(LIKE_D,12)+'</i>'+lc:''}</span>${cc?`<button data-act="cmts" data-id="${p.id}">${cWord(cc)}</button>`:''}`;
 }
 function postCard(p){
-  const mine=p.user_id===uid(),kn=(POST_KINDS.find(k=>k[0]===p.kind)||[])[1],ar=AREAS.find(a=>a.id===p.area),ph=(p.photos||[]).slice(0,PIC_MAX),nm=esc(p.author_name||'عضو');
-  return `<div class="trip post" data-post="${p.id}"><div class="top"><div><div class="who"><strong>${nm}</strong>${p.author_verified?'<span class="chip">موثّق</span>':''}</div>
-    <div class="muted">${ROLE_NAME[p.author_role]||'صياد'} · ${ago(p.created_at)}${ar?' · '+ar.name:''}</div></div>${kn?'<span class="chip">'+kn+'</span>':''}</div>
-    ${p.body?'<p>'+esc(p.body)+'</p>':''}
+  const kn=(POST_KINDS.find(k=>k[0]===p.kind)||[])[1],ar=AREAS.find(a=>a.id===p.area),ph=(p.photos||[]).slice(0,PIC_MAX),nm=esc(p.author_name||'عضو');
+  const long=!!p.body&&(p.body.length>280||p.body.split('\n').length>6),zero=!Number(p.like_count)&&!Number(p.comment_count);
+  return `<article class="fb${hlPost===p.id?' hl':''}" data-post="${p.id}">
+    <header class="fbh"><button class="avb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}" aria-label="بوستات ${nm}">${avatar(p.user_id,p.author_name,'',p.author_avatar)}</button><div class="fbn"><div class="who"><button class="nmb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}"><strong>${nm}</strong></button>${p.author_verified?VERIFIED:''}${kn?'<span class="chip">'+kn+'</span>':''}</div>
+      <div class="muted">${ROLE_NAME[p.author_role]||'صياد'} · ${ago(p.created_at)}${ar?' · '+ar.name:''}</div></div>
+      <button class="fbm" data-act="pmenu" data-id="${p.id}" aria-label="اختيارات البوست">${DOTS}</button></header>
+    ${p.body?`<p class="fbt${long?' clamp':''}">${esc(p.body)}</p>${long?'<button class="fbmore" data-act="pmore">عرض المزيد</button>':''}`:''}
     ${ph.length?`<div class="pics n${ph.length}">`+ph.map((x,i)=>`<button data-act="photo" data-src="${esc(PIC_URL(x))}" aria-label="كبّر الصورة ${i+1}"><img loading="lazy" src="${esc(PIC_URL(x))}" alt="صورة ${i+1} من بوست ${nm}"></button>`).join('')+'</div>':''}
     ${videoHtml(p)}
-    <div class="pacts"><button class="rate" data-act="like" data-id="${p.id}" aria-pressed="${!!p.liked}" aria-label="إعجاب">${HEART}<span>${p.like_count||0}</span></button>
-      <button class="rate" data-act="cmts" data-id="${p.id}">${CMT_ICON}<span>${p.comment_count||0}</span> تعليق</button>
-      ${mine?'':`<button class="rate" data-act="report" data-pid="${p.id}">بلّغ</button>`}${mine||isAdmin()?`<button class="rate" data-act="delpost" data-id="${p.id}">امسح</button>`:''}</div></div>`;
+    <div class="fbc${zero?' z':''}">${countsHtml(p)}</div>
+    <div class="fba"><button data-act="like" data-id="${p.id}" aria-pressed="${!!p.liked}">${ic(LIKE_D)}أعجبني</button>
+      <button data-act="cmts" data-id="${p.id}" data-f="1">${ic(CMT_D)}تعليق</button>
+      <button data-act="pshare" data-id="${p.id}">${ic(SHARE_D)}مشاركة</button></div>
+    <div class="cmbox" data-cm="${p.id}">${cmHtml(p.id)}</div></article>`;
 }
-/* تحديث عدّادات بوست واحد من غير إعادة رسم الصفحة (عشان فيديو شغال ميقفش) */
+/* تحديث عدّادات بوست واحد من غير إعادة رسم الصفحة (عشان فيديو شغال أو تعليق بيتكتب ميضيعش) */
 function syncPost(p){
   const el=document.querySelector('[data-post="'+p.id+'"]');if(!el)return;
-  const lk=el.querySelector('[data-act="like"]'),cm=el.querySelector('[data-act="cmts"] span');
-  if(lk){lk.setAttribute('aria-pressed',p.liked?'true':'false');lk.querySelector('span').textContent=p.like_count||0}
-  if(cm)cm.textContent=p.comment_count||0;
+  const lk=el.querySelector('.fba [data-act="like"]'),c=el.querySelector('.fbc');
+  if(lk)lk.setAttribute('aria-pressed',p.liked?'true':'false');
+  if(c){c.innerHTML=countsHtml(p);c.classList.toggle('z',!Number(p.like_count)&&!Number(p.comment_count))}
 }
 function communityView(){
-  const head=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>المجتمع</h2>${srvOn()&&comState!=='none'?'<button class="btn sm" data-act="newpost">اكتب بوست</button>':''}</div>
-    <span class="muted">صور صيدك ومركبك وأسئلتك، مع صيادين ومنظمين وأصحاب مراكب البحر الأحمر.</span>`;
-  if(!srvOn())return `<div class="sec">${head}<span class="muted">${srv==='fail'?'المجتمع محتاج اتصال بالسيرفر. اتأكد من النت وافتح التطبيق تاني.':'بنحمّل...'}</span></div>`;
+  if(!srvOn())return `<div class="sec"><h2>المجتمع</h2><span class="muted">${srv==='fail'?'المجتمع محتاج اتصال بالسيرفر. اتأكد من النت وافتح التطبيق تاني.':'بنحمّل...'}</span></div>`;
   if(comState==='new'||comUid!==uid())loadPosts(true);
-  if(comState==='none')return `<div class="sec">${head}<span class="muted">المجتمع لسه متفعّلش على السيرفر.</span></div>`;
-  const filt=`<div class="filter"><label for="cKind">النوع<select id="cKind"><option value="">الكل</option>${POST_KINDS.map(k=>`<option value="${k[0]}" ${k[0]===comKind?'selected':''}>${k[1]}</option>`).join('')}</select></label>
-    <label for="cArea">المنطقة<select id="cArea"><option value="">الكل</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===comArea?'selected':''}>${a.name}</option>`).join('')}</select></label></div>`;
+  if(comState==='none')return `<div class="sec"><h2>المجتمع</h2><span class="muted">المجتمع لسه متفعّلش على السيرفر.</span></div>`;
+  const first=String((me&&me.name)||'').trim().split(/\s+/)[0];
+  const composer=`<div class="fb fbnew"><div class="fbh">${uid()?`<button class="avb" data-act="myav" aria-label="غيّر صورة حسابك">${avatar(uid(),me&&me.name,'',me&&me.avatar)}</button>`:avatar('','')}<button class="ask" data-act="newpost">${uid()?'شارك صيدك أو اسأل'+(first?' يا '+esc(first):'')+'...':'ادخل بحسابك وشارك صيدك مع الناس'}</button></div>
+    <div class="fba"><button data-act="newpost" data-pick="1">${ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/>')}صورة</button>
+      <button data-act="newpost" data-vid="1">${ic('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>')}فيديو</button>
+      <button data-act="newpost" data-k="question">${ic('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.500a2.5 2.5 0 1 1 3.5 2.300c-.700.4-1 1-1 1.700M12 17h.01"/>')}سؤال</button></div></div>`;
+  const filt=`<div class="fchips" role="group" aria-label="فلتر البوستات">${comUser?`<button class="fchip" data-act="cuserx" aria-pressed="true">بوستات ${esc(comUser.name)} ✕</button>`:''}<button class="fchip" data-act="ckind" data-k="" aria-pressed="${!comKind}">الكل</button>${POST_KINDS.map(k=>`<button class="fchip" data-act="ckind" data-k="${k[0]}" aria-pressed="${k[0]===comKind}">${k[2]}</button>`).join('')}
+    <select class="fchip" id="cArea" aria-label="المنطقة"><option value="">كل المناطق</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===comArea?'selected':''}>${a.name}</option>`).join('')}</select></div>`;
   const repBlock=isAdmin()&&reps.length?`<div class="sec"><h2>بلاغات (${reps.length})</h2><ul class="list">${reps.map(r=>{const t=r.comment_id?(r.comments&&r.comments.body):(r.posts&&r.posts.body);
     return `<li><strong>${r.comment_id?'تعليق':'بوست'}</strong> · ${esc(r.reason||'من غير سبب')}<br><span class="muted">${esc(String(t||'(من غير نص)').slice(0,140))}</span>
       <div class="rowbtns" style="margin-top:8px"><button class="btn ghost sm" data-act="repdel" data-id="${r.id}">امسح المحتوى</button><button class="btn ghost sm" data-act="repskip" data-id="${r.id}">تجاهل البلاغ</button></div></li>`}).join('')}</ul></div>`:'';
   let body;
   if(comState==='fail')body=`<span class="err" role="alert">${esc(comErr)}</span><button class="btn ghost" data-act="comreload">جرّب تاني</button>`;
-  else if(!posts.length)body=`<span class="muted">${comState==='loading'?'بنحمّل البوستات...':comKind||comArea?'مفيش بوستات بالاختيارات دي.':'لسه مفيش بوستات. ابدأ إنت بأول بوست.'}</span>`;
+  else if(!posts.length)body=`<span class="muted">${comState==='loading'?'بنحمّل البوستات...':comKind||comArea||comUser?'مفيش بوستات بالاختيارات دي.':'لسه مفيش بوستات. ابدأ إنت بأول بوست.'}</span>`;
   else body=posts.map(postCard).join('')+(comMore?`<button class="btn ghost" data-act="commore" ${comState==='loading'?'disabled':''}>بوستات أقدم</button>`:'');
-  return `${repBlock}<div class="sec">${head}${filt}${body}</div>`;
+  return `${repBlock}<div class="sec feed">${composer}${filt}${comMsg?'<span class="chip">'+esc(comMsg)+'</span>':''}${body}</div>`;
 }
 async function loadPosts(reset){
   const my=++comSeq;comState='loading';comUid=uid();comErr='';
-  if(reset){posts=[];comMore=false}
+  if(reset){posts=[];comMore=false;openCm={}}
   try{
+    /* لينك بوست متشارك (?post=رقمه): البوست ده يظهر أول واحد ومتعلّم عليه */
+    let pin=null;
+    if(reset&&pendingPost&&!ppDone){ppDone=true;try{history.replaceState(null,'',location.pathname+'#community')}catch(e){}
+      pin=(await sbFetch('/rest/v1/posts_public?select=*&id=eq.'+pendingPost))[0]||null;
+      if(pin)hlPost=pin.id;else comMsg='البوست اللي اتبعتلك اتمسح أو مش موجود. دي آخر البوستات.'}
     const last=posts.length?posts[posts.length-1].id:0;
-    const rows=await sbFetch('/rest/v1/posts_public?select=*&order=id.desc&limit='+POSTS_PAGE+(comKind?'&kind=eq.'+comKind:'')+(comArea?'&area=eq.'+comArea:'')+(last?'&id=lt.'+last:''));
+    const rows=await sbFetch('/rest/v1/posts_public?select=*&order=id.desc&limit='+POSTS_PAGE+(comKind?'&kind=eq.'+comKind:'')+(comArea?'&area=eq.'+comArea:'')+(comUser?'&user_id=eq.'+comUser.id:'')+(last?'&id=lt.'+last:''));
     let rp=[];
     if(isAdmin())try{rp=await sbFetch('/rest/v1/reports?select=id,reason,post_id,comment_id,posts!reports_post_id_fkey(body),comments!reports_comment_id_fkey(body,post_id)&order=id.desc&limit=50')}catch(e){}
     if(my!==comSeq)return;
-    posts=posts.concat(rows);comMore=rows.length===POSTS_PAGE;reps=rp;comState='ok';
+    if(pin)posts.push(pin);
+    posts=posts.concat(rows.filter(x=>!posts.some(y=>y.id===x.id)));comMore=rows.length===POSTS_PAGE;reps=rp;comState='ok';
   }catch(e){
     if(my!==comSeq)return;
     comState=(e.status===404||/PGRST205|42P01/.test(String(e.code)))?'none':'fail';comErr=srvErr(e);
@@ -1235,20 +1325,22 @@ function addPostFiles(list){
   }
   drawPrev();
 }
-function openNewPost(){
-  dropPostFiles();
-  $('#sheet').innerHTML=`<h2>بوست جديد</h2>
+/* o.k نوع البوست المختار، o.pick يفتح اختيار الصور على طول، o.vid يقف على خانة لينك الفيديو */
+function openNewPost(o){
+  o=o||{};dropPostFiles();
+  $('#sheet').innerHTML=`<div class="fbh" style="padding:0">${avatar(uid(),me&&me.name,'',me&&me.avatar)}<div class="fbn"><strong>${esc((me&&me.name)||'بوست جديد')}</strong><div class="muted">بوست جديد · بيظهر لكل الناس</div></div></div>
   <form id="postForm" novalidate>
-    <label for="pKind">نوع البوست<select id="pKind">${POST_KINDS.map(k=>`<option value="${k[0]}">${k[1]}</option>`).join('')}</select></label>
-    <label for="pBody">اكتب اللي عايز تقوله<textarea id="pBody" maxlength="2000" rows="4"></textarea></label>
-    <label for="pImg">صور (لحد ${PIC_MAX})<input id="pImg" type="file" accept="image/*" multiple style="padding:10px 12px"></label>
+    <textarea id="pBody" maxlength="2000" rows="4" placeholder="اكتب اللي عايز تقوله..." aria-label="نص البوست"></textarea>
     <div class="prev" id="pPrev"></div>
+    <label for="pImg">صور (لحد ${PIC_MAX})<input id="pImg" type="file" accept="image/*" multiple style="padding:10px 12px"></label>
     <label for="pVid">لينك فيديو (اختياري): يوتيوب، فيسبوك، تيك توك، أو إنستجرام<input id="pVid" type="url" inputmode="url" maxlength="300" dir="ltr" autocomplete="off" placeholder="https://"></label>
-    <label for="pArea">المنطقة<select id="pArea">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label>
-    <span class="muted">الصور بتتصغّر قبل الرفع وبيتشال منها مكان التصوير، فمحدش يعرف مكان صيدك من الصورة. البوست بيظهر لكل الناس.</span>
+    <div class="two"><label for="pKind">النوع<select id="pKind">${POST_KINDS.map(k=>`<option value="${k[0]}" ${k[0]===(o.k||'general')?'selected':''}>${k[1]}</option>`).join('')}</select></label>
+      <label for="pArea">المنطقة<select id="pArea">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label></div>
+    <span class="muted">الصور بتتصغّر قبل الرفع وبيتشال منها مكان التصوير، فمحدش يعرف مكان صيدك من الصورة.</span>
     <div class="err" id="pErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">انشر</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;
+  if(o.pick)$('#pImg').click();else if(o.vid)$('#pVid').focus();else $('#pBody').focus();
 }
 /* تصغير الصورة لـ 1280 بكسل JPEG. إعادة الرسم بتشيل بيانات الصورة (ومنها مكان التصوير). لو فشل: null ومبنرفعش الأصل. */
 async function shrinkPic(file){
@@ -1277,10 +1369,49 @@ function submitPost(form){
     }catch(e){if(paths.length)dropPics(paths);btn.textContent='انشر';throw e}
     closeSheet();
     if(comKind&&comKind!==kind)comKind='';if(comArea&&comArea!==ar)comArea='';
-    await loadPosts(true);$('#main').scrollTop=0;
+    comMsg='';hlPost=null;comUser=null;await loadPosts(true);$('#main').scrollTop=0;
   });
 }
-/* ----- إعجاب ----- */
+/* ----- صورة الحساب: بتتقص مربع 320 بكسل وبتترفع في فولدر العضو، ومسارها في profiles.avatar ----- */
+async function squarePic(file,z){
+  try{const bmp=await createImageBitmap(file),m=Math.min(bmp.width,bmp.height),c=document.createElement('canvas');c.width=c.height=z;
+    c.getContext('2d').drawImage(bmp,(bmp.width-m)/2,(bmp.height-m)/2,m,m,0,0,z,z);
+    return await new Promise(r=>c.toBlob(b=>r(b&&b.type==='image/jpeg'?b:null),'image/jpeg',0.85))}catch(e){return null}
+}
+function openMyAvatar(){
+  if(!uid())return;const has=!!(me&&me.avatar);
+  $('#sheet').innerHTML=`<h2>صورة حسابك</h2><div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<span class="muted">الصورة بتظهر جنب اسمك على بوستاتك وتعليقاتك، وبيشوفها كل الناس.</span></div>
+    <label for="avImg">${has?'غيّر الصورة':'اختار صورة'}<input id="avImg" type="file" accept="image/*" style="padding:10px 12px"></label>
+    <div class="err" id="avErr" role="alert"></div>
+    <div class="rowbtns">${has?'<button class="btn ghost" type="button" data-act="avdrop">شيل الصورة</button>':''}<button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
+  $('#ovl').hidden=false;
+}
+function avApply(path){
+  if(me)me.avatar=path;
+  posts.forEach(p=>{if(p.user_id===uid())p.author_avatar=path});
+  Object.keys(openCm).forEach(k=>{(openCm[k].list||[]).forEach(c=>{if(c.user_id===uid())c.author_avatar=path})});
+  closeSheet();render();
+}
+const avFail=e=>{const x=$('#avErr');if(x)x.textContent=/PGRST204|avatar/.test(String(e.code)+' '+e.message)?'صور الحسابات لسه متفعّلتش على السيرفر.':srvErr(e)};
+async function setAvatar(file){
+  const say=t=>{const x=$('#avErr');if(x)x.textContent=t};
+  if(!file||file.type.indexOf('image/')!==0)return;
+  say('بنرفع الصورة...');
+  const b=await squarePic(file,320);if(!b){say('معرفناش نجهّز الصورة دي. جرّب صورة تانية.');return}
+  const path=uid()+'/'+picId()+'.jpg',old=me&&me.avatar;
+  try{
+    await sbUpload(path,b);
+    try{await sbFetch('/rest/v1/profiles?id=eq.'+uid(),{method:'PATCH',body:{avatar:path}})}catch(e){dropPics([path]);throw e}
+    if(old)dropPics([old]);
+    avApply(path);
+  }catch(e){avFail(e)}
+}
+async function dropAvatar(btn){
+  const old=me&&me.avatar;if(!old)return;btn.disabled=true;
+  try{await sbFetch('/rest/v1/profiles?id=eq.'+uid(),{method:'PATCH',body:{avatar:''}});dropPics([old]);avApply('')}
+  catch(e){btn.disabled=false;avFail(e)}
+}
+/* ----- أعجبني ----- */
 async function toggleLike(id){
   if(!uid()){openAuth('ادخل بحسابك عشان تتفاعل مع البوستات.');return}
   const p=posts.find(x=>x.id===id);if(!p||p.busy)return;
@@ -1292,32 +1423,66 @@ async function toggleLike(id){
   }catch(e){set(was)}
   p.busy=false;
 }
-/* ----- تعليقات ----- */
-function drawCmts(){
-  const list=cmts===null?'<span class="muted">بنحمّل التعليقات...</span>':cmts.length?'<ul class="list cml">'+cmts.map(c=>`<li><div><strong>${esc(c.author_name||'عضو')}</strong>${c.author_verified?' <span class="chip">موثّق</span>':''} <span class="muted">${ROLE_NAME[c.author_role]||'صياد'} · ${ago(c.created_at)}</span></div><p>${esc(c.body)}</p>
-    <div class="pacts">${c.user_id===uid()?'':`<button class="rate" data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id===uid()||isAdmin()?`<button class="rate" data-act="delcmt" data-id="${c.id}">امسح</button>`:''}</div></li>`).join('')+'</ul>':'<span class="muted">لسه مفيش تعليقات. اكتب أول تعليق.</span>';
-  $('#sheet').innerHTML=`<h2>التعليقات</h2>${cmtErr?'<span class="err" role="alert">'+esc(cmtErr)+'</span>':''}${list}
-  ${uid()?`<form id="cmtForm" novalidate><label for="cmText">تعليقك<textarea id="cmText" maxlength="600" rows="2"></textarea></label>
-    <div class="err" id="cmErr" role="alert"></div>
-    <div class="rowbtns"><button class="btn" type="submit">ابعت</button><button class="btn ghost" type="button" data-act="close">قفل</button></div></form>`
-  :'<span class="muted">عشان تعلّق، ادخل بحسابك من تبويب الإدارة.</span><button class="btn ghost" type="button" data-act="close">قفل</button>'}`;
+/* ----- تعليقات: بتفتح تحت البوست. openCm[رقم البوست] = {list, err} ----- */
+function cmHtml(pid){
+  const s=openCm[pid];if(!s)return '';
+  const list=s.list===null?'<span class="muted">بنحمّل التعليقات...</span>':s.list.map(c=>`<div class="cm">${avatar(c.user_id,c.author_name,'sm',c.author_avatar)}<div class="cmb"><div class="bub"><strong>${esc(c.author_name||'عضو')}${c.author_verified?' '+VERIFIED:''}</strong><p>${esc(c.body)}</p></div>
+    <div class="cmm"><span>${ago(c.created_at)}</span>${c.user_id===uid()?'':`<button data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id===uid()||isAdmin()?`<button data-act="delcmt" data-id="${c.id}" data-pid="${pid}">امسح</button>`:''}</div></div></div>`).join('');
+  return `<div class="cms">${s.err?'<span class="err" role="alert">'+esc(s.err)+'</span>':''}${list}
+    ${uid()?`<form class="cmf" data-pid="${pid}" novalidate>${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}<input name="t" maxlength="600" autocomplete="off" enterkeyhint="send" placeholder="اكتب تعليق..." aria-label="اكتب تعليق"><button type="submit" aria-label="ابعت التعليق">${SEND}</button></form>`
+      :'<button class="cmlogin" data-act="cmlogin">ادخل بحسابك عشان تعلّق</button>'}</div>`;
 }
-async function fetchCmts(id){
-  try{const r=await sbFetch('/rest/v1/comments_public?select=*&post_id=eq.'+id+'&order=id.asc&limit=300');if(cmtPost!==id)return;cmts=r;cmtErr=''}
-  catch(e){if(cmtPost!==id)return;if(cmts===null)cmts=[];cmtErr=srvErr(e)}
-  const p=posts.find(x=>x.id===id);if(p&&!cmtErr){p.comment_count=cmts.length;syncPost(p)}
-  drawCmts();
+function drawCm(pid){
+  const el=document.querySelector('[data-cm="'+pid+'"]');if(!el)return;
+  const old=el.querySelector('.cmf input'),keep=old?old.value:'',foc=!!old&&document.activeElement===old;
+  el.innerHTML=cmHtml(pid);
+  const inp=el.querySelector('.cmf input');if(inp){inp.value=keep;if(foc)inp.focus()}
 }
-function openCmts(id){cmtPost=id;cmts=null;cmtErr='';drawCmts();$('#ovl').hidden=false;fetchCmts(id)}
-function submitCmt(form){
-  const id=cmtPost,body=$('#cmText').value.trim();
-  if(!id)return;
-  if(!body){$('#cmErr').textContent='اكتب التعليق الأول.';return}
-  srvRun(form,'#cmErr',async()=>{await sbFetch('/rest/v1/comments',{method:'POST',body:{post_id:id,body}});await fetchCmts(id)});
+async function fetchCm(pid){
+  const s=openCm[pid];if(!s)return;
+  try{const r=await sbFetch('/rest/v1/comments_public?select=*&post_id=eq.'+pid+'&order=id.asc&limit=300');if(openCm[pid]!==s)return;s.list=r;s.err=''}
+  catch(e){if(openCm[pid]!==s)return;if(s.list===null)s.list=[];s.err=srvErr(e)}
+  const p=posts.find(x=>x.id===pid);if(p&&!s.err){p.comment_count=s.list.length;syncPost(p)}
+  drawCm(pid);
 }
-async function delCmt(id,btn){
-  const pid=cmtPost;btn.disabled=true;
-  try{await sbFetch('/rest/v1/comments?id=eq.'+id,{method:'DELETE'});await fetchCmts(pid)}catch(e){btn.disabled=false}
+/* focus=true (زرار "تعليق"): افتح وقف على خانة الكتابة. focus=false (عدد التعليقات): افتح أو اقفل. */
+function toggleCm(pid,focus){
+  if(openCm[pid]&&!focus){delete openCm[pid];drawCm(pid);return}
+  if(!openCm[pid]){openCm[pid]={list:null,err:''};drawCm(pid);fetchCm(pid)}
+  if(focus){const i=document.querySelector('[data-cm="'+pid+'"] .cmf input');if(i)i.focus()}
+}
+async function submitCm(form){
+  const pid=Number(form.dataset.pid),s=openCm[pid],inp=form.elements.t,body=inp.value.trim(),btn=form.querySelector('button');
+  if(!s||!body||btn.disabled)return;
+  btn.disabled=true;
+  try{await sbFetch('/rest/v1/comments',{method:'POST',body:{post_id:pid,body}});inp.value='';await fetchCm(pid)}
+  catch(e){s.err=srvErr(e);drawCm(pid)}
+}
+async function delCmt(id,pid,btn){
+  btn.disabled=true;
+  try{await sbFetch('/rest/v1/comments?id=eq.'+id,{method:'DELETE'});await fetchCm(pid)}catch(e){btn.disabled=false}
+}
+/* ----- مشاركة البوست بلينك ----- */
+const postLink=id=>APP_URL+'?post='+id+'#community';
+function sharePost(id){
+  const p=posts.find(x=>x.id===id);if(!p)return;
+  const txt=p.body?p.body.slice(0,120)+(p.body.length>120?'…':''):'بوست من '+(p.author_name||'عضو')+' على فيش بوك';
+  if(navigator.share){navigator.share({title:'فيش بوك',text:txt,url:postLink(id)}).catch(()=>{});return}
+  window.open('https://wa.me/?text='+encodeURIComponent(txt+'\n'+postLink(id)),'_blank','noopener');
+}
+/* ----- اختيارات البوست (⋯) ----- */
+function openPostMenu(id){
+  const p=posts.find(x=>x.id===id);if(!p)return;const mine=p.user_id===uid();
+  $('#sheet').innerHTML=`<h2>اختيارات البوست</h2>
+    <button class="q" data-act="pcopy" data-id="${id}">انسخ لينك البوست</button>
+    ${mine?'':`<button class="q" data-act="report" data-pid="${id}">بلّغ عن البوست</button>`}
+    ${mine||isAdmin()?`<button class="q" data-act="delpost" data-id="${id}">امسح البوست</button>`:''}
+    <button class="btn ghost" type="button" data-act="close">قفل</button>`;
+  $('#ovl').hidden=false;
+}
+function copyPostLink(id,btn){
+  const done=ok=>{btn.textContent=ok?'اللينك اتنسخ':postLink(id)};
+  try{navigator.clipboard.writeText(postLink(id)).then(()=>done(true),()=>done(false))}catch(e){done(false)}
 }
 /* ----- مسح بوست ----- */
 function openDelPost(id){
@@ -1333,12 +1498,12 @@ async function delPost(id){
   if(!p)return;
   await sbFetch('/rest/v1/posts?id=eq.'+id,{method:'DELETE'});
   if(p.photos&&p.photos.length)dropPics(p.photos);
+  delete openCm[id];
   posts=posts.filter(x=>x.id!==id);reps=reps.filter(r=>r.post_id!==id&&!(r.comments&&r.comments.post_id===id));
 }
 /* ----- بلاغات ----- */
 function openReport(pid,cid){
   if(!uid()){openAuth('ادخل بحسابك عشان تبلّغ عن محتوى.');return}
-  cmtPost=null;
   $('#sheet').innerHTML=`<h2>بلاغ عن ${cid?'تعليق':'بوست'}</h2><span class="muted">البلاغ بيوصل لإدارة فيش بوك بس، وصاحب المحتوى مش بيعرف مين اللي بلّغ.</span>
   <form id="repForm" ${cid?'data-cid="'+cid+'"':'data-pid="'+pid+'"'} novalidate>
     <label for="rpWhy">السبب<select id="rpWhy">${REP_REASONS.map(r=>`<option>${r}</option>`).join('')}</select></label>
@@ -1360,7 +1525,8 @@ async function repAct(id,del,btn){
   try{
     if(!del)await sbFetch('/rest/v1/reports?id=eq.'+id,{method:'DELETE'});
     else if(r.comment_id){await sbFetch('/rest/v1/comments?id=eq.'+r.comment_id,{method:'DELETE'});
-      const p=posts.find(x=>r.comments&&x.id===r.comments.post_id);if(p)p.comment_count=Math.max(0,Number(p.comment_count||0)-1)}
+      const pid=r.comments&&r.comments.post_id,p=posts.find(x=>x.id===pid);if(p)p.comment_count=Math.max(0,Number(p.comment_count||0)-1);
+      if(openCm[pid]&&openCm[pid].list)openCm[pid].list=openCm[pid].list.filter(c=>c.id!==r.comment_id)}
     else await delPost(r.post_id);
     reps=reps.filter(x=>del?(r.comment_id?x.comment_id!==r.comment_id:x.post_id!==r.post_id):x.id!==id);
     render();
@@ -1700,7 +1866,7 @@ function openBook(id){
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;$('#bName').focus();
 }
-function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;cmtPost=null;dropPostFiles()}
+function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;dropPostFiles()}
 
 document.addEventListener('click',e=>{
   const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
@@ -1748,11 +1914,21 @@ document.addEventListener('click',e=>{
   else if(act==='dellog'){const id=Number(a.dataset.id),drop=()=>{logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()};
     if(logSrv){a.disabled=true;sbFetch('/rest/v1/catches?id=eq.'+id,{method:'DELETE'}).then(drop).catch(()=>{a.disabled=false})}else drop()}
   else if(act==='rate')openRate(a.dataset.k);
-  else if(act==='newpost'){if(uid())openNewPost();else openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تنشر في المجتمع. بعد الدخول اضغط "اكتب بوست" تاني.')}
+  else if(act==='newpost'){if(uid())openNewPost({k:a.dataset.k,pick:a.dataset.pick,vid:a.dataset.vid});else openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تنشر في المجتمع. بعد الدخول اضغط "اكتب بوست" تاني.')}
   else if(act==='like')toggleLike(Number(a.dataset.id));
-  else if(act==='cmts')openCmts(Number(a.dataset.id));
+  else if(act==='cmts')toggleCm(Number(a.dataset.id),a.dataset.f==='1');
+  else if(act==='cmlogin')openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تعلّق.');
+  else if(act==='pmenu')openPostMenu(Number(a.dataset.id));
+  else if(act==='myav')openMyAvatar();
+  else if(act==='avdrop')dropAvatar(a);
+  else if(act==='cuser'){if(/^[0-9a-f-]{36}$/.test(a.dataset.u)){comUser={id:a.dataset.u,name:a.dataset.n||'عضو'};comKind='';comArea='';comMsg='';hlPost=null;loadPosts(true);render();$('#main').scrollTop=0}}
+  else if(act==='cuserx'){comUser=null;loadPosts(true);render()}
+  else if(act==='pshare')sharePost(Number(a.dataset.id));
+  else if(act==='pcopy')copyPostLink(Number(a.dataset.id),a);
+  else if(act==='pmore'){const t=a.previousElementSibling;if(t)t.classList.remove('clamp');a.remove()}
+  else if(act==='ckind'){comKind=a.dataset.k;comMsg='';hlPost=null;loadPosts(true);render()}
   else if(act==='delpost')openDelPost(Number(a.dataset.id));
-  else if(act==='delcmt')delCmt(Number(a.dataset.id),a);
+  else if(act==='delcmt')delCmt(Number(a.dataset.id),Number(a.dataset.pid),a);
   else if(act==='report')openReport(a.dataset.pid?Number(a.dataset.pid):null,a.dataset.cid?Number(a.dataset.cid):null);
   else if(act==='photo'){$('#sheet').innerHTML='<img class="zoom" src="'+esc(a.dataset.src)+'" alt="الصورة بحجم أكبر"><button class="btn ghost" type="button" data-act="close">قفل</button>';$('#ovl').hidden=false}
   else if(act==='ytplay'){if(/^[\w-]{6,20}$/.test(a.dataset.id))a.outerHTML='<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+a.dataset.id+'?autoplay=1" title="فيديو يوتيوب" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>'}
@@ -1764,9 +1940,9 @@ document.addEventListener('click',e=>{
   else if(act==='star'){starSel=Number(a.dataset.n);document.querySelectorAll('.st').forEach((b,i)=>{b.classList.toggle('on',i<starSel);b.setAttribute('aria-pressed',i<starSel?'true':'false')})}
 });
 document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target.files&&e.target.files[0]);return}
+  if(e.target.id==='avImg'){setAvatar(e.target.files&&e.target.files[0]);return}
   if(e.target.id==='pImg'){addPostFiles(e.target.files);e.target.value='';return}
-  if(e.target.id==='cKind'){comKind=e.target.value;loadPosts(true);render();return}
-  if(e.target.id==='cArea'){comArea=e.target.value;loadPosts(true);render();return}
+  if(e.target.id==='cArea'){comArea=e.target.value;comMsg='';hlPost=null;loadPosts(true);render();return}
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value});
@@ -1780,7 +1956,7 @@ document.addEventListener('submit',e=>{
     const m={id:Date.now(),name,lat:mapSel.lat,lon:mapSel.lon};marks.push(m);saveMarks();
     mapPin(null);mapSel={t:'mark',id:m.id};closeSheet();drawMarks();mapBar();return}
   if(e.target.id==='postForm'){submitPost(e.target);return}
-  if(e.target.id==='cmtForm'){submitCmt(e.target);return}
+  if(e.target.classList.contains('cmf')){submitCm(e.target);return}
   if(e.target.id==='repForm'){submitReport(e.target);return}
   if(e.target.id==='delPostForm'){const id=Number(e.target.dataset.id);srvRun(e.target,'#dpErr',async()=>{await delPost(id);closeSheet();render()});return}
   if(e.target.id==='bookForm'){
