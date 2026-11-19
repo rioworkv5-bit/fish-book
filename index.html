@@ -90,6 +90,8 @@ label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
 input,select{min-height:46px;border:1px solid #9FB0BC;border-radius:12px;padding:0 12px;background:#fff;font-size:16px;width:100%}
 .filter{display:flex;align-items:center;gap:10px}
 .filter label{flex-direction:row;align-items:center;gap:10px;flex:1;white-space:nowrap}
+/* فلترين جنب بعض (المدة والمنطقة): العنوان فوق والقايمة تحته عشان الاسم يبان كامل */
+.filter.two2{align-items:flex-end}.filter.two2 label{flex-direction:column;align-items:stretch;gap:4px;min-width:0}.filter.two2 select{width:100%;min-width:0}
 .err{color:#8C1D0A;font-size:13px;font-weight:700;min-height:20px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--soft);border-radius:14px;padding:4px}
 .seg button{min-height:44px;border:0;border-radius:11px;background:none;font-weight:700;color:var(--muted)}
@@ -949,7 +951,7 @@ let view='home',sel=iso(today),dur='',mode='seat',role='org',answer='',alerts={}
 const boats=[['مركب تجريبي 1',10],['مركب تجريبي 2',8],['مركب تجريبي 3',12],['مركب تجريبي 4',10],['مركب تجريبي 5',8],['مركب تجريبي 6',12]].map(b=>({id:nextId++,name:b[0],cap:b[1]}));
 /* [بعد كام يوم, المركب, عدد الأيام, الأماكن, الفاضي, السعر, الناشر] */
 const trips=[[1,0,1,10,4,1500,'org'],[2,1,3,8,2,5500,'owner'],[2,2,1,12,7,1400,'org'],[3,2,5,12,9,9000,'owner'],[4,3,2,10,10,3200,'owner'],[5,4,4,8,0,7500,'org'],[7,5,1,12,12,1500,'owner'],[8,0,3,10,10,5200,'org']]
-  .map(t=>({id:nextId++,date:iso(addDays(today,t[0])),boat:boats[t[1]].name,n:t[2],total:t[3],left:t[4],price:t[5],full:Math.round(t[5]*t[3]*0.9/100)*100,by:t[6],org:t[6]==='org'?(t[0]%2?'منظم تجريبي 1':'منظم تجريبي 2'):''}));
+  .map(t=>({id:nextId++,date:iso(addDays(today,t[0])),boat:boats[t[1]].name,n:t[2],total:t[3],left:t[4],price:t[5],full:Math.round(t[5]*t[3]*0.9/100)*100,area:'hurghada',by:t[6],org:t[6]==='org'?(t[0]%2?'منظم تجريبي 1':'منظم تجريبي 2'):''}));
 const bookings=[];
 /* تقييمات تجريبية: نجوم بس */
 const ratings={};
@@ -981,7 +983,11 @@ function rateSec(owner,mine){
 }
 const byDate=(a,b)=>a.date<b.date?-1:a.date>b.date?1:0;
 const wholeFree=t=>t.full>0&&t.left===t.total;
-const matchDur=t=>(dur===''||t.n===Number(dur))&&(mode==='seat'||wholeFree(t));
+/* منطقة الرحلة: كل رحلة ليها منطقة من AREAS (بتتختار وقت النشر). tripArea فلتر الرحلات، فاضي = كل المناطق */
+let tripArea='';
+const areaName=id=>(AREAS.find(a=>a.id===id)||AREAS[0]).name;
+const areaOpts=cur=>AREAS.map(a=>`<option value="${a.id}" ${a.id===cur?'selected':''}>${a.name}</option>`).join('');
+const matchDur=t=>(dur===''||t.n===Number(dur))&&(mode==='seat'||wholeFree(t))&&(tripArea===''||t.area===tripArea);
 
 /* ---------- السيرفر (Supabase) ----------
    لو السيرفر رد: المراكب والرحلات والحجوزات والتقييمات وسجل الصيد بتيجي منه وبتتحفظ عليه.
@@ -1099,7 +1105,7 @@ async function loadSrv(){
     boats.length=0;bs.forEach(b=>boats.push({id:b.id,name:b.name,cap:b.capacity,owner:b.owner_id,by:b.created_by,specs:b.specs&&typeof b.specs==='object'?b.specs:{},about:b.about||'',photos:Array.isArray(b.photos)?b.photos:[]}));
     blocks.length=0;bl.forEach(k=>{const b=boats.find(x=>x.id===k.boat_id);if(b)blocks.push({id:k.id,boatId:k.boat_id,boat:b.name,date:k.start_date,n:k.days,note:k.note||''})});
     trips.length=0;ts.forEach(t=>{const ow=t.publisher_role==='owner';
-      trips.push({id:t.id,date:t.start_date,boat:t.boat_name,boatId:t.boat_id,n:t.days,total:t.seats_total,left:Math.max(0,t.seats_left),price:t.price_seat,full:t.price_whole,by:ow?'owner':'org',org:ow?'':(t.publisher_name||'منظم رحلات'),pub:t.publisher_id})});
+      trips.push({id:t.id,date:t.start_date,boat:t.boat_name,boatId:t.boat_id,n:t.days,total:t.seats_total,left:Math.max(0,t.seats_left),price:t.price_seat,full:t.price_whole,area:AREAS.some(a=>a.id===t.area)?t.area:'hurghada',by:ow?'owner':'org',org:ow?'':(t.publisher_name||'منظم رحلات'),pub:t.publisher_id})});
     const bn={},pn={};boats.forEach(b=>bn[b.id]=b.name);trips.forEach(t=>{if(t.org)pn[t.pub]=t.org});
     Object.keys(ratings).forEach(k=>delete ratings[k]);
     rs.forEach(r=>{const nm=r.target==='boat'?bn[r.boat_id]:pn[r.publisher_id];if(!nm)return;
@@ -1274,6 +1280,7 @@ function openEditTrip(id){
   const t=trips.find(x=>x.id===id&&x.pub===uid());if(!t)return;const bk=t.total-t.left,lock=bk>0?'disabled':'';
   $('#sheet').innerHTML=`<h2>تعديل رحلة ${esc(t.boat)}</h2><span class="muted">${bk?'الرحلة عليها '+bk+(bk>1?' أماكن محجوزة':' مكان محجوز')+'، فتقدر تغيّر عدد الأماكن بس (مش أقل من المحجوز).':'لسه مفيش حجوزات، فتقدر تغيّر أي حاجة.'}</span>
   <form id="editTrip" data-id="${t.id}" novalidate>
+    <label for="eArea">منطقة الرحلة<select id="eArea" ${lock}>${areaOpts(t.area)}</select></label>
     <label for="eDate">يوم البداية<input id="eDate" type="date" min="${iso(today)}" value="${t.date}" ${lock}></label>
     <label for="eDays">عدد أيام الرحلة<input id="eDays" type="number" inputmode="numeric" min="1" value="${t.n}" ${lock}></label>
     <label for="eSeats">عدد الأماكن<input id="eSeats" type="number" inputmode="numeric" min="${Math.max(1,bk)}" value="${t.total}"></label>
@@ -1300,7 +1307,7 @@ const pendingTrip=(()=>{try{const v=Number(new URLSearchParams(location.search).
 function shareTrip(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
   const sc=tripScore(t),fas=isFasad(hijri(fromIso(t.date)).day),link=srvOn()?APP_URL+'?trip='+t.id+'#trips':APP_URL;
-  const txt=`🎣 رحلة صيد على ${t.boat}\n${tripRange(t)} · ${dWord(t.n)}\nمؤشر الصيد ${sc.val}%${sc.prelim?' (من التيار بس، لسه من غير جو)':''} ·${fas?'فساد':'حمل'}\n${t.price} جنيه للفرد${t.left>0?' · فاضي '+t.left+(t.left>1?' أماكن':' مكان'):' · الرحلة كاملة'}\nاحجز من فيش بوك: ${link}`;
+  const txt=`🎣 رحلة صيد على ${t.boat}\n${tripRange(t)} · ${dWord(t.n)}\nالمنطقة: ${areaName(t.area)} · ${t.area===area.id?'مؤشر الصيد '+sc.val+'%'+(sc.prelim?' (من التيار بس، لسه من غير جو)':'')+' · ':''}${fas?'فساد':'حمل'}\n${t.price} جنيه للفرد${t.left>0?' · فاضي '+t.left+(t.left>1?' أماكن':' مكان'):' · الرحلة كاملة'}\nاحجز من فيش بوك: ${link}`;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');
 }
 /* لينك رحلة متشارك: يفتح الرحلات ويعلّم على الرحلة دي */
@@ -1316,8 +1323,8 @@ function openSharedTrip(){
 function tripCard(t){
   /* الحجز بيتقفل أول ما يوم الرحلة يبدأ (نفس قاعدة book_trip في supabase/011_booking_cutoff.sql) */
   const sc=tripScore(t),h=hijri(fromIso(t.date)),shut=t.date<=iso(today);
-  return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="${sc.prelim?'النسبة من التيار بس، لسه مفيش توقعات جو':'مؤشر الصيد'}">${sc.val}%${sc.prelim?' تيار':''}</span></div>
-    <div><span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
+  return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div>${t.area===area.id?`<span class="pill ${sClass(sc.val)}" title="${sc.prelim?'النسبة من التيار بس، لسه مفيش توقعات جو':'مؤشر الصيد'}">${sc.val}%${sc.prelim?' تيار':''}</span>`:`<button class="rate" data-act="triparea" data-id="${t.area}">شوف جو ${areaName(t.area)}</button>`}</div>
+    <div><span class="chip okc">${areaName(t.area)}</span> <span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
     <div class="rates">${(bb=>bb&&(boatPics(bb).length||specLine(bb))?`<button class="rate" data-act="boatinfo" data-id="${bb.id}">${bb.specs.cls==='vip'?'VIP · ':''}صور ومواصفات المركب</button>`:'')(boats.find(x=>x.id===t.boatId))}${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}<button class="rate wa" data-act="share" data-id="${t.id}" aria-label="شارك الرحلة على واتساب">${WA_ICON}شارك على واتساب</button></div>
     ${mode==='boat'?`<div class="bot"><div><div class="price">${t.full} جنيه <span class="muted" style="font-weight:400">للمركب كاملة</span></div><div class="muted">تشيل لحد ${t.total} فرد</div></div>
     <button class="btn" data-act="book" data-id="${t.id}" ${wholeFree(t)&&!shut?'':'disabled'}>${shut?'الحجز اتقفل':wholeFree(t)?'احجز المركب':'مش متاحة'}</button></div>`:
@@ -1327,7 +1334,8 @@ function tripCard(t){
 function durFilter(){
   const ns=[...new Set(trips.map(t=>t.n))].sort((a,b)=>a-b);
   return `<div class="seg" role="group" aria-label="نوع الحجز"><button data-act="mode" data-m="seat" aria-pressed="${mode==='seat'}">مكان في رحلة</button><button data-act="mode" data-m="boat" aria-pressed="${mode==='boat'}">مركب كاملة</button></div>
-  <div class="filter"><label for="durSel">مدة الرحلة<select id="durSel"><option value="">أي مدة</option>${ns.map(n=>`<option value="${n}" ${String(n)===dur?'selected':''}>${dWord(n)}</option>`).join('')}</select></label></div>`;
+  <div class="filter two2"><label for="durSel">مدة الرحلة<select id="durSel"><option value="">أي مدة</option>${ns.map(n=>`<option value="${n}" ${String(n)===dur?'selected':''}>${dWord(n)}</option>`).join('')}</select></label>
+  <label for="tripAreaSel">منطقة الرحلة<select id="tripAreaSel"><option value="">كل المناطق</option>${areaOpts(tripArea)}</select></label></div>`;
 }
 function home(){
   const d=fromIso(sel),w=weather(d),h=hijri(d),s=score(d),fas=isFasad(h.day),tideChips=`<span class="chip">${fas?'فساد':'حمل'}</span> <span class="chip">${curText(s.cur)}</span>${isTurn(h.day)?' <span class="chip">يوم تحول</span>':''}`;
@@ -1398,8 +1406,8 @@ function ask(q){
     '<p class="muted">دي أيام الفساد بالتاريخ الهجري. نسبة كل يوم على الرسم محسوبة من التيار بس، والجو مش داخل فيها. توقعات الجو بتبان قبل اليوم بـ'+FORECAST_DAYS+' يوم، ووقتها المؤشر بيتحدث.</p>';}
   else if(q==='today'){const h=hijri(today),f=isFasad(h.day),s=score(today).val;
     answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${(c=>c.lvl?(c.lvl==='هادي'?'التيار هادي، ومناسب للصيد من المركب':c.lvl==='متوسط'?'التيار متوسط':'التيار حامي، والصيد من الشاطئ أنسب')+' (فرق المد '+Math.round(c.tr.m*100)+' سم).':(f?'التيار ضعيف غالبًا، ومناسب للصيد من المركب.':'التيار قوي غالبًا، والصيد من الشاطئ أنسب.'))(curInfo(today))}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
-  else{const good=trips.filter(t=>t.left>0&&t.date>=iso(today)&&tripScore(t).val>=70).sort(byDate);
-    answer='<h2>رحلات مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
+  else{const good=trips.filter(t=>t.left>0&&t.date>=iso(today)&&t.area===area.id&&tripScore(t).val>=70).sort(byDate);
+    answer='<h2>رحلات '+area.name+' اللي مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
   render();
 }
 /* ---------- الإدارة: لوحة لكل نوع حساب ----------
@@ -1438,7 +1446,7 @@ function mgAngler(full){
 function mgTrip(t,past){
   const bk=t.total-t.left,own=!srvOn()||t.pub===uid();let sq='';for(let i=0;i<t.total;i++)sq+='<i class="seat'+(i<bk?' on':'')+'"></i>';
   const st=past?[bk?'طلع '+bk+' فرد':'من غير حجوزات','chip']:t.left===0?['كاملة','pill s-good']:bk===0?['لسه فاضية','pill s-bad']:['ناقص '+t.left,'pill s-mid'];
-  return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)} · ${dWord(t.n)}${own?'':' · ناشرها '+esc(t.org||'منظم رحلات')}</div></div><span class="${st[1]}">${st[0]}</span></div>
+  return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${areaName(t.area)} · ${tripRange(t)} · ${dWord(t.n)}${own?'':' · ناشرها '+esc(t.org||'منظم رحلات')}</div></div><span class="${st[1]}">${st[0]}</span></div>
     ${past?'':`<div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div>`}<span class="muted">محجوز ${bk} · فاضي ${t.left} · ${money(t.price)} جنيه للفرد${t.full>0?' · '+money(t.full)+' للمركب كاملة':''}</span>
     ${past?'':`<div class="rowbtns wrap">${bk?`<button class="btn ghost sm" data-act="mpeople" data-id="${t.id}">المشتركين (${bk})</button>`:''}${own||routes[t.id]?`<button class="btn ghost sm" data-act="routeedit" data-id="${t.id}">${routes[t.id]?'خط السير':'ارسم خط السير'}</button>`:''}${srvOn()&&own?`<button class="btn ghost sm" data-act="edittrip" data-id="${t.id}">عدّل</button><button class="btn ghost sm" data-act="canceltrip" data-id="${t.id}">الغي</button>`:''}<button class="btn ghost sm" data-act="share" data-id="${t.id}">شارك</button></div>`}</li>`;
 }
@@ -1629,6 +1637,7 @@ function mgTrips(d){
   <div class="card" id="mgNew"><form id="addTrip" novalidate><h2>انشر رحلة</h2>
     ${d.on?'':'<label for="tOrg">اسمك كمنظم<input id="tOrg" maxlength="40" value="منظم تجريبي 1" autocomplete="off"></label>'}
     ${selBoats.length?`<label for="tBoat">المركب<select id="tBoat">${selBoats.map(b=>`<option value="${b.id}">${esc(b.name)} · ${b.cap} فرد</option>`).join('')}</select></label>
+    <label for="tArea">منطقة الرحلة (المكان اللي المركب هتطلع منه)<select id="tArea">${areaOpts(area.id)}</select></label>
     <label for="tDate">يوم البداية (أي تاريخ من النهارده)<input id="tDate" type="date" min="${iso(today)}" value="${iso(addDays(today,1))}"></label>
     <div class="two"><label for="tDays">عدد الأيام<input id="tDays" type="number" inputmode="numeric" min="1" value="1"></label>
       <label for="tSeats">عدد الأماكن<input id="tSeats" type="number" inputmode="numeric" min="1" value="8"></label></div>
@@ -2512,6 +2521,7 @@ document.addEventListener('click',e=>{
   else if(act==='cancelbk')openCancelBk(Number(a.dataset.id));
   else if(act==='canceltrip')openCancelTrip(Number(a.dataset.id));
   else if(act==='edittrip')openEditTrip(Number(a.dataset.id));
+  else if(act==='triparea'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(a.dataset.id)}
   else if(act==='mode'){mode=a.dataset.m;render()}
   else if(act==='ask')ask(a.dataset.q);
   else if(act==='book')openBook(Number(a.dataset.id));
@@ -2554,6 +2564,7 @@ document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target
   if(e.target.id==='bfImg'){addBoatFiles(e.target.files);e.target.value='';return}
   if(e.target.id==='cArea'){comArea=e.target.value;comMsg='';hlPost=null;loadPosts(true);render();return}
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
+  if(e.target.id==='tripAreaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;tripArea=AREAS.some(a=>a.id===e.target.value)?e.target.value:'';render();return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value;
   if(e.target.id==='admQ'){adm.q=e.target.value;const el=$('#admList');if(el)el.innerHTML=admUsersHtml()}});
@@ -2627,7 +2638,8 @@ document.addEventListener('submit',e=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<iso(today)){$('#eErr').textContent='اختار تاريخ من النهارده أو بعده.';return}
       if(!(n>=1)||n!==Math.round(n)){$('#eErr').textContent='اكتب عدد الأيام رقم صحيح، يوم أو أكتر.';return}
       if(!(price>=0)||full<0){$('#eErr').textContent='اكتب السعر بالأرقام.';return}
-      Object.assign(body,{start_date:date,days:n,price_seat:Math.round(price),price_whole:Math.round(full)});
+      const ar=$('#eArea').value;if(!AREAS.some(a=>a.id===ar)){$('#eErr').textContent='اختار منطقة الرحلة.';return}
+      Object.assign(body,{start_date:date,days:n,price_seat:Math.round(price),price_whole:Math.round(full),area:ar});
     }
     srvRun(e.target,'#eErr',async()=>{await sbFetch('/rest/v1/trips?id=eq.'+t.id,{method:'PATCH',body});closeSheet();await loadSrv()});
   }else if(e.target.id==='rateForm'){
@@ -2677,11 +2689,12 @@ document.addEventListener('submit',e=>{
     if(!(seats>=1)){$('#tErr').textContent='اكتب عدد الأماكن.';return}
     if(seats>b.cap){$('#tErr').textContent='المركب دي تشيل '+b.cap+' فرد بس.';return}
     if(!(price>=0)||full<0){$('#tErr').textContent='اكتب السعر بالأرقام.';return}
-    const done=()=>{dur='';mode='seat';sel=date;ensureH(date);reveal=true;go('trips')};
+    const ar=$('#tArea')?$('#tArea').value:area.id;if(!AREAS.some(a=>a.id===ar)){$('#tErr').textContent='اختار منطقة الرحلة.';return}
+    const done=()=>{dur='';tripArea='';mode='seat';sel=date;ensureH(date);reveal=true;go('trips')};
     if(srvOn()){srvRun(e.target,'#tErr',async()=>{
-      await sbFetch('/rest/v1/trips',{method:'POST',body:{boat_id:b.id,start_date:date,days:n,seats_total:Math.round(seats),price_seat:Math.round(price),price_whole:Math.round(full),area:area.id}});
+      await sbFetch('/rest/v1/trips',{method:'POST',body:{boat_id:b.id,start_date:date,days:n,seats_total:Math.round(seats),price_seat:Math.round(price),price_whole:Math.round(full),area:ar}});
       await loadSrv();done()});return}
-    trips.push({id:nextId++,date,boat:b.name,n,total:Math.round(seats),left:Math.round(seats),price:Math.round(price),full:Math.round(full),by:role,org:role==='org'?(($('#tOrg')&&$('#tOrg').value.trim())||'منظم تجريبي 1'):''});
+    trips.push({id:nextId++,date,boat:b.name,n,total:Math.round(seats),left:Math.round(seats),price:Math.round(price),full:Math.round(full),area:ar,by:role,org:role==='org'?(($('#tOrg')&&$('#tOrg').value.trim())||'منظم تجريبي 1'):''});
     done();
   }
 });
