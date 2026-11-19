@@ -126,11 +126,9 @@ ul.list .top{display:flex;justify-content:space-between;gap:10px;align-items:fle
 .legend i.udl{width:9px;height:9px;border-radius:50%;background:#E08A00;border-color:#E08A00;vertical-align:0}
 .chip.warn{background:#FFF1D6;color:#7A4B00}.chip.okc{background:#DDF3EC;color:#0B5A47}
 .legend i.farf{background:repeating-linear-gradient(135deg,#fff 0 3px,#A9BCC8 3px 6px)}
-/* سمكات الأيام اللي ملهاش جو: المليانة هي الدرجة، والفاضية الباقي من 3 */
-.fm{display:inline-flex;gap:1px;align-items:center;vertical-align:-1px}
-.fm svg.on{fill:var(--brand)}.fm svg.off{fill:none;stroke:#9FB0BC;stroke-width:1.5}
+/* العمود الأبيض (يوم من غير جو): جواه كلمة "تيار" عشان يبان إن النسبة من التيار بس */
 .bar .bf.pre{display:flex;align-items:center;justify-content:center}
-.bar .bf .fm{flex-direction:column;gap:4px}
+.bar .bf .bw{font-size:9px;font-weight:800;color:var(--muted);line-height:1}
 .chart .legend{padding:10px 6px 0}
 .legend i.g1{background:var(--good);border-color:var(--good)}.legend i.g2{background:var(--ok);border-color:var(--ok)}.legend i.g3{background:var(--mid);border-color:var(--mid)}.legend i.g4{background:var(--bad);border-color:var(--bad)}
 .rates{display:flex;gap:6px;flex-wrap:wrap}
@@ -543,39 +541,96 @@ const SPREAD_BAD=4,SPREAD_OK=2.5; /* أقل من SPREAD_OK: توقع مؤكد. �
 function wxConf(w){if(!w.real||!w.lo||w.nm<2)return null;
   const idx=[1,2,3,4,5],av=a=>idx.reduce((s,i)=>s+a[i],0)/idx.length,lo=av(w.lo),hi=av(w.hi);
   return{lo:Math.round(lo),hi:Math.round(hi),hiAvg:hi,bad:hi-lo>=SPREAD_BAD,ok:hi-lo<SPREAD_OK,nm:w.nm}}
+/* ---------- قوة التيار: فرق المد والجزر في اليوم ----------
+   كل ما الفرق بين أعلى مد وأقل جزر في اليوم يكبر، التيار يبقى أحمى. الحمل والفساد تقريب لده بمستويين بس،
+   والحقيقي بيتغير من يوم ليوم: في فساد مدّه عالي وفي حمل مدّه هادي.
+   - الأيام اللي ليها مستوى بحر حقيقي (sea، حوالي 10 أيام): الفرق من البيانات نفسها.
+   - أي يوم بعد كده: توقع من نمط آخر 3 شهور. النمط 5 موجات مد معروفة فتراتها بالساعة (M2, S2, N2, K1, O1)،
+     بنظبط ارتفاع كل واحدة على مستوى البحر كل ساعة (least squares) في fitTide()، وبعدها tideAt() بتدي المستوى في أي وقت.
+   اتجرّب على الغردقة (19 نوفمبر 2026): اتعلّم من 70 يوم وتوقع 29 يوم بعدهم بمتوسط خطأ 4.7 سم من 49. */
+const TIDE_PER=[12.4206012,12,12.65834751,23.93447213,25.81933871],TIDE_FIT_DAYS=7,TIDE_FIT_MAXERR=0.10;
+let tideFit=null;const rngCache={};
+const clearRng=()=>{for(const k in rngCache)delete rngCache[k]};
+const tideUrl=a=>'https://marine-api.open-meteo.com/v1/marine?latitude='+a.lat+'&longitude='+(a.slon||a.lon)+'&hourly=sea_level_height_msl&timezone=GMT&past_days=92&forecast_days=8';
+/* th: الوقت بالساعات من 1970 */
+function tideAt(f,th){const x=th-f.t0;let v=f.c[0];for(let k=0;k<TIDE_PER.length;k++){const w=2*Math.PI*x/TIDE_PER[k];v+=f.c[1+2*k]*Math.cos(w)+f.c[2+2*k]*Math.sin(w)}return v}
+function fitTide(pts){
+  const t0=pts[0].t,n=1+2*TIDE_PER.length,A=[];for(let i=0;i<n;i++)A.push(new Array(n+1).fill(0));
+  for(const p of pts){const x=[1];for(const per of TIDE_PER){const w=2*Math.PI*(p.t-t0)/per;x.push(Math.cos(w),Math.sin(w))}
+    for(let i=0;i<n;i++){for(let k=0;k<n;k++)A[i][k]+=x[i]*x[k];A[i][n]+=x[i]*p.h}}
+  /* حل المعادلات بالحذف (Gauss-Jordan) */
+  for(let i=0;i<n;i++){let m=i;for(let r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[m][i]))m=r;
+    const sw=A[i];A[i]=A[m];A[m]=sw;if(Math.abs(A[i][i])<1e-9)return null;
+    for(let r=0;r<n;r++){if(r===i)continue;const f=A[r][i]/A[i][i];for(let k=i;k<=n;k++)A[r][k]-=f*A[i][k]}}
+  return{t0,c:A.map((r,i)=>r[n]/r[i])};
+}
+/* بترجع 'cache' لو النمط محفوظ (بيتحط فورًا قبل أول رسم)، true لو اتحمّل واتحسب، false لو معرفناش */
+async function loadTideFit(){
+  const a=area,key='fishbook-tidefit-'+a.id;tideFit=null;clearRng();
+  try{const c=JSON.parse(localStorage.getItem(key)||'null');if(c&&c.c&&c.area===a.id&&Date.now()-c.at<TIDE_FIT_DAYS*864e5){tideFit=c;return 'cache'}}catch(e){}
+  try{const j=await fetch(tideUrl(a)).then(r=>r.ok?r.json():null);if(a!==area||!j||!j.hourly||!j.hourly.sea_level_height_msl)return false;
+    const H=j.hourly.sea_level_height_msl,pts=[];j.hourly.time.forEach((s,i)=>{if(typeof H[i]==='number')pts.push({t:Date.parse(s+':00Z')/3600e3,h:H[i]})});
+    if(pts.length<45*24)return false;
+    const f=fitTide(pts);if(!f)return false;
+    /* فحص: فرق المد المتوقع لازم يطلع قريب من الحقيقي على نفس الأيام، وإلا منستخدمش النمط */
+    const days={};for(const p of pts){const d=Math.floor((p.t+2)/24),o=days[d]=days[d]||{n:0,a0:9,a1:-9,p0:9,p1:-9},v=tideAt(f,p.t);
+      o.n++;if(p.h<o.a0)o.a0=p.h;if(p.h>o.a1)o.a1=p.h;if(v<o.p0)o.p0=v;if(v>o.p1)o.p1=v}
+    let e=0,n=0;const rs=[];for(const d in days){const o=days[d];if(o.n===24){e+=Math.abs((o.a1-o.a0)-(o.p1-o.p0));n++;rs.push(o.a1-o.a0)}}
+    if(!n||e/n>TIDE_FIT_MAXERR)return false;
+    /* lo و hi: فرق المد في أهدى وأحمى أيام المنطقة دي (أقل وأعلى 10%). منهم بتتحدد حدود هادي ومتوسط وحامي للمنطقة،
+       لأن المد في الزعفرانة مثلًا ضعف الغردقة، فمينفعش نفس الأرقام للكل */
+    rs.sort((x,y)=>x-y);const q=p=>rs[Math.min(rs.length-1,Math.floor(p*rs.length))],r3=x=>Math.round(x*1000)/1000;
+    tideFit={at:Date.now(),area:a.id,t0:f.t0,c:f.c,err:r3(e/n),lo:r3(q(0.1)),hi:r3(q(0.9))};clearRng();
+    try{localStorage.setItem(key,JSON.stringify(tideFit))}catch(e2){}
+    return true}catch(e){return false}
+}
+/* فرق المد في اليوم بالمتر: {m, real}. real=false يعني متوقع من النمط. null لو مفيش بيانات خالص */
+function tideRange(d){
+  const k=area.id+iso(d);if(k in rngCache)return rngCache[k];
+  const a0=new Date(d);a0.setHours(0,0,0,0);const t0=a0.getTime(),t1=t0+864e5;let r=null;
+  if(sea.length&&t0>=seaFrom&&t1<=seaTo){const hs=sea.filter(p=>p.t>=t0&&p.t<=t1).map(p=>p.h);r={m:Math.max.apply(null,hs)-Math.min.apply(null,hs),real:true}}
+  else if(tideFit&&tideFit.area===area.id){let lo=9,hi=-9;for(let t=Math.ceil(t0/3600e3);t<=t1/3600e3;t++){const v=tideAt(tideFit,t);if(v<lo)lo=v;if(v>hi)hi=v}r={m:hi-lo,real:false}}
+  return rngCache[k]=r;
+}
+/* حدود قوة التيار بالمتر: الدرجة كاملة لحد full وصفر عند zero، وهما lo و hi بتوع المنطقة من نمط المد.
+   من غير نمط: أرقام الغردقة (CUR_FULL, CUR_ZERO). هادي لحد 24% من المسافة بينهم، وحامي بعد 63%.
+   في الغردقة ده بيطلع 35 و50 سم (الحدود اللي أحمد وافق عليها)، وباقي المناطق بنفس النسبة من مدّها */
+const CUR_FULL=0.26,CUR_ZERO=0.64;
+function curBand(){const f=tideFit&&tideFit.area===area.id&&tideFit.hi-tideFit.lo>0.05?tideFit:null,full=f?f.lo:CUR_FULL,zero=f?f.hi:CUR_ZERO,sp=zero-full;
+  return{full,zero,calm:full+0.24*sp,hot:full+0.63*sp}}
+/* درجة التيار في اليوم من 0 لـ1: 75% من فرق المد و25% من الحمل والفساد (الفساد أعلى، ويوم التحول يزود شوية).
+   من غير بيانات مد: تقدير من الحمل والفساد بس */
+function curInfo(d){
+  const hd=hijri(d).day,fas=isFasad(hd),turn=isTurn(hd),tr=tideRange(d),b=curBand();
+  const rf=tr?Math.max(0,Math.min(1,(b.zero-tr.m)/(b.zero-b.full))):(fas?0.8:0.3),hf=Math.min(1,(fas?1:0.4)+(turn?0.15:0));
+  return{fas,turn,tr,frac:0.75*rf+0.25*hf,lvl:tr?(tr.m<b.calm?'هادي':tr.m<=b.hot?'متوسط':'حامي'):null};
+}
+/* وصف قصير: "تيار هادي · مد 33 سم" */
+const curText=ci=>ci.lvl?'تيار '+ci.lvl+' · مد '+Math.round(ci.tr.m*100)+' سم'+(ci.tr.real?'':' متوقع'):(ci.fas?'تيار ضعيف غالبًا':'تيار قوي غالبًا');
 function score(d){
-  /* بعد أيام التوقعات: النسبة كلها من الحمل والفساد، من غير الجو (الأرقام في PRELIM) */
-  if(!inForecast(iso(d))){const hd=hijri(d).day,turn=isTurn(hd);return{val:isFasad(hd)?(turn?PRELIM.fasadTurn:PRELIM.fasad):(turn?PRELIM.hamlTurn:PRELIM.haml),prelim:true}}
-  const w=weather(d),h=hijri(d),idx=[1,2,3,4,5]; /* ساعات النهار: 5 ص لحد 5 م */
+  const ci=curInfo(d);
+  /* بعد أيام التوقعات: النسبة من قوة التيار بس (فرق المد + حمل وفساد)، والجو مش داخل فيها. من FAR_MIN لـFAR_MAX */
+  if(!inForecast(iso(d)))return{val:Math.round(FAR_MIN+(FAR_MAX-FAR_MIN)*ci.frac),prelim:true,cur:ci};
+  const w=weather(d),idx=[1,2,3,4,5]; /* ساعات النهار: 5 ص لحد 5 م */
   const avg=a=>idx.reduce((s,i)=>s+a[i],0)/idx.length,r1=x=>Math.round(x*10)/10;
   /* lin: الدرجة كاملة لحد good، وبتنزل بالتدريج لصفر عند bad */
   const lin=(x,good,bad)=>Math.max(0,Math.min(1,(bad-x)/(bad-good)));
-  const aw=avg(w.wind),av=avg(w.wave),at=avg(w.temp),dp=Math.abs(w.pres[7]-w.pres[0]),fas=isFasad(h.day),turn=isTurn(h.day);
+  const aw=avg(w.wind),av=avg(w.wave),at=avg(w.temp),dp=Math.abs(w.pres[7]-w.pres[0]);
   /* لو النماذج مختلفة، درجة الرياح بتتحسب من نص المسافة بين المتوسط وأعلى نموذج (احتياط للبحر) */
   const cf=wxConf(w),awS=cf&&cf.bad?(aw+cf.hiAvg)/2:aw;
-  /* فرق المد والجزر الحقيقي في اليوم: كل ما يقل، التيار أضعف */
-  const a0=new Date(d);a0.setHours(0,0,0,0);const t0=a0.getTime(),t1=t0+864e5;let rng=null;
-  if(sea.length&&t0>=seaFrom&&t1<=seaTo){const hs=sea.filter(p=>p.t>=t0&&p.t<=t1).map(p=>p.h);rng=Math.max.apply(null,hs)-Math.min.apply(null,hs)}
   const parts=[
     {name:'الرياح',max:WEIGHTS.wind,pts:WEIGHTS.wind*lin(awS,8,22),note:Math.round(aw)+' عقدة'+(cf&&cf.bad?' · من '+cf.lo+' لـ'+cf.hi:'')},
     {name:'الموج',max:WEIGHTS.wave,pts:WEIGHTS.wave*lin(av,0.4,1.5),note:r1(av).toFixed(1)+' م'},
-    {name:'حمل وفساد',max:WEIGHTS.hijri,pts:Math.min(WEIGHTS.hijri,WEIGHTS.hijri*(fas?1:0.5)+(turn?WEIGHTS.hijri*0.15:0)),note:(fas?'فساد':'حمل')+(turn?' · يوم تحول':'')},
-    {name:'المد والجزر',max:WEIGHTS.tide,pts:WEIGHTS.tide*(rng===null?(fas?0.8:0.5):0.4+0.6*lin(rng,0.25,0.75)),note:rng===null?'تقريبي':'فرق '+Math.round(rng*100)+' سم'},
+    {name:'التيار',max:WEIGHTS.cur,pts:WEIGHTS.cur*(0.45+0.55*ci.frac),note:curText(ci)+' · '+(ci.fas?'فساد':'حمل')+(ci.turn?' · يوم تحول':'')},
     {name:'الضغط',max:WEIGHTS.pres,pts:WEIGHTS.pres*lin(dp,2,6),note:dp<=2?'مستقر':'اتغير '+dp+' مليبار'},
     {name:'الحرارة',max:WEIGHTS.temp,pts:WEIGHTS.temp*(at<18?lin(at,18,10):lin(at,32,40)),note:Math.round(at)+'°'}];
   let best=1;idx.forEach(i=>{if(w.wind[i]<w.wind[best])best=i});
-  return{val:Math.round(parts.reduce((s,p)=>s+p.pts,0)),best,stable:dp<=2,parts,real:!!w.real,conf:cf};
+  return{val:Math.round(parts.reduce((s,p)=>s+p.pts,0)),best,stable:dp<=2,parts,real:!!w.real,conf:cf,cur:ci};
 }
-/* الأيام اللي ملهاش توقعات جو: نسبة كل نوع يوم. غيّر الأرقام هنا */
-const PRELIM={fasad:90,fasadTurn:95,haml:80,hamlTurn:85};
-/* سمكات الأيام اللي ملهاش جو: حالة التيار من الحمل والفساد بس، والفساد أعلى درجة. غيّر الأرقام هنا (من 1 لـ 3) */
-const FISH={fasad:3,haml:2};
-const fishN=d=>isFasad(hijri(d).day)?FISH.fasad:FISH.haml;
-function fishMarks(n,z){let h='';for(let i=0;i<3;i++)h+=`<svg aria-hidden="true" width="${z}" height="${Math.round(z*0.6)}" viewBox="0 0 24 14" class="${i<n?'on':'off'}"><path d="M1 7c3-5 10-6 15-3l6-3v12l-6-3C11 13 4 12 1 7z"/></svg>`;
-  return `<span class="fm" role="img" aria-label="حالة التيار ${n} من 3">${h}</span>`}
-const fishLegend=()=>`<span>${fishMarks(FISH.fasad,12)} فساد، تيار ضعيف</span><span>${fishMarks(FISH.haml,12)} حمل، تيار قوي</span>`;
-/* أوزان المؤشر، مجموعها 100 */
-const WEIGHTS={wind:35,wave:20,hijri:20,tide:10,pres:10,temp:5};
+/* الأيام اللي ملهاش توقعات جو: النسبة من التيار بس، بين الرقمين دول */
+const FAR_MIN=75,FAR_MAX=95;
+/* أوزان المؤشر، مجموعها 100. التيار = فرق المد + حمل وفساد (كانوا 10 و20 لوحدهم) */
+const WEIGHTS={wind:35,wave:20,cur:30,pres:10,temp:5};
 const sClass=v=>v>=80?'s-good':v>=70?'s-ok':v>=50?'s-mid':'s-bad';
 const sWord=v=>v>=80?'يوم ممتاز للصيد':v>=70?'يوم كويس للصيد':v>=50?'يوم متوسط':'يوم ضعيف';
 /* تفاصيل النسبة: كل عامل خد كام من كام */
@@ -630,7 +685,7 @@ function applyLive(wj,mj){
     /* الاتجاه زاوية، فمتوسطه دائري */
     const D=vals('wind_direction_10m');if(D.length){let sx=0,sy=0;D.forEach(a=>{sx+=Math.sin(a*R);sy+=Math.cos(a*R)});set('dir',(Math.atan2(sx,sy)/R+360)%360)}});
   if(mj&&mj.hourly)put(mj,{wave_height:'wave'});
-  realWx=days;for(const k in wxCache)delete wxCache[k];
+  realWx=days;for(const k in wxCache)delete wxCache[k];clearRng();
   /* مستوى البحر كل ساعة: منه المنحنى وأوقات أعلى مد وأقل جزر */
   const s=[];
   if(mj&&mj.hourly&&mj.hourly.sea_level_height_msl){const h=mj.hourly,off=(mj.utc_offset_seconds||0)*1000;
@@ -672,7 +727,9 @@ async function loadLive(quiet){
 /* تغيير المنطقة: نمسح جو المنطقة القديمة ونحمّل الجديدة */
 function setArea(id){const f=AREAS.find(a=>a.id===id);if(!f||f===area)return;area=f;try{localStorage.setItem('fishbook-area',f.id)}catch(e){}
   realWx={};sea=[];tideEv=[];TIDE_ANCHOR=TIDE_ANCHOR0;for(const k in wxCache)delete wxCache[k];live='loading';
-  const hs=$('#hArea');if(hs)hs.textContent=area.name+' · نسخة تجريبية';render();loadLive();syncNotif()}
+  const hs=$('#hArea');if(hs)hs.textContent=area.name+' · نسخة تجريبية';const tf=loadTideFit();render();loadLive();syncNotif();tf.then(tideDraw)}
+/* بعد ما نمط المد يتحمّل من النت: نعيد الرسم عشان نسب الأيام البعيدة تتحسب بيه */
+function tideDraw(ok){if(ok===true&&!busyUI()){const be=$('#bars');if(be)barScroll=be.scrollLeft;render()}}
 const areaPick=()=>`<div class="filter" style="padding:10px 18px 8px"><label for="areaSel">جو منطقة<select id="areaSel">${AREAS.map(a=>`<option value="${a.id}" ${a===area?'selected':''}>${a.name}</option>`).join('')}</select></label></div>`;
 /* النسخة المنشورة على claude.ai ممنوع فيها الاتصال بالنت، فبيتحط معاها جو محفوظ وقت النشر في window.FB_SNAPSHOT */
 function useSnap(){const s=window.FB_SNAPSHOT,x=s&&s.areas&&s.areas[area.id];if(!x||!x.wj||!x.wj.hourly)return false;applyLive(x.wj,x.mj);live='snap';liveAt=s.at;return true}
@@ -735,7 +792,7 @@ function moonCard(d){
   const m=moonInfo(d);
   const sd=score(d),hd=hijri(d).day;
   return `<div class="card moon"><h2>القمر</h2>
-  <div class="sum" style="margin:10px 0 12px">${moonIcon(m.frac,m.wax,64)}<div><strong style="font-size:16px">${m.name}</strong><div class="muted">إضاءة القمر ${Math.round(m.frac*100)}% · ${hText(d)}</div><div style="margin-top:4px"><span class="chip">${MOON_KIND[m.kind]}</span> <span class="chip">${isFasad(hd)?'فساد':'حمل'}${isTurn(hd)?' · يوم تحول':''}</span> <span class="pill ${sd.prelim?'':sClass(sd.val)}"${sd.prelim?' style="border:1.5px dashed var(--ink)"':''}>${sd.val}%${sd.prelim?' مبدئي':''}</span></div></div></div>
+  <div class="sum" style="margin:10px 0 12px">${moonIcon(m.frac,m.wax,64)}<div><strong style="font-size:16px">${m.name}</strong><div class="muted">إضاءة القمر ${Math.round(m.frac*100)}% · ${hText(d)}</div><div style="margin-top:4px"><span class="chip">${MOON_KIND[m.kind]}</span> <span class="chip">${isFasad(hd)?'فساد':'حمل'}${isTurn(hd)?' · يوم تحول':''}</span> <span class="pill ${sd.prelim?'':sClass(sd.val)}"${sd.prelim?' style="border:1.5px dashed var(--ink)"':''}>${sd.val}%${sd.prelim?' من التيار':''}</span></div></div></div>
   <div class="trow"><span>بيطلع <b>${m.rise?tm(m.rise):'مفيش طلوع في اليوم ده'}</b></span><span>بيغيب <b>${m.set?tm(m.set):'—'}</b>${m.setNext?' <span class="muted">تاني يوم</span>':''}</span></div>
   <div class="trow"><span>مدة ظهوره <b>${m.up?hm(m.up):'—'}</b></span><span>منها بالليل <b>${hm(m.nightMoon)}</b> <span class="muted">من ${hm(m.night)}</span></span></div>
   <div class="muted" style="border-top:1px solid var(--line);padding-top:8px;margin-top:10px">الأوقات محسوبة فلكيًا لمنطقة ${area.name}، وممكن تفرق دقايق عن الواقع. الليلة بتتحسب من غروب شمس اليوم لشروق اللي بعده.</div></div>`;
@@ -1243,7 +1300,7 @@ const pendingTrip=(()=>{try{const v=Number(new URLSearchParams(location.search).
 function shareTrip(id){
   const t=trips.find(x=>x.id===id);if(!t)return;
   const sc=tripScore(t),fas=isFasad(hijri(fromIso(t.date)).day),link=srvOn()?APP_URL+'?trip='+t.id+'#trips':APP_URL;
-  const txt=`🎣 رحلة صيد على ${t.boat}\n${tripRange(t)} · ${dWord(t.n)}\nمؤشر الصيد ${sc.val}%${sc.prelim?' (مبدئي)':''} · ${fas?'فساد':'حمل'}\n${t.price} جنيه للفرد${t.left>0?' · فاضي '+t.left+(t.left>1?' أماكن':' مكان'):' · الرحلة كاملة'}\nاحجز من فيش بوك: ${link}`;
+  const txt=`🎣 رحلة صيد على ${t.boat}\n${tripRange(t)} · ${dWord(t.n)}\nمؤشر الصيد ${sc.val}%${sc.prelim?' (من التيار بس، لسه من غير جو)':''} ·${fas?'فساد':'حمل'}\n${t.price} جنيه للفرد${t.left>0?' · فاضي '+t.left+(t.left>1?' أماكن':' مكان'):' · الرحلة كاملة'}\nاحجز من فيش بوك: ${link}`;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank','noopener');
 }
 /* لينك رحلة متشارك: يفتح الرحلات ويعلّم على الرحلة دي */
@@ -1259,7 +1316,7 @@ function openSharedTrip(){
 function tripCard(t){
   /* الحجز بيتقفل أول ما يوم الرحلة يبدأ (نفس قاعدة book_trip في supabase/011_booking_cutoff.sql) */
   const sc=tripScore(t),h=hijri(fromIso(t.date)),shut=t.date<=iso(today);
-  return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="مؤشر الصيد">${sc.val}%${sc.prelim?' مبدئي':''}</span></div>
+  return `<div class="trip${hlTrip===t.id?' hl':''}" data-trip="${t.id}"><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${tripRange(t)}</div></div><span class="pill ${sClass(sc.val)}" title="${sc.prelim?'النسبة من التيار بس، لسه مفيش توقعات جو':'مؤشر الصيد'}">${sc.val}%${sc.prelim?' تيار':''}</span></div>
     <div><span class="chip">${dWord(t.n)}</span> <span class="chip">${isFasad(h.day)?'تبدأ في الفساد':'تبدأ في الحمل'}</span> <span class="chip">${t.by==='owner'?'من صاحب المركب':'من منظم رحلات'}</span></div>
     <div class="rates">${(bb=>bb&&(boatPics(bb).length||specLine(bb))?`<button class="rate" data-act="boatinfo" data-id="${bb.id}">${bb.specs.cls==='vip'?'VIP · ':''}صور ومواصفات المركب</button>`:'')(boats.find(x=>x.id===t.boatId))}${rateBadge('b:'+t.boat,'المركب')}${t.org?rateBadge('o:'+t.org,esc(t.org)):''}<button class="rate wa" data-act="share" data-id="${t.id}" aria-label="شارك الرحلة على واتساب">${WA_ICON}شارك على واتساب</button></div>
     ${mode==='boat'?`<div class="bot"><div><div class="price">${t.full} جنيه <span class="muted" style="font-weight:400">للمركب كاملة</span></div><div class="muted">تشيل لحد ${t.total} فرد</div></div>
@@ -1273,15 +1330,15 @@ function durFilter(){
   <div class="filter"><label for="durSel">مدة الرحلة<select id="durSel"><option value="">أي مدة</option>${ns.map(n=>`<option value="${n}" ${String(n)===dur?'selected':''}>${dWord(n)}</option>`).join('')}</select></label></div>`;
 }
 function home(){
-  const d=fromIso(sel),w=weather(d),h=hijri(d),s=score(d),fas=isFasad(h.day),tideChips=`<span class="chip">${fas?'فساد · تيار ضعيف':'حمل · تيار قوي'}</span>${isTurn(h.day)?' <span class="chip">يوم تحول</span>':''}`;
+  const d=fromIso(sel),w=weather(d),h=hijri(d),s=score(d),fas=isFasad(h.day),tideChips=`<span class="chip">${fas?'فساد':'حمل'}</span> <span class="chip">${curText(s.cur)}</span>${isTurn(h.day)?' <span class="chip">يوم تحول</span>':''}`;
   const vd=viewDays(),nd=fdays.slice(0,NEAR_DAYS),fv=nd.map(x=>score(x).val),mx=Math.max.apply(null,fv),bestDay=nd[fv.indexOf(mx)];
   const bars=vd.map((x,i)=>{const sc=score(x),v=sc.val,k=iso(x),hx=hijri(x),far=!sc.prelim&&isFarFc(x),mi=moonInfo(x),fs=isFasad(hx.day),ww=sc.prelim?null:weather(x).wind,aw=ww?Math.round((ww[1]+ww[2]+ww[3]+ww[4]+ww[5])/5):0;
-    return `<button class="bar" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${gDate(x)} · ${sc.prelim?"تقييم مبدئي":"مؤشر"} ${v}%${sc.prelim?"":" · رياح "+aw+" عقدة"} · ${fs?"فساد":"حمل"}${isTurn(hx.day)?" · يوم تحول":""}${far?" · "+FAR_NOTE:""}${sc.conf&&sc.conf.bad?" · التوقعات مختلفة، رياح من "+sc.conf.lo+" لـ"+sc.conf.hi:""} · ${mi.name} · ${MOON_KIND[mi.kind]}" aria-label="${gDate(x)}، ${sc.prelim?"تقييم مبدئي":"مؤشر"} ${v}%${sc.prelim?"":"، رياح "+aw+" عقدة"}، ${fs?"فساد":"حمل"}، ${MOON_KIND[mi.kind]}${far?"، "+FAR_NOTE:""}"><span class="mn m${mi.kind}">${moonIcon(mi.frac,mi.wax,18)}</span><span class="bt">${(!sc.prelim&&!far&&v===mx)?'<span class="best">الأفضل</span>':''}<span class="bn">${sc.conf&&sc.conf.bad?'<i class="ud"></i>':''}${v}%</span><span class="bf ${sc.prelim?"pre":"wn"}" style="height:${Math.round(v*0.9)}px${sc.prelim?"":";background:"+(far?"repeating-linear-gradient(135deg,rgba(255,255,255,.75) 0 3px,transparent 3px 7px),":"")+"linear-gradient(to top,#fff,"+windColor(aw)+" 75%);box-shadow:inset 0 0 0 1.5px "+windBar(aw)}">${sc.prelim?fishMarks(fishN(x),16):''}</span></span><span class="wd">${WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="hf ${fs?'fas':'hml'}">${fs?'فساد':'حمل'}</span><span class="mo">${(i===0||x.getDate()===1)?GM[x.getMonth()]:''}</span></button>`}).join('')
+    return `<button class="bar" data-act="day" data-d="${k}" aria-pressed="${k===sel}" title="${gDate(x)} · ${sc.prelim?"من التيار بس، من غير جو":"مؤشر"} ${v}% · ${curText(sc.cur)}${sc.prelim?"":" · رياح "+aw+" عقدة"} · ${fs?"فساد":"حمل"}${isTurn(hx.day)?" · يوم تحول":""}${far?" · "+FAR_NOTE:""}${sc.conf&&sc.conf.bad?" · التوقعات مختلفة، رياح من "+sc.conf.lo+" لـ"+sc.conf.hi:""} · ${mi.name} · ${MOON_KIND[mi.kind]}" aria-label="${gDate(x)}، ${sc.prelim?"النسبة من التيار بس من غير جو":"مؤشر"} ${v}%، ${curText(sc.cur)}${sc.prelim?"":"، رياح "+aw+" عقدة"}، ${fs?"فساد":"حمل"}، ${MOON_KIND[mi.kind]}${far?"، "+FAR_NOTE:""}"><span class="mn m${mi.kind}">${moonIcon(mi.frac,mi.wax,18)}</span><span class="bt">${(!sc.prelim&&!far&&v===mx)?'<span class="best">الأفضل</span>':''}<span class="bn">${sc.conf&&sc.conf.bad?'<i class="ud"></i>':''}${v}%</span><span class="bf ${sc.prelim?"pre":"wn"}" style="height:${Math.round(v*0.9)}px${sc.prelim?"":";background:"+(far?"repeating-linear-gradient(135deg,rgba(255,255,255,.75) 0 3px,transparent 3px 7px),":"")+"linear-gradient(to top,#fff,"+windColor(aw)+" 75%);box-shadow:inset 0 0 0 1.5px "+windBar(aw)}">${sc.prelim?'<span class="bw">تيار</span>':''}</span></span><span class="wd">${WDS[x.getDay()]}</span><b>${x.getDate()}</b><span class="hf ${fs?'fas':'hml'}">${fs?'فساد':'حمل'}</span><span class="mo">${(i===0||x.getDate()===1)?GM[x.getMonth()]:''}</span></button>`}).join('')
     +'<button class="bar more" data-act="more">شهر كمان</button>';
   const chart=`<div class="card chart"><h2>أفضل أيام الصيد</h2>
     <div class="muted">أحسن يوم في الـ${NEAR_DAYS} أيام الجاية ${gDate(bestDay)}. اسحب لقدام تشوف الشهور الجاية، واضغط على أي يوم.</div>
     <div class="bars" id="bars">${bars}</div>
-    <div class="legend"><span style="flex-basis:100%">الرقم فوق العمود مؤشر الصيد، ولون العمود سرعة الرياح في النهار:</span><span><i style="background:${windColor(6)};border-color:#9CC3DE"></i>هادية لحد 9 عقدة</span><span><i style="background:${windColor(12)};border-color:#7CC9AE"></i>10 لـ 13</span><span><i style="background:${windColor(15)};border-color:#D9C25A"></i>14 لـ 16</span><span><i style="background:${windColor(19)};border-color:#E39F52"></i>17 لـ 20</span><span><i style="background:${windColor(25)};border-color:#DB7F6C"></i>أكتر من 20 شديدة</span><span><i class="udl"></i>نماذج الجو مختلفة على اليوم ده</span><span><i class="farf"></i>توقع بعيد (بعد ${NEAR_DAYS} أيام)، ممكن يتغير</span><span><i class="pre"></i>مبدئي من الهجري، من غير جو</span>${fishLegend()}<span style="flex-basis:100%">فوق كل يوم شكل القمر، والخط اللي تحته:</span><span><i class="mlit"></i>ليلة مقمرة</span><span><i class="mdark"></i>ليلة ضلمة</span><span>من غير خط: قمر جزء من الليل</span></div>${liveNote()}</div>`;
+    <div class="legend"><span style="flex-basis:100%">الرقم فوق العمود مؤشر الصيد، ولون العمود سرعة الرياح في النهار:</span><span><i style="background:${windColor(6)};border-color:#9CC3DE"></i>هادية لحد 9 عقدة</span><span><i style="background:${windColor(12)};border-color:#7CC9AE"></i>10 لـ 13</span><span><i style="background:${windColor(15)};border-color:#D9C25A"></i>14 لـ 16</span><span><i style="background:${windColor(19)};border-color:#E39F52"></i>17 لـ 20</span><span><i style="background:${windColor(25)};border-color:#DB7F6C"></i>أكتر من 20 شديدة</span><span><i class="udl"></i>نماذج الجو مختلفة على اليوم ده</span><span><i class="farf"></i>توقع بعيد (بعد ${NEAR_DAYS} أيام)، ممكن يتغير</span><span><i class="pre"></i>عمود أبيض: لسه مفيش توقعات جو لليوم ده، فالنسبة محسوبة من التيار بس (المد والجزر والحمل والفساد)</span><span style="flex-basis:100%">فوق كل يوم شكل القمر، والخط اللي تحته:</span><span><i class="mlit"></i>ليلة مقمرة</span><span><i class="mdark"></i>ليلة ضلمة</span><span>من غير خط: قمر جزء من الليل</span></div>${liveNote()}</div>`;
   /* طول الشريط: 40 عقدة = عرض الصف كله */
   const wp=x=>Math.min(100,Math.round(x/40*100));
   const rows=SLOTS.map((t,i)=>{const wv=w.wind[i],g=w.gust?w.gust[i]:null,c=windBar(wv),a=wp(wv),b=wp(g===null?wv:g);
@@ -1304,11 +1361,10 @@ function home(){
       +(near.length?'<span class="muted" style="font-weight:700">أقرب اختيارات متاحة</span>'+near.map(tripCard).join(''):'');
   }
   return `${morning()}${chart}
-  ${s.prelim?`<div class="card sum"><div class="big pre"><b>${s.val}%</b><span>مبدئي</span></div>
+  ${s.prelim?`<div class="card sum"><div class="big pre"><b>${s.val}%</b><span>من التيار</span></div>
     <div><h2>${gDate(d)} ${d.getFullYear()}</h2><div class="muted">${hText(d)}</div>
     <div style="margin-top:6px">${tideChips}</div>
-    <div style="margin-top:6px;display:flex;align-items:center;gap:6px">${fishMarks(fishN(d),20)}<span class="muted">حالة التيار</span></div>
-    <div class="muted" style="margin-top:6px">التقييم ده من التاريخ الهجري بس. توقعات الجو بتظهر قبل اليوم بـ${FORECAST_DAYS} يوم، ووقتها المؤشر بيتحدث. تقدر تحجز من دلوقتي.</div>${fishLine(d)}</div></div>
+    <div class="muted" style="margin-top:6px"><b>النسبة دي محسوبة من التيار بس</b> (المد والجزر والحمل والفساد)، والجو مش داخل فيها. توقعات الجو بتظهر قبل اليوم بـ${FORECAST_DAYS} يوم، ووقتها النسبة بتتحسب بالجو كمان. تقدر تحجز من دلوقتي.</div>${fishLine(d)}</div></div>
   ${strip}<div class="card tbl" style="margin-top:8px">${areaPick()}</div>`:
   `<div class="card sum hasbrk"><div class="big ${sClass(s.val)}" style="--p:${s.val}"><b>${s.val}%</b><span>مؤشر الصيد</span></div>
     <div><h2>${sWord(s.val)}</h2><div class="muted">${gDate(d)} · ${hText(d)}</div>
@@ -1339,9 +1395,9 @@ function ask(q){
       if(f){if(!run)run={a:d,b:d};else run.b=d}else if(run){out.push(run);run=null}}
     if(run)out.push(run);
     answer='<h2>أيام الفساد الجاية، المناسبة لرحلات المراكب</h2>'+out.map(r=>`<div class="trip"><strong>من ${gDate(r.a)} لحد ${gDate(r.b)}</strong><span class="muted">${hijri(r.a).day} ${HM[hijri(r.a).month]} لحد ${hijri(r.b).day} ${HM[hijri(r.b).month]}</span></div>`).join('')+
-    '<p class="muted">ده تقييم مبدئي من التاريخ الهجري بس. توقعات الجو بتبان قبل اليوم بـ'+FORECAST_DAYS+' يوم، ووقتها المؤشر بيتحدث.</p>';}
+    '<p class="muted">دي أيام الفساد بالتاريخ الهجري. نسبة كل يوم على الرسم محسوبة من التيار بس، والجو مش داخل فيها. توقعات الجو بتبان قبل اليوم بـ'+FORECAST_DAYS+' يوم، ووقتها المؤشر بيتحدث.</p>';}
   else if(q==='today'){const h=hijri(today),f=isFasad(h.day),s=score(today).val;
-    answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${f?'التيار ضعيف، ومناسب للصيد من المركب.':'التيار قوي، والصيد من الشاطئ أنسب.'}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
+    answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${(c=>c.lvl?(c.lvl==='هادي'?'التيار هادي، ومناسب للصيد من المركب':c.lvl==='متوسط'?'التيار متوسط':'التيار حامي، والصيد من الشاطئ أنسب')+' (فرق المد '+Math.round(c.tr.m*100)+' سم).':(f?'التيار ضعيف غالبًا، ومناسب للصيد من المركب.':'التيار قوي غالبًا، والصيد من الشاطئ أنسب.'))(curInfo(today))}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
   else{const good=trips.filter(t=>t.left>0&&t.date>=iso(today)&&tripScore(t).val>=70).sort(byDate);
     answer='<h2>رحلات مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
   render();
@@ -2636,8 +2692,10 @@ let h0=(location.hash||'').slice(1);if(h0==='log'){h0='manage';mtab='log'}if(['h
 try{const c=JSON.parse(localStorage.getItem('fishbook-live')||'null');if(c&&c.area===area.id&&c.wj&&c.wj.hourly&&Date.now()-c.at<6*3600e3){applyLive(c.wj,c.mj);live='cache';liveAt=c.at}}catch(e){}
 if(live!=='cache')useSnap();
 $('#hArea').textContent=area.name+' · نسخة تجريبية';
+const tideBoot=loadTideFit(); /* لو النمط محفوظ بيتحط قبل أول رسم */
 render();
 loadLive();
+tideBoot.then(tideDraw);
 /* تحديث الجو لوحده: كل ساعة والتطبيق مفتوح قدامك، وأول ما ترجعله من الخلفية لو عدّى ساعة على آخر تحديث.
    ولو اليوم اتغيّر والتطبيق لسه مفتوح، الصفحة بتتحمّل من جديد عشان "النهارده" يبقى صح. */
 const LIVE_EVERY=3600e3;let liveBusy=false;
