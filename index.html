@@ -804,13 +804,49 @@ function moonCard(d){
 }
 
 /* ---------- مواسم السمك ---------- */
+/* النسخة دي جوه التطبيق، والجدول fish_seasons في قاعدة البيانات (supabase/012_fish_seasons.sql) بيغلبها لما يتحمّل.
+   m: شهور الموسم، pk: أحسن شهور، from/to: [شهر، يوم] أول وآخر يوم في الموسم. المصادر في docs/fish-seasons.md */
 const SPECIES=[
-  {name:'مرجان',m:[11,12,1,2],pk:[1,2],note:'أحسن شهرين يناير وفبراير.'},
-  {name:'شعور',m:[5,6,7,8],pk:[],from:[5,15],to:[8,15],note:'الموسم بيبدأ من نص مايو لحوالي 3 شهور (فرشة الشعور)، والصيد أحسن بعد الغروب.'},
-  {name:'ناجل',m:[6,7],pk:[],note:'منتشر بكثرة في يونيو ويوليو.'},
-  {name:'توين',m:[],pk:[],note:''},{name:'كشر',m:[],pk:[],note:''},{name:'بهار',m:[],pk:[],note:''},{name:'بياض',m:[],pk:[],note:''},{name:'عنبرة',m:[],pk:[],note:''}];
+  {name:'مرجان',m:[11,12,1,2],pk:[1,2],note:'سمك الشتاء. أحسن شهرين يناير وفبراير.'},
+  {name:'شعور',m:[5,6,7,8],pk:[],from:[5,15],to:[8,15],note:'فرشة الشعور: من نص مايو لحوالي 3 شهور. أحسن صيد بعد الغروب في الليالي القمرية (13 لـ 22 هجري).'},
+  {name:'ناجل',m:[5,6,7,8,9,10],pk:[6,7],note:'من الأعماق. أحسن شهرين يونيو ويوليو، وبيقل جدًا في الشتاء.'},
+  {name:'كشر',m:[9,10,11,12,1,2],pk:[12,1],note:'موجود طول السنة، وأحسن صيده في الشتاء بالجيجينج العميق.'},
+  {name:'بهار',m:[11,12,1,2,7,8],pk:[],note:'مصادره قليلة، محتاج تأكيد من الصيادين.'},
+  {name:'بياض',m:[1,2,3,4,5,6,7,8,9,10,11,12],pk:[7,12,1],note:'موجود طول السنة. الجرم الكبير أنشط في مارس وأبريل وسبتمبر وأكتوبر.'},
+  {name:'عنبرة',m:[1,2,4,5,6,7,8,9,10,11,12],pk:[11,12,1,2],note:'كل الشهور ما عدا مارس، وأحسنها الشتاء.'},
+  {name:'توين',m:[1,2,4,5,6,7,10],pk:[4,5,6],note:'التونة. أحسن وقت من أبريل لحد يونيو.'},
+  {name:'دراك',m:[10,11,12,1,2,3,4],pk:[1,2],note:'أحسن شهرين يناير وفبراير.'},
+  {name:'بركودة',m:[7,8,9,10,12,1],pk:[9,10],note:'أحسن شهرين سبتمبر وأكتوبر.'},
+  {name:'أبو شراع',m:[5,6,7,8,9],pk:[7],note:'أحسن شهر يوليو.'},
+  {name:'بلاميطة',m:[6,7,8,11,12,1,2],pk:[],note:''},
+  {name:'خرمي',m:[7,8],pk:[],note:'بيطلع مع موسم الشعور.'}];
+let BREED=[4,5,6]; /* شهور موسم التكاثر */
+const okMonths=a=>Array.isArray(a)?a.map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=12):[];
+const okDay=(m,d)=>Number.isInteger(m)&&Number.isInteger(d)&&m>=1&&m<=12&&d>=1&&d<=31?[m,d]:undefined;
+function applySeasons(rows){
+  if(!Array.isArray(rows))return false;
+  const fish=rows.filter(r=>r&&r.kind!=='breed'&&typeof r.name==='string'&&r.name.trim()).sort((a,b)=>(a.sort||0)-(b.sort||0))
+    .map(r=>({name:r.name.trim().slice(0,30),m:okMonths(r.months),pk:okMonths(r.peak),from:okDay(r.from_month,r.from_day),to:okDay(r.to_month,r.to_day),note:typeof r.note==='string'?r.note:''}));
+  if(!fish.length)return false;
+  SPECIES.splice(0,SPECIES.length,...fish);
+  const br=rows.find(r=>r&&r.kind==='breed');BREED=br?okMonths(br.months):[];
+  return true;
+}
+try{applySeasons(JSON.parse(localStorage.getItem('fishbook-seasons')||'null'))}catch(e){}
+/* بنقرا المواسم من السيرفر. لو الجدول لسه متعملش أو مفيش نت، بنفضل على اللي عندنا */
+async function loadSeasons(){
+  try{const rows=await sbFetch('/rest/v1/fish_seasons?select=*&order=sort',{noAuth:true});
+    if(!applySeasons(rows))return;
+    try{localStorage.setItem('fishbook-seasons',JSON.stringify(rows))}catch(e){}
+    if(!busyUI())render()}catch(e){}
+}
 const inSeasonOn=d=>{const m=d.getMonth()+1,dd=d.getDate();return SPECIES.filter(f=>f.m.includes(m)&&!(f.from&&m===f.from[0]&&dd<f.from[1])&&!(f.to&&m===f.to[0]&&dd>f.to[1]))};
-const fishLine=d=>{const a=inSeasonOn(d),m=d.getMonth()+1;return `<div style="margin-top:8px"><span class="muted" style="font-weight:700">سمك الموسم في اليوم ده: </span>${a.length?a.map(f=>'<span class="chip">'+f.name+'</span>').join(' '):'<span class="muted">مفيش نوع مسجل</span>'}${(m===3||m===4)?' <span class="chip">موسم تكاثر</span>':''}</div>`};
+/* أحسن شهر للنوع الأول، وبعدين الباقي */
+const seasonSorted=d=>{const m=d.getMonth()+1,a=inSeasonOn(d);return a.filter(f=>f.pk.includes(m)).concat(a.filter(f=>!f.pk.includes(m)))};
+const isPeak=(f,d)=>f.pk.includes(d.getMonth()+1);
+const fishLine=d=>{const a=seasonSorted(d),m=d.getMonth()+1;return `<div style="margin-top:8px"><span class="muted" style="font-weight:700">سمك الموسم في اليوم ده: </span>${a.length?a.map(f=>'<span class="chip"'+(f.note?' title="'+esc(f.note)+'"':'')+'>'+(isPeak(f,d)?'★ ':'')+esc(f.name)+'</span>').join(' '):'<span class="muted">مفيش نوع مسجل</span>'}${BREED.includes(m)?' <span class="chip">موسم تكاثر</span>':''}${a.some(f=>isPeak(f,d))?'<div class="muted" style="margin-top:4px">★ أحسن شهر للنوع ده</div>':''}</div>`};
+/* للسطر القصير في إشعار الصبح: أحسن الأنواع الأول، و3 بس */
+const seasonShort=d=>{const a=seasonSorted(d);if(!a.length)return '';const n=a.slice(0,3).map(f=>f.name);return n.join(' و')+(a.length>3?' و'+(a.length-3)+' تانيين':'')};
 /* ---------- سجل الصيد ---------- */
 let logs=[];try{const x=JSON.parse(localStorage.getItem('fishbook-log')||'[]');if(Array.isArray(x))logs=x.filter(e=>e&&typeof e.date==='string').slice(0,200)}catch(e){}
 let logSrv=false; /* true: الصيدات متحملة من حساب المستخدم على السيرفر، ومبتتحفظش على الجهاز */
@@ -836,7 +872,7 @@ async function identify(file){
     if(!ok){say('التعرف التلقائي مش متاح في العرض ده. اختار النوع بنفسك.');return}
     say('بتعرّف على السمكة من الصورة...');
     const blob=await shrink(file);
-    const res=await sm('This photo comes from a fishing logbook app used around Hurghada on the Egyptian Red Sea. Identify the fish in it. Reply with JSON only, no other text: {"local":"<Egyptian Arabic common name>","english":"<English common name>","sure":true|false}. For "local" prefer one of these names when it fits (rough guide): مرجان (sea bream / porgy type), شعور (emperor, Lethrinus), ناجل (coral trout, Plectropomus), كشر (grouper, Epinephelus), بهار (bohar snapper, Lutjanus bohar), توين (small tuna), بياض (trevally / jack, Caranx), عنبرة (amberjack, Seriola); otherwise give another Egyptian Arabic name. Set "sure" to false unless the species is clear. If no fish is visible reply {"local":"","english":"","sure":false}.',{images:[blob],modelTier:'quick',cache:false});
+    const res=await sm('This photo comes from a fishing logbook app used around Hurghada on the Egyptian Red Sea. Identify the fish in it. Reply with JSON only, no other text: {"local":"<Egyptian Arabic common name>","english":"<English common name>","sure":true|false}. For "local" prefer one of these names when it fits (rough guide): مرجان (sea bream / porgy type), شعور (emperor, Lethrinus), ناجل (coral trout, Plectropomus), كشر (grouper, Epinephelus), بهار (bohar snapper, Lutjanus bohar), توين (small tuna), بياض (trevally / jack, Caranx), عنبرة (amberjack, Seriola), دراك (narrow-barred Spanish mackerel / kingfish, Scomberomorus), بركودة (barracuda, Sphyraena), أبو شراع (sailfish, Istiophorus), بلاميطة (bonito); otherwise give another Egyptian Arabic name. Set "sure" to false unless the species is clear. If no fish is visible reply {"local":"","english":"","sure":false}.',{images:[blob],modelTier:'quick',cache:false});
     let o=null;try{const m=String(res&&res.text||'').match(/\{[\s\S]*\}/);if(m)o=JSON.parse(m[0])}catch(e){}
     const local=o&&typeof o.local==='string'?o.local.trim().slice(0,30):'',en=o&&typeof o.english==='string'?o.english.trim().slice(0,40):'';
     if(!local){say('مش باين سمكة واضحة في الصورة. اختار النوع بنفسك.');return}
@@ -932,10 +968,10 @@ let notifOn=false,notifMsg='';
 function nextSlack(){const now=Date.now(),e=tideEvents(now-SLACK_LAG,now-SLACK_LAG+864e5).ev[0];return e?e.t+SLACK_LAG:0}
 function morning(){
   const s=score(today),fas=isFasad(hijri(today).day),nx=nextSlack();
-  const n=trips.filter(t=>t.date===iso(today)&&t.left>0).length,sp=inSeasonOn(today).map(f=>f.name);
+  const n=trips.filter(t=>t.date===iso(today)&&t.left>0).length,sp=seasonShort(today);
   return `<div class="card notif"><div class="top"><span class="chip">إشعار الصبح</span><button class="btn ghost sm" data-act="notif" aria-pressed="${notifOn}">${notifOn?'الإشعار شغال':'فعّل الإشعار'}</button></div>
   <strong style="font-size:16px">النهارده ${s.val}% ·${fas?'فساد':'حمل'}</strong>
-  <span class="muted">${nx?'التوقيفة الجاية '+tm(nx)+' · ':''}أهدى رياح ${SLOTS[s.best]}${sp.length?' · موسم '+sp.join(' و'):''}${n?' · '+n+' رحلة فيها أماكن':''}</span>
+  <span class="muted">${nx?'التوقيفة الجاية '+tm(nx)+' · ':''}أهدى رياح ${SLOTS[s.best]}${sp?' · موسم '+sp:''}${n?' · '+n+' رحلة فيها أماكن':''}</span>
   ${notifMsg?'<span class="muted">'+esc(notifMsg)+'</span>':notifOn?(srvOn()?'<span class="muted">هيوصلك على الجهاز ده إشعار كل يوم الصبح، وإشعار لما حد يحجز عندك أو رحلتك تتلغي.</span>':'<span class="muted">في التطبيق الحقيقي الرسالة دي هتوصلك على الموبايل كل يوم الصبح. النسخة التجريبية مبتبعتش إشعارات.</span>'):''}
   <div class="rates"><button class="rate" data-act="nav" data-v="log">سجّل صيدة</button></div></div>`;
 }
@@ -2724,6 +2760,7 @@ async function refreshLive(){
 setInterval(refreshLive,5*60e3);
 document.addEventListener('visibilitychange',refreshLive);
 if(recov)startRecovery();else loadSrv();
+loadSeasons();
 loadExtAuth();
 // التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
