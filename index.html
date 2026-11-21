@@ -637,9 +637,12 @@ const sClass=v=>v>=80?'s-good':v>=70?'s-ok':v>=50?'s-mid':'s-bad';
 const sWord=v=>v>=80?'يوم ممتاز للصيد':v>=70?'يوم كويس للصيد':v>=50?'يوم متوسط':'يوم ضعيف';
 /* تفاصيل النسبة: كل عامل خد كام من كام */
 const breakdown=s=>`<div class="brk">${s.parts.map(p=>`<div class="bk"><span>${p.name}</span><span class="bkb"><i class="${sClass(p.pts/p.max*100)}" style="width:${Math.round(p.pts/p.max*100)}%"></i></span><b>${Math.round(p.pts)} من ${p.max}</b><span class="muted">${p.note}</span></div>`).join('')}</div>`;
-const windColor=w=>w<=6?'#CFE6F7':w<=9?'#BDE0F5':w<=13?'#A9E3CF':w<=16?'#F3E08A':w<=20?'#F9C07A':'#F2A08F';
-/* نفس درجات windColor بس أغمق، لشريط الرياح وإطار الأعمدة */
-const windBar=w=>w<=6?'#8FC4EA':w<=9?'#62B2E6':w<=13?'#45C29C':w<=16?'#E2BE35':w<=20?'#F0993D':'#E2654F';
+/* تدرج ألوان الرياح بالعقدة زي ويندي: لبني فاتح ← أزرق ← أخضر ← أصفر ← برتقاني ← أحمر (أعلى حاجة) */
+const WSTOPS=[[0,[170,222,246]],[5,[110,186,238]],[9,[66,145,222]],[12,[58,186,160]],[15,[86,196,88]],[18,[160,206,60]],[21,[236,200,50]],[24,[242,146,42]],[28,[226,72,50]],[33,[190,40,60]]];
+const windRGB=w=>{w=Math.max(0,+w||0);for(let i=1;i<WSTOPS.length;i++){const[a,ca]=WSTOPS[i-1],[b,cb]=WSTOPS[i];if(w<=b){const t=(w-a)/(b-a);return ca.map((v,j)=>Math.round(v+(cb[j]-v)*t))}}return WSTOPS[WSTOPS.length-1][1]};
+/* windBar: اللون الصريح لشريط الرياح وإطار الأعمدة؛ windColor: نفس اللون أفتح للخلفيات */
+const windBar=w=>`rgb(${windRGB(w).join(',')})`;
+const windColor=w=>`rgb(${windRGB(w).map(v=>Math.round(v+(255-v)*.45)).join(',')})`;
 const tempColor=t=>t<=18?'#BFDDF5':t<=21?'#CDEBD8':t<=23?'#FFDFA6':t<=25?'#FFD08A':t<=28?'#FFBE6B':'#F7A283';
 const dirName=a=>{const n=['ش','ش.ق','ق','ج.ق','ج','ج.غ','غ','ش.غ'];return n[Math.round((((a+180)%360))/45)%8]};
 
@@ -1346,7 +1349,7 @@ function home(){
   const chart=`<div class="card chart"><h2>أفضل أيام الصيد</h2>
     <div class="muted">أحسن يوم في الـ${NEAR_DAYS} أيام الجاية ${gDate(bestDay)}. اسحب لقدام تشوف الشهور الجاية، واضغط على أي يوم.</div>
     <div class="bars" id="bars">${bars}</div>
-    <div class="legend"><span style="flex-basis:100%">الرقم فوق العمود مؤشر الصيد، ولون العمود سرعة الرياح في النهار:</span><span><i style="background:${windColor(6)};border-color:#9CC3DE"></i>هادية لحد 9 عقدة</span><span><i style="background:${windColor(12)};border-color:#7CC9AE"></i>10 لـ 13</span><span><i style="background:${windColor(15)};border-color:#D9C25A"></i>14 لـ 16</span><span><i style="background:${windColor(19)};border-color:#E39F52"></i>17 لـ 20</span><span><i style="background:${windColor(25)};border-color:#DB7F6C"></i>أكتر من 20 شديدة</span><span><i class="udl"></i>نماذج الجو مختلفة على اليوم ده</span><span><i class="farf"></i>توقع بعيد (بعد ${NEAR_DAYS} أيام)، ممكن يتغير</span><span><i class="pre"></i>عمود أبيض: لسه مفيش توقعات جو لليوم ده، فالنسبة محسوبة من التيار بس (المد والجزر والحمل والفساد)</span><span style="flex-basis:100%">فوق كل يوم شكل القمر، والخط اللي تحته:</span><span><i class="mlit"></i>ليلة مقمرة</span><span><i class="mdark"></i>ليلة ضلمة</span><span>من غير خط: قمر جزء من الليل</span></div>${liveNote()}</div>`;
+    <div class="legend"><span style="flex-basis:100%">الرقم فوق العمود مؤشر الصيد، ولون العمود سرعة الرياح في النهار:</span><span><i style="background:${windColor(4)};border-color:${windBar(4)}"></i>هادية لحد 6 عقدة</span><span><i style="background:${windColor(9)};border-color:${windBar(9)}"></i>7 لـ 10</span><span><i style="background:${windColor(14)};border-color:${windBar(14)}"></i>11 لـ 16</span><span><i style="background:${windColor(19)};border-color:${windBar(19)}"></i>17 لـ 21</span><span><i style="background:${windColor(23)};border-color:${windBar(23)}"></i>22 لـ 25</span><span><i style="background:${windColor(28)};border-color:${windBar(28)}"></i>أكتر من 25 شديدة</span><span><i class="udl"></i>نماذج الجو مختلفة على اليوم ده</span><span><i class="farf"></i>توقع بعيد (بعد ${NEAR_DAYS} أيام)، ممكن يتغير</span><span><i class="pre"></i>عمود أبيض: لسه مفيش توقعات جو لليوم ده، فالنسبة محسوبة من التيار بس (المد والجزر والحمل والفساد)</span><span style="flex-basis:100%">فوق كل يوم شكل القمر، والخط اللي تحته:</span><span><i class="mlit"></i>ليلة مقمرة</span><span><i class="mdark"></i>ليلة ضلمة</span><span>من غير خط: قمر جزء من الليل</span></div>${liveNote()}</div>`;
   /* طول الشريط: 40 عقدة = عرض الصف كله */
   const wp=x=>Math.min(100,Math.round(x/40*100));
   const rows=SLOTS.map((t,i)=>{const wv=w.wind[i],g=w.gust?w.gust[i]:null,c=windBar(wv),a=wp(wv),b=wp(g===null?wv:g);
