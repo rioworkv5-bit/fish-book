@@ -85,6 +85,12 @@ h2{font-size:17px;font-weight:800;margin:0;text-wrap:balance}
 .q{display:block;width:100%;text-align:right;min-height:52px;padding:12px 18px;border-radius:16px;border:1px solid var(--line);background:var(--card);font-weight:700}
 .ans{display:flex;flex-direction:column;gap:10px}
 .ans p{margin:0}
+.ybox{display:flex;flex-direction:column;gap:10px}.ylist{display:flex;flex-direction:column;gap:8px}
+.ym{max-width:88%;padding:10px 14px;border-radius:16px;line-height:1.7;white-space:normal;overflow-wrap:anywhere}
+.yu{align-self:flex-start;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+.ya{align-self:flex-end;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+.yrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.yrel{display:flex;flex-wrap:wrap;gap:6px}.ybox .yrel .q.yq{border:1.5px solid var(--brand);color:var(--brand);background:transparent;box-shadow:none}.ylist .yrel{justify-content:flex-end}.yq{display:inline-block;width:auto;min-height:0;padding:8px 14px;font-size:14px;border-radius:999px}
 form{display:flex;flex-direction:column;gap:12px}
 label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
 input,select{min-height:46px;border:1px solid #9FB0BC;border-radius:12px;padding:0 12px;background:#fff;font-size:16px;width:100%}
@@ -473,6 +479,7 @@ select.fchip{padding:0 10px}
 
 <div class="ovl" id="ovl" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="حجز رحلة"></div></div>
 
+<script src="yasser-faq.js"></script>
 <script>
 const WD=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const WDS=['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
@@ -1432,9 +1439,99 @@ function askView(){
   <button class="q" data-act="ask" data-q="month">إيه أحسن أيام الشهر الجاي؟</button>
   <button class="q" data-act="ask" data-q="today">النهارده حمل ولا فساد؟</button>
   <button class="q" data-act="ask" data-q="trips">في رحلات فيها أماكن في أيام كويسة؟</button></div>
-  <div class="sec ans" aria-live="polite">${answer}</div>`;
+  <div class="sec ans" aria-live="polite">${answer}</div>
+  ${yasserBox()}`;
 }
-function ask(q){
+/* ---------- ياسر: إجابات جاهزة من غير ذكاء اصطناعي ----------
+   الأسئلة والأجوبة في yasser-faq.js (window.YASSER_FAQ)، وأي أسئلة زيادة من جدول yasser_faq على السيرفر.
+   السؤال بيتطابق بالكلمات مع أقرب سؤال جاهز. لو مفيش، بيتسجل في yasser_missing عشان نضيف إجابته.
+   المحادثة بتتحفظ على الجهاز بس (sessionStorage). */
+let yChat=[],yDraft='',yExtra=[];
+try{const s=JSON.parse(sessionStorage.getItem('fishbook-yasser')||'null');if(Array.isArray(s))yChat=s.slice(-30)}catch(e){}
+const ySave=()=>{try{sessionStorage.setItem('fishbook-yasser',JSON.stringify(yChat.slice(-30)))}catch(e){}};
+const yText=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+const yFaq=()=>{const base=Array.isArray(window.YASSER_FAQ)?window.YASSER_FAQ:[],ids=new Set(yExtra.map(f=>f.id));return yExtra.concat(base.filter(f=>!ids.has(f.id)))};
+/* تطبيع العربي: من غير تشكيل، أ إ آ = ا، ة = ه، ى = ي، والكلمة من غير "ال" في أولها */
+const yNorm=s=>String(s||'').toLowerCase().replace(/[ً-ْـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/[^؀-ۿa-z0-9%\s]/g,' ').replace(/[؟،؛]/g,' ').replace(/\s+/g,' ').trim();
+const Y_STOP=new Set('ايه ازاي امتى هو هي في من علي عن لو انا انت انتو عايز عاوز ممكن اعمل يعني ده دي دا و ولا او يا ياسر اللي مع بس كده كدا هل ما لي ليه بيه بيها حد كام اي اية الي الى إلى على فيه فيها'.split(' ').map(yNorm));
+const yTok=s=>yNorm(s).split(' ').map(w=>w.length>4&&/^(وال|بال|فال|كال)/.test(w)?w.slice(3):w.length>3&&/^(ال|لل)/.test(w)?w.slice(2):w).filter(w=>w&&!Y_STOP.has(w));
+let yIdx=null,yIdxN=-1;
+function yIndex(){const all=yFaq();if(yIdx&&yIdxN===all.length)return yIdx;
+  const docs=all.map(f=>({f,t:new Set(yTok([f.q].concat(f.alt||[]).join(' '))),kw:(f.kw||[]).map(k=>yTok(k).join(' ')).filter(Boolean)})),df={};
+  docs.forEach(d=>d.t.forEach(w=>df[w]=(df[w]||0)+1));
+  yIdxN=all.length;return yIdx={docs,idf:w=>Math.log(1+all.length/(df[w]||0.5))}}
+/* كلمتين يتطابقوا لو زي بعض، أو واحدة أولها التانية (كشر/كشرة، صياد/صيادين) */
+const ySame=(a,b)=>a===b||(a.length>=3&&b.length>=3&&(a.startsWith(b)||b.startsWith(a)));
+function yMatch(q){
+  const ix=yIndex(),qt=[...new Set(yTok(q))],qn=' '+yTok(q).join(' ')+' ';if(!qt.length)return[];
+  const tot=qt.reduce((s,w)=>s+ix.idf(w),0);
+  return ix.docs.map(d=>{let m=0;qt.forEach(w=>{for(const x of d.t)if(ySame(w,x)){m+=ix.idf(w);break}});
+    /* الكلمة المهمة لازم تبقى كلمة كاملة في السؤال ("طعم" مش جوه "مطعم") */
+    const k=d.kw.filter(x=>qn.includes(' '+x+' ')).length,c=m/tot;return{f:d.f,c,s:c+0.3*Math.min(2,k),ok:c>=0.5||(c>=0.35&&k>0)}}).filter(x=>x.s>0).sort((a,b)=>b.s-a.s);
+}
+/* سؤال عن موسم نوع معين: "موسم الكشر امتى" بيترد من جدول المواسم */
+function ySpeciesSeason(q){
+  const n=yNorm(q);if(!/موسم|امتي|شهر|بيطلع|بتطلع|ميعاد/.test(n))return null;
+  const f=SPECIES.find(s=>n.includes(yNorm(s.name)));if(!f)return null;
+  const M=GM,ms=a=>a.map(m=>M[m-1]).join('، '),now=today.getMonth()+1;
+  let t=`**${f.name}:** `+(f.m.length?ms(f.m):'لسه مش معروف موسمه');
+  if(f.from&&f.to)t+=`\nمن ${f.from[1]} ${M[f.from[0]-1]} لحد ${f.to[1]} ${M[f.to[0]-1]} تقريبًا.`;
+  if(f.pk.length)t+=`\nأحسن شهور: ${ms(f.pk)}.`;
+  if(f.note)t+='\n'+f.note;
+  t+='\n'+(f.m.includes(now)?`ودلوقتي في موسمه${f.pk.includes(now)?'، وده من أحسن شهوره':''}.`:'ودلوقتي مش في موسمه.');
+  return t;
+}
+function yDynamic(f){
+  if(f.do==='season'){const a=seasonSorted(today),m=today.getMonth()+1;
+    return a.length?`السمك اللي في موسمه في ${GM[m-1]}:\n`+a.map(s=>'- **'+s.name+'**'+(s.pk.includes(m)?' (أحسن شهوره)':'')).join('\n')+(BREED.includes(m)?'\nوده موسم التكاثر، فخفف الصيد ورجّع الصغير.':''):'مفيش سمك متسجل في موسمه الشهر ده.'}
+  if(f.do==='tomorrow'){const d=addDays(today,1),sc=score(d),h=hijri(d);
+    let t=`**${gDate(d)}** (${h.day} ${HM[h.month]}، ${isFasad(h.day)?'فساد':'حمل'}): مؤشر الصيد **${sc.val}%**.`;
+    if(!sc.prelim){const w=weather(d),idx=[1,2,3,4,5],av=a=>idx.reduce((s,i)=>s+a[i],0)/idx.length;
+      t+=`\n- رياح حوالي ${Math.round(av(w.wind))} عقدة، وأهدى ساعة ${SLOTS[sc.best]}.\n- موج ${(Math.round(av(w.wave)*10)/10).toFixed(1)} متر.\n- ${curText(sc.cur)}.`;
+      if(!w.real)t+='\n(الجو لسه متحمّلش، والأرقام دي تجريبية.)'}
+    return t+`\nالتفاصيل ساعة بساعة في الرئيسية لما تدوس على يوم بكرة.`}
+  /* الأسئلة الأربعة القديمة: نفس إجابات ask() */
+  const keep=answer,h=ask(f.do,true);answer=keep;return{html:h};
+}
+function yReply(q){
+  const sp=ySpeciesSeason(q);if(sp)return{content:sp};
+  const r=yMatch(q),best=r[0];
+  if(best&&best.ok){const f=best.f,rel=r.slice(1).filter(x=>x.s>=0.35).slice(0,2).map(x=>x.f.id);
+    const a=f.do?yDynamic(f):{content:f.a||''};
+    return typeof a==='string'?{content:a,rel}:Object.assign(a,{rel})}
+  yMissing(q);
+  const nearQ=r.filter(x=>x.c>=0.34).slice(0,3).map(x=>x.f.id);
+  return{content:'لسه معنديش إجابة جاهزة للسؤال ده. سجلته، وهنضيف إجابته قريب إن شاء الله.'+(nearQ.length?'\nيمكن تلاقي اللي عايزه هنا:':''),rel:nearQ};
+}
+/* السؤال اللي ملوش إجابة بيروح للسيرفر عشان الأدمن يشوفه ويضيف إجابته */
+function yMissing(q){if(!srvOn())return;sbFetch('/rest/v1/yasser_missing',{method:'POST',noAuth:!uid(),prefer:'return=minimal',body:{question:q.slice(0,300),user_id:uid()}}).catch(()=>{})}
+async function loadYasserFaq(){
+  try{const rows=await sbFetch('/rest/v1/yasser_faq?select=id,q,alt,kw,a&active=eq.true&order=id',{noAuth:true});
+    if(!Array.isArray(rows))return;
+    yExtra=rows.filter(r=>r&&typeof r.q==='string'&&typeof r.a==='string'&&r.q.trim()&&r.a.trim())
+      .map(r=>({id:'db-'+r.id,q:r.q.trim().slice(0,200),alt:(Array.isArray(r.alt)?r.alt:[]).map(String).slice(0,20),kw:(Array.isArray(r.kw)?r.kw:[]).map(String).slice(0,20),a:r.a.slice(0,3000)}));
+    yIdx=null;
+  }catch(e){}
+}
+const Y_POP=['today','best10','bait_morgan','jigging','season_now','wind_safe','seasick','book'];
+function yasserBox(){
+  const byId=id=>yFaq().find(f=>f.id===id);
+  const chip=f=>f?`<button class="q yq" data-act="yq" data-id="${esc(f.id)}">${esc(f.q)}</button>`:'';
+  const msgs=yChat.map(m=>m.role==='user'?`<div class="ym yu">${esc(m.content)}</div>`
+    :`<div class="ym ya">${m.html||yText(m.content||'')}</div>${(m.rel||[]).length?`<div class="yrel">${m.rel.map(id=>chip(byId(id))).join('')}</div>`:''}`).join('');
+  const intro=yChat.length?'':`<div class="muted">اسأل ياسر في أي حاجة تخص الصيد: الطُعم، العدة، طرق الصيد، المواسم، الأمان، أو التطبيق. أو اختار سؤال:</div><div class="yrel">${Y_POP.map(id=>chip(byId(id))).join('')}</div>`;
+  return `<div class="sec ybox"><h2>اسأل ياسر</h2>${intro}<div class="ylist" aria-live="polite">${msgs}</div>
+  <textarea id="yQ" rows="2" maxlength="300" aria-label="سؤالك لياسر" placeholder="مثلًا: إيه أحسن طُعم للمرجان؟">${esc(yDraft)}</textarea>
+  <div class="yrow"><button class="btn" data-act="ysend">اسأل</button>${yChat.length?'<button class="btn ghost" data-act="yclear">محادثة جديدة</button>':''}</div></div>`;
+}
+function ySend(text){
+  const el=$('#yQ'),q=String(text||(el?el.value:yDraft)).trim().slice(0,300);
+  if(!q)return;
+  yChat.push({role:'user',content:q});yChat.push(Object.assign({role:'assistant'},yReply(q)));
+  if(!text)yDraft='';ySave();render();
+  const ls=document.querySelectorAll('.ylist .yu');if(ls.length)ls[ls.length-1].scrollIntoView({block:'start',behavior:'smooth'});
+}
+function ask(q,noRender){
   if(q==='best10'){const top=fdays.slice(0,NEAR_DAYS).map(d=>({d,s:score(d).val})).sort((a,b)=>b.s-a.s).slice(0,3);
     answer='<h2>أحسن 3 أيام</h2>'+top.map(x=>{const h=hijri(x.d);return `<div class="trip"><div class="top"><div><strong>${gDate(x.d)}</strong><div class="muted">${h.day} ${HM[h.month]} · ${isFasad(h.day)?'فساد':'حمل'}</div></div><span class="pill ${sClass(x.s)}">${x.s}%</span></div><button class="btn ghost" data-act="goto" data-d="${iso(x.d)}">شوف اليوم ورحلاته</button></div>`}).join('');}
   else if(q==='month'){const out=[];let run=null;
@@ -1447,6 +1544,7 @@ function ask(q){
     answer=`<h2>النهارده ${h.day} ${HM[h.month]}: ${f?'فساد':'حمل'}</h2><p>${(c=>c.lvl?(c.lvl==='هادي'?'التيار هادي، ومناسب للصيد من المركب':c.lvl==='متوسط'?'التيار متوسط':'التيار حامي، والصيد من الشاطئ أنسب')+' (فرق المد '+Math.round(c.tr.m*100)+' سم).':(f?'التيار ضعيف غالبًا، ومناسب للصيد من المركب.':'التيار قوي غالبًا، والصيد من الشاطئ أنسب.'))(curInfo(today))}${isTurn(h.day)?' وهو من أيام التحول.':''} مؤشر الصيد <span class="pill ${sClass(s)}">${s}%</span></p>`;}
   else{const good=trips.filter(t=>t.left>0&&t.date>=iso(today)&&t.area===area.id&&tripScore(t).val>=70).sort(byDate);
     answer='<h2>رحلات '+area.name+' اللي مؤشرها 70% أو أكتر</h2>'+(good.length?good.map(tripCard).join(''):'<p>مفيش رحلات فيها أماكن في أيام كويسة دلوقتي.</p>');}
+  if(noRender)return answer;
   render();
 }
 /* ---------- الإدارة: لوحة لكل نوع حساب ----------
@@ -2563,6 +2661,9 @@ document.addEventListener('click',e=>{
   else if(act==='triparea'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(a.dataset.id)}
   else if(act==='mode'){mode=a.dataset.m;render()}
   else if(act==='ask')ask(a.dataset.q);
+  else if(act==='ysend')ySend();
+  else if(act==='yq'){const f=yFaq().find(x=>x.id===a.dataset.id);if(f)ySend(f.q)}
+  else if(act==='yclear'){yChat=[];ySave();render()}
   else if(act==='book')openBook(Number(a.dataset.id));
   else if(act==='close')closeSheet();
   else if(act==='notif')toggleNotif();
@@ -2605,9 +2706,10 @@ document.addEventListener('change',e=>{if(e.target.id==='lImg'){onPhoto(e.target
   if(e.target.id==='areaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;setArea(e.target.value);return}
   if(e.target.id==='tripAreaSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;tripArea=AREAS.some(a=>a.id===e.target.value)?e.target.value:'';render();return}
   if(e.target.id==='durSel'){const be=$('#bars');if(be)barScroll=be.scrollLeft;dur=e.target.value;render()}});
-document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value;
+document.addEventListener('input',e=>{if(e.target.id==='rtNote'&&rt)rt.note=e.target.value;if(e.target.id==='yQ')yDraft=e.target.value;
   if(e.target.id==='admQ'){adm.q=e.target.value;const el=$('#admList');if(el)el.innerHTML=admUsersHtml()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovl').hidden)closeSheet()});
+document.addEventListener('keydown',e=>{if(e.target.id==='yQ'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();ySend()}});
 document.addEventListener('submit',e=>{
   e.preventDefault();
   if(e.target.id==='markForm'){
@@ -2760,7 +2862,7 @@ async function refreshLive(){
 setInterval(refreshLive,5*60e3);
 document.addEventListener('visibilitychange',refreshLive);
 if(recov)startRecovery();else loadSrv();
-loadSeasons();
+loadSeasons();loadYasserFaq();
 loadExtAuth();
 // التثبيت والفتح من غير نت: بيشتغل بس لما الملف يتفتح من سيرفر (http/https)، مش من file://
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
