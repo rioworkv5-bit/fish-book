@@ -461,6 +461,9 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 .bzo{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
 .plv{align-self:stretch;display:flex;flex-direction:column;gap:4px}.plv i{display:flex;justify-content:flex-start;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.plv i b{display:block;height:100%;background:linear-gradient(90deg,#F6CC55,#E0A020);border-radius:99px}
 .pbr{display:flex;align-items:center;gap:8px}.pbr .rk{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}.pbr strong{flex:1}
+/* الصوت */
+.vbtn{display:flex;align-items:center;justify-content:center;gap:8px}.btn.vbtn:not(.ghost):not(.sosb){min-height:56px;font-size:17px}
+.vbox{display:flex;flex-direction:column;gap:8px}.vbox:empty{display:none}.vbox audio,.list audio{width:100%}
 /* شارة ولوحة الشريك المؤسس */
 .pbdg{display:inline-block;font-size:11px;font-weight:800;color:#6B4A00;background:linear-gradient(180deg,#FFE9A8,#F6CC55);border:1px solid #E0B040;border-radius:999px;padding:1px 9px;white-space:nowrap;vertical-align:middle}
 .pth{display:flex;flex-direction:column;gap:8px;align-items:flex-start;border:1.5px solid #E0B040}.pth .tiles{align-self:stretch}
@@ -1981,7 +1984,7 @@ function adSlot(i){if(can('noads'))return '';const a=ADS[i%ADS.length];
 function labsBar(){if(!labs())return '';
   return `<div class="labs"><div class="lbt"><b>وضع التجربة</b><span>ظاهر ليك إنت بس</span></div>
   <div class="seg s4" role="group" aria-label="الباقة التجريبية">${PLAN_ORDER.map(k=>`<button data-act="plantest" data-p="${k}" aria-pressed="${testPlan===k}">${PLANS[k].short||PLANS[k].name}</button>`).join('')}</div>
-  <div class="lbn">${[['plans','الباقات'],['safety','الأمان والدليل'],['biz','إدارة المركب'],['partner','مهام الشريك']].map(x=>`<button data-act="labgo" data-v="${x[0]}" aria-pressed="${view===x[0]||(view==='manage'&&mtab===x[0])}">${x[1]}</button>`).join('')}</div></div>`}
+  <div class="lbn">${[['plans','الباقات'],['safety','الأمان والدليل'],['biz','إدارة المركب'],['partner','مهام الشريك']].map(x=>`<button data-act="labgo" data-v="${x[0]}" aria-pressed="${view===x[0]||(view==='manage'&&mtab===x[0])}">${x[1]}</button>`).join('')}${view==='home'&&canSay()?'<button data-act="sayhome">اسمع حالة الجو</button>':''}</div></div>`}
 function plansView(){
   const card=k=>{const p=PLANS[k],cur=testPlan===k;
     return `<div class="card plan${k==='pro'?' hot':''}"><div class="ph"><h2>${p.name}</h2>${cur?'<span class="chip">باقتك دلوقتي</span>':p.soon?'<span class="chip">قريب</span>':k==='pro'?'<span class="chip">الأنسب للصياد</span>':''}</div>
@@ -2148,6 +2151,59 @@ const ptTaskPts=id=>{const t=pt.tasks.find(x=>x.id===id);return t&&typeof t.poin
 const ptPts=()=>pt.mine.reduce((n,a)=>n+ptTaskPts(a.task_id),0);
 const ptLevel=n=>{let i=0;PT_LEVELS.forEach((l,j)=>{if(n>=l[0])i=j});return {name:PT_LEVELS[i][1],next:PT_LEVELS[i+1]||null,from:PT_LEVELS[i][0]}};
 const ptNew=()=>({st:'new',tasks:[],mine:[],board:[],done:'',err:''});
+/* ----- الصوت: للي مبيقراش ومبيكتبش -----
+   "اسمع" بيقرا الكلام بصوت الموبايل (speechSynthesis)، والإجابة ممكن تكون رسالة صوتية (MediaRecorder)
+   بتترفع على bucket خاص اسمه partner-voice. لو الموبايل مبيدعمش حاجة منهم الزرار بتاعها مبيظهرش. */
+const SPK_D='<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.500a8 8 0 0 1 0 11"/>',MIC_D='<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>';
+const VOICE_MAX=60;
+/* لو الموبايل معندوش صوت عربي، أزرار "اسمع" مبتظهرش بدل ما تتكلم غلط */
+const canSay=()=>{if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance!=='function')return false;const vs=speechSynthesis.getVoices();return !vs.length||vs.some(v=>/^ar/i.test(v.lang))};
+try{if('speechSynthesis' in window)speechSynthesis.getVoices()}catch(e){}
+function say(text){if(!canSay())return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text),vs=speechSynthesis.getVoices(),v=vs.find(x=>/^ar[-_]EG/i.test(x.lang))||vs.find(x=>/^ar/i.test(x.lang));
+    if(v)u.voice=v;u.lang=v?v.lang:'ar-SA';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+const sayStop=()=>{try{if(canSay())speechSynthesis.cancel()}catch(e){}};
+const canRec=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
+let vr=null;
+function vrReset(){if(!vr)return;clearInterval(vr.timer);try{if(vr.rec&&vr.rec.state!=='inactive'){vr.rec.onstop=null;vr.rec.stop()}}catch(e){}
+  if(vr.stream)vr.stream.getTracks().forEach(t=>t.stop());if(vr.url)URL.revokeObjectURL(vr.url);vr=null}
+function drawVr(msg){const el=$('#ptVoice');if(!el)return;
+  if(!canRec()){el.innerHTML='';return}
+  const mic=ic(MIC_D,22);
+  if(!vr)el.innerHTML=`<button type="button" class="btn vbtn" data-act="vrstart">${mic}سجّل إجابتك بصوتك</button>${msg?'<span class="err" role="alert">'+esc(msg)+'</span>':''}<span class="muted">أو اكتب في الخانات اللي تحت.</span>`;
+  else if(vr.state==='rec'){const n=Math.floor((Date.now()-vr.t0)/1000);
+    el.innerHTML=`<button type="button" class="btn sosb vbtn" data-act="vrstop">${mic}بيسجّل... ${Math.floor(n/60)}:${String(n%60).padStart(2,'0')} · دوس عشان توقّف</button><span class="muted">اتكلم براحتك، لحد دقيقة.</span>`}
+  else el.innerHTML=`<span class="chip okc">الرسالة الصوتية جاهزة. دوس "ابعت".</span><audio controls src="${vr.url}"></audio><div class="rowbtns"><button type="button" class="btn ghost sm" data-act="vrdrop">امسحها وسجّل تاني</button></div>`;
+}
+async function vrStart(){
+  if(vr||!canRec())return;sayStop();let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){drawVr('محتاجين إذن الميكروفون عشان نسجّل صوتك. اسمح بيه من إعدادات المتصفح.');return}
+  if(!$('#ptVoice')){stream.getTracks().forEach(t=>t.stop());return}
+  let rec;try{rec=new MediaRecorder(stream,{audioBitsPerSecond:32000})}catch(e){try{rec=new MediaRecorder(stream)}catch(e2){stream.getTracks().forEach(t=>t.stop());drawVr('الموبايل ده مش بيسجّل صوت من المتصفح.');return}}
+  const me_={rec,stream,chunks:[],state:'rec',t0:Date.now(),url:'',blob:null,timer:0};vr=me_;
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)me_.chunks.push(e.data)};
+  rec.onstop=()=>{clearInterval(me_.timer);stream.getTracks().forEach(t=>t.stop());if(vr!==me_)return;
+    me_.blob=new Blob(me_.chunks,{type:(rec.mimeType||'audio/webm').split(';')[0]});me_.sec=Math.round((Date.now()-me_.t0)/1000);
+    if(me_.blob.size<800){vr=null;drawVr('التسجيل طلع فاضي. جرّب تاني.');return}
+    me_.url=URL.createObjectURL(me_.blob);me_.state='done';drawVr()};
+  rec.start();me_.timer=setInterval(()=>{if(Date.now()-me_.t0>=VOICE_MAX*1000){try{rec.stop()}catch(e){}}else drawVr()},500);drawVr();
+}
+async function vrUpload(){
+  const type=vr.blob.type||'audio/webm',ext=/mp4|aac/.test(type)?'m4a':/ogg/.test(type)?'ogg':/mpeg/.test(type)?'mp3':'webm';
+  const path=uid()+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'.'+ext;
+  if(ses&&ses.exp-Date.now()<60e3)await refreshSes();
+  const r=await fetch(SB_URL+'/storage/v1/object/partner-voice/'+path,{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+(ses?ses.access_token:''),'Content-Type':type},body:vr.blob});
+  if(!r.ok){const e=new Error('معرفناش نرفع الرسالة الصوتية. جرّب تاني.');e.status=r.status;throw e}
+  return path;
+}
+async function admVoice(path,btn){
+  btn.disabled=true;
+  try{if(ses&&ses.exp-Date.now()<60e3)await refreshSes();
+    const r=await fetch(SB_URL+'/storage/v1/object/authenticated/partner-voice/'+path,{headers:{apikey:SB_KEY,Authorization:'Bearer '+(ses?ses.access_token:'')}});
+    if(!r.ok)throw new Error('x');const a=document.createElement('audio');a.controls=true;a.autoplay=true;a.src=URL.createObjectURL(await r.blob());btn.replaceWith(a)}
+  catch(e){btn.disabled=false;btn.textContent='معرفناش نحمّل الرسالة. جرّب تاني'}
+}
+const ptSayText=t=>t.title+'. '+(t.hint||'')+' المطلوب: '+ptFields(t).map(f=>f.label).join('، ')+'.'+(canRec()?' تقدر تسجّل إجابتك بصوتك من الزرار الأخضر.':'');
 let pt=ptNew();
 const ptMissing=e=>e.status===404||/PGRST205|PGRST202|42P01|42883/.test(String(e.code));
 const ptFields=t=>Array.isArray(t&&t.fields)?t.fields.filter(f=>f&&typeof f.k==='string'&&f.label):[];
@@ -2167,7 +2223,8 @@ function mgPartner(){
   const board=pt.board.length>1?`<div class="sec"><h2>ترتيب الشركاء</h2><ul class="list">${pt.board.map((b,i)=>`<li class="pbr"><span class="rk">${i+1}</span><strong>${esc(b.name||'شريك')}${b.me?' (إنت)':''}</strong><span class="chip">${ptLevel(Number(b.points)||0).name}</span><span class="muted">${Number(b.points)||0} نقطة</span></li>`).join('')}</ul></div>`:'';
   const list=pt.tasks.map(t=>{const n=pt.mine.filter(a=>a.task_id===t.id).length;
     return `<button class="q ptq" data-act="ptopen" data-id="${t.id}"><strong>${esc(t.title)}</strong><span class="chip okc">+${ptTaskPts(t.id)} نقطة</span>${n?`<span class="chip">بعت ${n}</span>`:''}<br><span class="muted">${esc(t.hint||'')}</span></button>`}).join('');
-  return `<div class="card pth">${PARTNER}<h2>مهام الشريك المؤسس</h2><span class="muted">إنت من الناس اللي بتبني فيش بوك معانا. كل معلومة بتبعتها من هنا بتدخل في التطبيق: الخريطة ومؤشر الصيد ومواسم السمك. اختار أي مهمة واملا الخانات، بتاخد دقيقة.</span>
+  return `<div class="card pth">${PARTNER}<h2>مهام الشريك المؤسس</h2><span class="muted">إنت من الناس اللي بتبني فيش بوك معانا. كل معلومة بتبعتها من هنا بتدخل في التطبيق: الخريطة ومؤشر الصيد ومواسم السمك. اختار أي مهمة واملا الخانات أو سجّل إجابتك بصوتك، بتاخد دقيقة.</span>
+    ${canSay()?`<button class="btn ghost sm vbtn" data-act="ptsayall">${ic(SPK_D,20)}اسمع الشرح</button>`:''}
     <div class="tiles"><div class="tile"><b>${pts}</b><span>نقطة</span></div><div class="tile"><b>${pt.mine.length}</b><span>مساهمة</span></div><div class="tile"><b>${wk}</b><span>آخر 7 أيام</span></div></div>
     <div class="plv"><strong>المستوى: ${lv.name}</strong><span class="muted">${lv.next?'فاضلك '+(lv.next[0]-pts)+' نقطة وتوصل '+lv.next[1]:'وصلت أعلى مستوى'}</span><i><b style="width:${lv.next?Math.round((pts-lv.from)/(lv.next[0]-lv.from)*100):100}%"></b></i></div></div>
   ${isPartner()?'':'<div class="sec"><span class="chip">ده عرض ليك إنت بس. الشركاء هيشوفوا التبويب ده بعد ما تعلّم على حساباتهم من لوحة المالك.</span></div>'}
@@ -2185,11 +2242,13 @@ function ptInput(f,i){const id='ptf'+i,opt=a=>'<option value="">اختار</opti
   return `<label for="${id}">${esc(f.label)}${f.req?'':' (اختياري)'}${inp}</label>`}
 function openPt(id){
   const t=pt.tasks.find(x=>x.id===id);if(!t)return;
+  vrReset();
   $('#sheet').innerHTML=`<h2>${esc(t.title)}</h2><span class="muted">${esc(t.hint||'')}</span>
-  <form id="ptForm" data-id="${t.id}" novalidate>${ptFields(t).map(ptInput).join('')}
+  ${canSay()?`<button type="button" class="btn ghost vbtn" data-act="ptsay" data-id="${t.id}">${ic(SPK_D,22)}اسمع السؤال</button>`:''}
+  <form id="ptForm" data-id="${t.id}" novalidate><div id="ptVoice" class="vbox"></div>${ptFields(t).map(ptInput).join('')}
     <div class="err" id="ptErr" role="alert"></div>
     <div class="rowbtns"><button class="btn" type="submit">ابعت</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
-  $('#ovl').hidden=false;
+  $('#ovl').hidden=false;drawVr();
 }
 function submitPt(form){
   const t=pt.tasks.find(x=>x.id===Number(form.dataset.id)),er=$('#ptErr');if(!t)return;
@@ -2197,9 +2256,12 @@ function submitPt(form){
   ptFields(t).forEach((f,i)=>{const el=$('#ptf'+i),v=el?String(el.value).trim():'';
     if(!v){if(f.req&&!miss)miss=f.label;return}
     ans[f.k]=f.type==='num'?Number(v):v.slice(0,600)});
-  if(miss){er.textContent='ناقص: '+miss;return}
+  const voice=vr&&vr.state==='done';
+  if(vr&&vr.state==='rec'){er.textContent='وقّف التسجيل الأول.';return}
+  if(miss&&!voice){er.textContent=canRec()?'ناقص: '+miss+'. أو سجّل إجابتك بصوتك.':'ناقص: '+miss;return}
   if(pt.st==='none'){er.textContent='حساب الشريك لسه متفعّلش على السيرفر: ملف 014_partners.sql لازم يتشغّل الأول.';return}
-  srvRun(form,'#ptErr',async()=>{await sbFetch('/rest/v1/partner_answers',{method:'POST',body:{task_id:t.id,answers:ans}});
+  srvRun(form,'#ptErr',async()=>{if(voice){ans.voice=await vrUpload();ans.voice_sec=vr.sec||0}
+    await sbFetch('/rest/v1/partner_answers',{method:'POST',body:{task_id:t.id,answers:ans}});
     pt.mine.unshift({id:0,task_id:t.id,created_at:new Date().toISOString()});pt.done=t.title+' (+'+ptTaskPts(t.id)+' نقطة)';closeSheet();render();rpc('partner_board').then(b=>{pt.board=b||[];if(view==='manage'&&mtab==='partner')render()}).catch(()=>{})});
 }
 /* لوحة المالك: تعليم الشركاء وإجاباتهم */
@@ -2225,7 +2287,7 @@ function admPansHtml(){
   if(!adm.pans.length)return head+'<span class="muted">لسه مفيش إجابات.</span>'+hid;
   return head+hid+'<h2>إجابات الشركاء</h2><ul class="list">'+adm.pans.map(a=>{const fs=ptFields(a),an=a.answers||{};
     return `<li><div class="who"><strong>${esc(a.task_title)}</strong></div><div class="muted">${esc(a.user_name||'من غير اسم')} · ${ago(a.created_at)}</div>
-      ${fs.filter(f=>an[f.k]!==undefined&&an[f.k]!=='').map(f=>`<div><span class="muted">${esc(f.label)}:</span> ${esc(String(an[f.k]))}</div>`).join('')}</li>`}).join('')+'</ul>';
+      ${fs.filter(f=>an[f.k]!==undefined&&an[f.k]!=='').map(f=>`<div><span class="muted">${esc(f.label)}:</span> ${esc(String(an[f.k]))}</div>`).join('')}${typeof an.voice==='string'&&/^[0-9a-f-]{36}\/[\w.-]{5,60}$/.test(an.voice)?`<div class="rowbtns"><button class="btn ghost sm vbtn" data-act="admvoice" data-p="${esc(an.voice)}">${ic(MIC_D,18)}شغّل الرسالة الصوتية${an.voice_sec?' ('+Number(an.voice_sec)+' ثانية)':''}</button></div>`:''}</li>`}).join('')+'</ul>';
 }
 /* صورة العضو: صورة حسابه لو حاطط واحدة (عمود profiles.avatar من ملف 008)، وإلا دايرة ملوّنة فيها أول حرف من اسمه. */
 const AV_RE=/^[0-9a-f-]{36}\/[\w-]{8,60}\.jpg$/;
@@ -2919,7 +2981,7 @@ function openBook(id){
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;$('#bName').focus();
 }
-function closeSheet(){$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;dropPostFiles();dropBoatFiles()}
+function closeSheet(){vrReset();sayStop();$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;dropPostFiles();dropBoatFiles()}
 
 document.addEventListener('click',e=>{
   const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
@@ -2952,6 +3014,13 @@ document.addEventListener('click',e=>{
   else if(act==='acct')openAcct();
   else if(act==='ptopen'){if(/^-?\d+$/.test(a.dataset.id))openPt(Number(a.dataset.id))}
   else if(act==='ptload'){pt=ptNew();render()}
+  else if(act==='ptsay'){const t=pt.tasks.find(x=>x.id===Number(a.dataset.id));if(t)say(ptSayText(t))}
+  else if(act==='ptsayall')say('أهلاً بيك يا شريك. من هنا بتساعدنا نبني فيش بوك. اختار أي مهمة من اللي تحت، وجاوب بالكتابة أو برسالة صوتية. المهام هي: '+pt.tasks.map(t=>t.title).join('، ')+'.');
+  else if(act==='vrstart')vrStart();
+  else if(act==='vrstop'){if(vr&&vr.state==='rec'){try{vr.rec.stop()}catch(e){}}}
+  else if(act==='vrdrop'){vrReset();drawVr()}
+  else if(act==='admvoice'){if(isAdmin()&&/^[0-9a-f-]{36}\/[\w.-]{5,60}$/.test(a.dataset.p))admVoice(a.dataset.p,a)}
+  else if(act==='sayhome'){if(labs()){const d=fromIso(sel),sc=score(d),w=weather(d);say(gDate(d)+'. مؤشر الصيد '+sc.val+' في المية. '+(sc.prelim?'لسه مفيش توقعات جو لليوم ده.':sWord(sc.val)+'. الرياح في النهار حوالي '+Math.round((w.wind[1]+w.wind[2]+w.wind[3]+w.wind[4]+w.wind[5])/5)+' عقدة، والموج '+w.wave[2].toFixed(1)+' متر.'))}}
   else if(act==='admpartner'){if(labs()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}

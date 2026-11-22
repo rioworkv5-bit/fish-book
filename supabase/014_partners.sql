@@ -13,6 +13,8 @@
 -- 6) مراقبة المجتمع: الشريك المؤسس مراقب. يقدر يخفي بوست أو تعليق مخالف (mod_hide) ويشوف البلاغات ويقفلها.
 --    الإخفاء مش مسح: المحتوى بيختفي من المجتمع وبيفضل محفوظ، والإدارة بس تشوفه (admin_hidden) وترجّعه أو تمسحه.
 --    الشريك ميقدرش يخفي محتوى الإدارة ولا يرجّع حاجة مخفية.
+-- 7) الرسائل الصوتية: الشريك اللي مبيكتبش يجاوب على المهمة بتسجيل صوتي. الملف في bucket خاص (partner-voice)
+--    جوه فولدر الشريك، ومحدش يسمعه غير صاحبه والإدارة. مساره بيتحفظ في partner_answers.answers.voice.
 
 alter table profiles add column if not exists is_partner boolean not null default false;
 
@@ -253,3 +255,20 @@ select * from (values
      {"k":"text","label":"اكتب بالتفصيل","type":"long","req":true}]'::jsonb, 70, 5)
 ) as v(title, hint, fields, sort, points)
 where not exists (select 1 from partner_tasks);
+
+-- ============ الرسائل الصوتية ============
+-- bucket خاص (مش عام). الملف لحد 3 ميجا وصوت بس.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('partner-voice', 'partner-voice', false, 3145728, array['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/aac'])
+on conflict (id) do nothing;
+
+drop policy if exists partner_voice_read on storage.objects;
+create policy partner_voice_read on storage.objects for select to authenticated
+  using (bucket_id = 'partner-voice' and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin()));
+drop policy if exists partner_voice_upload on storage.objects;
+create policy partner_voice_upload on storage.objects for insert to authenticated
+  with check (bucket_id = 'partner-voice' and (storage.foldername(name))[1] = auth.uid()::text
+              and (public.is_partner() or public.is_admin()));
+drop policy if exists partner_voice_delete on storage.objects;
+create policy partner_voice_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'partner-voice' and public.is_admin());
