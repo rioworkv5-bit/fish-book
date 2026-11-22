@@ -1867,7 +1867,7 @@ const rpc=(fn,body)=>sbFetch('/rest/v1/rpc/'+fn,{method:'POST',body:body||{}});
 async function loadAdm(){
   adm.st='loading';adm.err='';
   try{const [st,us,ts]=await Promise.all([rpc('admin_stats'),rpc('admin_users'),rpc('admin_trips')]);
-    adm.stats=st||{};adm.users=us||[];adm.trips=ts||[];adm.st='ok';if(labs())loadAdmPartners()}
+    adm.stats=st||{};adm.users=us||[];adm.trips=ts||[];adm.st='ok';loadAdmPartners()}
   catch(e){adm.st=(e.status===404||/PGRST202|42883/.test(String(e.code)))?'none':'fail';adm.err=srvErr(e)}
   if(view==='manage'&&mtab==='adm')render();
 }
@@ -1880,7 +1880,7 @@ function admUsersHtml(){
         <div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(u.email||'')}</div>
         <div class="muted">سجّل ${dShort(u.created_at)}${u.last_seen?' · آخر دخول '+ago(u.last_seen):''}</div>
         <div class="muted">${Number(u.bookings)||0} حجز · ${Number(u.trips)||0} رحلة منشورة · ${Number(u.posts)||0} بوست</div></div></div>
-      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}${labs()&&adm.pOk?`<button class="btn ghost sm" data-act="admpartner" data-id="${esc(u.id)}" data-on="${u.is_partner?'0':'1'}">${u.is_partner?'شيل الشراكة':'خليه شريك مؤسس'}</button>`:''}</div></li>`}).join('')+'</ul>'
+      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}${adm.pOk?`<button class="btn ghost sm" data-act="admpartner" data-id="${esc(u.id)}" data-on="${u.is_partner?'0':'1'}">${u.is_partner?'شيل الشراكة':'خليه شريك مؤسس'}</button>`:''}</div></li>`}).join('')+'</ul>'
     +(list.length>200?'<span class="muted">ظاهر أول 200. اكتب في البحث عشان توصل للباقي.</span>':'');
 }
 function admTripsHtml(){
@@ -1902,9 +1902,9 @@ function mgAdmin(){
   <div class="sec"><h2>نشاط التطبيق</h2>
     <div class="tiles t2"><div class="tile"><b>${n('trips_upcoming')}</b><span>رحلة قادمة من ${n('trips_total')} منشورة</span></div><div class="tile"><b>${n('bookings')}</b><span>حجز شغال (${n('seats')} مكان)</span></div><div class="tile"><b>${n('bookings_week')}</b><span>حجز آخر 7 أيام</span></div><div class="tile"><b>${n('boats')}</b><span>مركب مسجلة</span></div><div class="tile"><b>${n('posts')}</b><span>بوست و${n('comments')} تعليق</span></div><div class="tile"><b>${n('catches')}</b><span>صيدة في السجلات</span></div></div>
     ${n('reports')?`<button class="q" data-act="nav" data-v="community">في ${n('reports')===1?'بلاغ واحد مستني':n('reports')+' بلاغات مستنية'} مراجعتك في المجتمع</button>`:''}</div>
-  <div class="sec"><div class="seg${labs()?' s3':''}" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button>${labs()?`<button data-act="admsub" data-s="pans" aria-pressed="${adm.sub==='pans'}">الشركاء</button>`:''}</div>
+  <div class="sec"><div class="seg${adm.pOk?' s3':''}" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button>${adm.pOk?`<button data-act="admsub" data-s="pans" aria-pressed="${adm.sub==='pans'}">الشركاء</button>`:''}</div>
     ${adm.sub==='users'?`<input id="admQ" type="search" maxlength="60" autocomplete="off" placeholder="دوّر بالاسم أو الموبايل أو الإيميل" aria-label="بحث في المشتركين" value="${esc(adm.q)}"><div id="admList" style="display:flex;flex-direction:column;gap:8px">${admUsersHtml()}</div>`
-      :adm.sub==='pans'&&labs()?admPansHtml():`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
+      :adm.sub==='pans'&&adm.pOk?admPansHtml():`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
 }
 async function admVerify(id,on,btn){
   btn.disabled=true;
@@ -3021,7 +3021,7 @@ document.addEventListener('click',e=>{
   else if(act==='vrdrop'){vrReset();drawVr()}
   else if(act==='admvoice'){if(isAdmin()&&/^[0-9a-f-]{36}\/[\w.-]{5,60}$/.test(a.dataset.p))admVoice(a.dataset.p,a)}
   else if(act==='sayhome'){if(labs()){const d=fromIso(sel),sc=score(d),w=weather(d);say(gDate(d)+'. مؤشر الصيد '+sc.val+' في المية. '+(sc.prelim?'لسه مفيش توقعات جو لليوم ده.':sWord(sc.val)+'. الرياح في النهار حوالي '+Math.round((w.wind[1]+w.wind[2]+w.wind[3]+w.wind[4]+w.wind[5])/5)+' عقدة، والموج '+w.wave[2].toFixed(1)+' متر.'))}}
-  else if(act==='admpartner'){if(labs()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
+  else if(act==='admpartner'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}
   else if(act==='labgo'){if(labs())go(a.dataset.v)}
