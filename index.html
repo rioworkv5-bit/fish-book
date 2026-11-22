@@ -446,6 +446,20 @@ select.fchip{padding:0 10px}
 .pv img{width:100%;height:100%;object-fit:cover;display:block}
 .pv button{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(14,42,68,.85);color:#fff;font-weight:800;line-height:1;padding:0}
 .zoom{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:14px}
+/* وضع التجربة والاشتراكات (لحساب الإدارة بس) */
+.labs{margin:12px 16px 0;padding:10px 12px;border-radius:18px;background:#FFF6E0;border:1px dashed #E0B040;display:flex;flex-direction:column;gap:8px}
+.labs .lbt{display:flex;align-items:center;gap:8px;font-size:13px}.labs .lbt span{color:#7A5A10;flex:1}
+.labs .lbt button{border:0;background:var(--brand);color:#fff;font-weight:800;border-radius:999px;min-height:36px;padding:0 14px;font-size:13px}
+.labs .seg{background:#F5E6BE}
+.lock{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.lock .lki{width:44px;height:44px;border-radius:14px;background:var(--soft);color:var(--accent);display:grid;place-items:center}
+.ad{border-style:dashed;display:flex;flex-direction:column;gap:4px;background:#FBFDFE}
+.ad .adt{align-self:flex-start;font-size:11px;font-weight:800;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.plan{display:flex;flex-direction:column;gap:6px}.plan.hot{border:2px solid var(--accent)}
+.plan .ph{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.plan .pp{display:flex;align-items:baseline;gap:6px}.plan .pp b{font-size:30px;font-weight:900;color:var(--ink)}.plan .pp span{color:var(--muted);font-weight:700;font-size:13px}
+.plan .pf{margin:4px 0;padding:0 18px 0 0;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.plan .btn{align-self:stretch;margin-top:6px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -1414,7 +1428,7 @@ function home(){
     tripsHtml=`<div class="trip"><strong>${mode==='boat'?'مفيش مركب متاحة كاملة':'مفيش رحلات'}${dur===''?'':' '+dWord(Number(dur))} بتبدأ في اليوم ده</strong><div class="bot"><span class="muted">${alerts[sel]?'هننبهك أول ما تنزل رحلة فيه.':'نبعتلك تنبيه أول ما تنزل رحلة؟'}</span><button class="btn ghost" data-act="alert" ${alerts[sel]?'disabled':''}>${alerts[sel]?'التنبيه شغال':'نبهني'}</button></div></div>`
       +(near.length?'<span class="muted" style="font-weight:700">أقرب اختيارات متاحة</span>'+near.map(tripCard).join(''):'');
   }
-  return `${morning()}${chart}
+  return `${morning()}${chart}${adSlot(0)}
   ${s.prelim?`<div class="card sum"><div class="big pre"><b>${s.val}%</b><span>من التيار</span></div>
     <div><h2>${gDate(d)} ${d.getFullYear()}</h2><div class="muted">${hText(d)}</div>
     <div style="margin-top:6px">${tideChips}</div>
@@ -1431,7 +1445,7 @@ function home(){
 }
 function tripsView(){
   const list=trips.filter(t=>matchDur(t)&&t.date>=iso(today)).sort(byDate);
-  return `<div class="sec"><h2>الرحلات المتاحة</h2>${sharedMsg?'<span class="chip">'+esc(sharedMsg)+'</span>':''}${srvNote()}${durFilter()}${list.length?list.map(tripCard).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
+  return `<div class="sec"><h2>الرحلات المتاحة</h2>${sharedMsg?'<span class="chip">'+esc(sharedMsg)+'</span>':''}${srvNote()}${durFilter()}${list.length?list.map((t,i)=>tripCard(t)+(i===1?adSlot(1):'')).join(''):'<span class="muted">مفيش حاجة متاحة بالاختيارات دي.</span>'}</div>`;
 }
 function askView(){
   return `<div class="sec"><h2>اسأل فيش بوك</h2>
@@ -1887,7 +1901,7 @@ function manageView(){
   const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية'],['cal','الجدول']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
-  const body=mtab==='adm'?mgAdmin():mtab==='log'?logView():R==='angler'?mgAngler(true):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
+  const body=mtab==='adm'?mgAdmin():mtab==='log'?(can('log')?logView():lockCard('log','سجل الصيد','سجّل صيدك، والتطبيق يتعرف على السمكة من الصورة.')):R!=='angler'&&mtab!=='mine'&&!can('dash')?lockCard('dash','لوحة الإدارة','جدول الكراسي وتقويم المركب ونشر الرحلات والتقييمات.'):R==='angler'?mgAngler(true):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
   /* نوع الحساب بيتختار وقت التسجيل وبيتغيّر من نافذة الحساب. هنا بيظهر في العرض التجريبي بس (من غير سيرفر) */
   if(on)return `${head}${chips}${body}`;
@@ -1916,6 +1930,48 @@ const AV_COLORS=['#0B7C88','#14506C','#A35F00','#7A1F8A','#136B3A','#B5352A','#2
 let posts=[],comState='new',comUid=null,comErr='',comMsg='',comKind='',comArea='',comMore=false,comSeq=0,reps=[],postFiles=[],openCm={},hlPost=null,ppDone=false,comUser=null;
 const pendingPost=(()=>{try{const v=Number(new URLSearchParams(location.search).get('post'));return v>0?v:null}catch(e){return null}})();
 const isAdmin=()=>!!(me&&me.is_admin);
+/* ---------- وضع التجربة (لحساب الإدارة بس) ----------
+   كل خاصية جديدة بتتبني ورا labs(): بتظهر بس لحساب الإدارة ولما وضع التجربة يكون شغال.
+   أي حد تاني (أو الإدارة لو قفلت وضع التجربة) بيشوف التطبيق زي ما هو بالظبط ومفيش أي حاجة بتتقفل عليه.
+   الباقة التجريبية بتتحفظ على الجهاز ده بس ومبتتبعتش للسيرفر. */
+const PLANS={
+  free:{name:'فري',price:'مجاني',who:'لأي صياد',feats:['الجو والمد والجزر وأحسن أيام الصيد','عرض الرحلات والحجز','المجتمع','الخريطة: مناطق الصيد بس','فيها إعلانات']},
+  pro:{name:'برو',price:'100',per:1,who:'للصياد',feats:['كل اللي في الفري، من غير إعلانات','تنبيه الصبح بالأيام الحلوة اللي فيها أماكن فاضية','اسأل فيش بوك وتخطيط لشهر قدام','سجل الصيد والتعرف على السمك من الصورة','الخريطة: تسجّل طرحاتك (لحد 20 طرحة)']},
+  max:{name:'ماكس',price:'500',per:1,who:'لأصحاب المراكب والمنظمين',feats:['كل اللي في البرو','لوحة الإدارة: الكراسي والتقويم ونشر الرحلات والتقييمات','الخريطة كاملة: طرحات من غير حد وتسجيل التراك','طرحاتك سرية ليك إنت بس']},
+  biz:{name:'ماكس بيزنس',price:'1000',per:1,who:'لصاحب المركب اللي عنده طاقم',soon:1,feats:['كل اللي في الماكس','حسابات للريس والبحرية بصلاحيات','جدول الطاقم ومصاريف كل رحلة','حصص البحرية وتقرير المكسب','تنبيهات الصيانة وتجديد التراخيص']}};
+const PLAN_ORDER=['free','pro','max','biz'];
+const NEED={ask:'pro',log:'pro',marks:'pro',noads:'pro',track:'max',dash:'max',marksMany:'max'};
+const PRO_MARKS=20;
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+let labsFlag=lsGet('fishbook-labs','1')==='1',testPlan=lsGet('fishbook-plan','free');
+if(!PLANS[testPlan]||PLANS[testPlan].soon)testPlan='free';
+const labs=()=>isAdmin()&&labsFlag;
+/* برّه وضع التجربة كل حاجة مفتوحة زي دلوقتي */
+const can=f=>!labs()||PLAN_ORDER.indexOf(testPlan)>=PLAN_ORDER.indexOf(NEED[f]||'free');
+const LOCK_IC='<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const planPrice=p=>p.per?p.price+' جنيه في الشهر':p.price;
+function lockBody(f,title,why){const p=PLANS[NEED[f]];
+  return `<span class="lki">${LOCK_IC}</span><h2>${title}</h2><span class="muted">${why?why+' ':''}الخاصية دي في باقة ${p.name} (${planPrice(p)}).</span>
+  <div class="rowbtns"><button class="btn" data-act="plans">اشترك في ${p.name}</button></div>`}
+const lockCard=(f,title,why)=>`<div class="card lock">${lockBody(f,title,why)}</div>`;
+function lockSheet(f,title,why){$('#sheet').innerHTML=`<div class="lock">${lockBody(f,title,why)}</div><div class="rowbtns"><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;$('#ovl').hidden=false}
+const ADS=[['مساحة إعلان لمحل عدة صيد','هنا هيظهر إعلان محل عدة من الغردقة.'],['مساحة إعلان لمركب أو منظم رحلات','هنا هيظهر إعلان مركب أو رحلة مميزة.']];
+function adSlot(i){if(can('noads'))return '';const a=ADS[i%ADS.length];
+  return `<div class="card ad"><span class="adt">إعلان</span><strong>${a[0]}</strong><span class="muted">${a[1]} الإعلانات بتظهر في الفري بس، والبرو من غير إعلانات.</span></div>`}
+function labsBar(){if(!labs())return '';
+  return `<div class="labs"><div class="lbt"><b>وضع التجربة</b><span>ظاهر ليك إنت بس</span><button data-act="plans">الباقات</button></div>
+  <div class="seg s3" role="group" aria-label="الباقة التجريبية">${['free','pro','max'].map(k=>`<button data-act="plantest" data-p="${k}" aria-pressed="${testPlan===k}">${PLANS[k].name}</button>`).join('')}</div></div>`}
+function plansView(){
+  const card=k=>{const p=PLANS[k],cur=testPlan===k;
+    return `<div class="card plan${k==='pro'?' hot':''}"><div class="ph"><h2>${p.name}</h2>${cur?'<span class="chip">باقتك دلوقتي</span>':p.soon?'<span class="chip">قريب</span>':k==='pro'?'<span class="chip">الأنسب للصياد</span>':''}</div>
+    <div class="pp">${p.per?`<b>${p.price}</b><span>جنيه في الشهر</span>`:`<b>${p.price}</b>`}</div><span class="muted">${p.who}</span>
+    <ul class="pf">${p.feats.map(f=>`<li>${f}</li>`).join('')}</ul>
+    ${cur||p.soon?'':`<button class="btn${k==='free'?' ghost':''}" data-act="plantest" data-p="${k}">${k==='free'?'ارجع للفري':'اشترك في '+p.name}</button>`}</div>`};
+  return `<div class="sec"><h2>الاشتراكات</h2><span class="muted">اختار الباقة اللي تناسبك. تقدر تغيّرها أو تلغيها في أي وقت.</span></div>
+  ${PLAN_ORDER.map(card).join('')}
+  <div class="sec"><span class="muted">الدفع لسه مش شغال. في وضع التجربة، زرار الاشتراك بيغيّر الباقة على جهازك بس عشان تشوف شكل التطبيق فيها.</span></div>`;
+}
 /* صورة العضو: صورة حسابه لو حاطط واحدة (عمود profiles.avatar من ملف 008)، وإلا دايرة ملوّنة فيها أول حرف من اسمه. */
 const AV_RE=/^[0-9a-f-]{36}\/[\w-]{8,60}\.jpg$/;
 function avatar(id,name,cls,path){
@@ -2306,6 +2362,7 @@ function mapBar(){
     <div class="rowbtns"><button class="btn ghost" data-act="markdel" data-id="${m.id}">امسح النقطة</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`:''}
   else if(mapSel&&mapSel.t==='area'){const a=AREAS.find(x=>x.id===mapSel.id);
     h=`<strong>${a.name}</strong>${fromMe(a)}<div class="rowbtns"><button class="btn" data-act="areago" data-id="${a.id}">جو ومؤشر صيد ${a.name}</button><button class="btn ghost" data-act="mapclear">قفل</button></div>`}
+  if(!h&&!mapNote&&meWatch!==null&&!can('track'))h=`<strong>موقعك ظاهر على الخريطة</strong><span class="muted">تسجيل التراك (خط سيرك في البحر) في باقة ماكس.</span><div class="rowbtns"><button class="btn" data-act="plans">اشترك في ماكس</button><button class="btn ghost" data-act="trackstop">وقّف</button></div>`;
   if(!h&&!mapNote&&(track.length>1||meWatch!==null)){const nm=routeNm(track);
     h=`<strong>${meWatch!==null?'التتبع شغال':'أثر آخر حركة'}</strong><span class="muted">مشيت ${nm<10?nm.toFixed(1):Math.round(nm)} ميل بحري${meWatch!==null&&meSpd!==null?' · السرعة '+meSpd.toFixed(1)+' عقدة':''}${meWatch!==null&&meHead!==null?' · الاتجاه '+meHead+'°':''}</span>
     <div class="rowbtns">${meWatch!==null?'<button class="btn ghost" data-act="trackstop">وقّف التتبع</button>':''}<button class="btn ghost" data-act="trackclear" ${track.length?'':'disabled'}>امسح الأثر</button></div>`}
@@ -2504,7 +2561,7 @@ function drawTrack(){if(!map)return;if(!trackLy)trackLy=L.polyline([],{color:'#1
 function trackAdd(c){
   if(typeof c.speed==='number'&&c.speed>=0)meSpd=c.speed*1.94384;
   if(typeof c.heading==='number'&&!isNaN(c.heading)&&c.speed>0.5)meHead=Math.round(c.heading);
-  if(c.accuracy>80)return;
+  if(c.accuracy>80||!can('track'))return;
   const p=[Math.round(c.latitude*1e5)/1e5,Math.round(c.longitude*1e5)/1e5],l=track[track.length-1];
   if(l){const d=distBrg({lat:l[0],lon:l[1]},{lat:p[0],lon:p[1]});if(d.nm*1852<15)return;if(!(c.speed>0.5&&typeof c.heading==='number'&&!isNaN(c.heading)))meHead=d.br}
   track.push(p);if(track.length>4000)track.splice(0,track.length-4000);
@@ -2562,6 +2619,8 @@ function openAcct(){
     <button class="q" data-act="myav">صورة الحساب</button>
     <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
+    ${isAdmin()?`<button class="q" data-act="labs"><strong>وضع التجربة: ${labsFlag?'شغال':'مقفول'}</strong><br><span class="muted">${labsFlag?'بتشوف الحاجات الجديدة قبل ما تنزل للناس. دوس عشان تشوف التطبيق زي باقي الناس.':'بتشوف التطبيق زي باقي الناس. دوس عشان تشوف الحاجات الجديدة.'} محدش غيرك بيشوف الزرار ده.</span></button>`:''}
+    ${labs()?`<button class="q" data-act="acctgo" data-v="plans">الاشتراكات (تجربة): الباقة دلوقتي ${PLANS[testPlan].name}</button>`:''}
     <button class="q" data-act="acctgo" data-v="manage">رحلاتي والإدارة</button>
     <button class="q" data-act="acctgo" data-v="log">سجل صيدي</button>
     <div class="rowbtns"><button class="btn ghost" type="button" data-act="signout">خروج من الحساب</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
@@ -2571,7 +2630,8 @@ function render(){
   $('#hAcct').innerHTML=acctChip();
   const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
   if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
-  $('#main').innerHTML=view==='home'?home():view==='trips'?tripsView():view==='ask'?askView():view==='log'?logView():view==='community'?communityView():manageView();
+  if(view==='plans'&&!labs())view='home';
+  $('#main').innerHTML=labsBar()+(view==='home'?home():view==='plans'?plansView():view==='trips'?tripsView():view==='ask'?(can('ask')?askView():lockCard('ask','اسأل فيش بوك','اسأل عن أحسن أيام الصيد وخطط لشهر قدام.')):view==='log'?logView():view==='community'?communityView():manageView());
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
     if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
@@ -2633,6 +2693,9 @@ document.addEventListener('click',e=>{
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
   else if(act==='acct')openAcct();
+  else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
+  else if(act==='plans'){closeSheet();if(labs())go('plans')}
+  else if(act==='plantest'){if(labs()&&PLANS[a.dataset.p]&&!PLANS[a.dataset.p].soon){testPlan=a.dataset.p;lsSet('fishbook-plan',testPlan);const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}}
   else if(act==='acctgo'){closeSheet();go(a.dataset.v)}
   else if(act==='share')shareTrip(Number(a.dataset.id));
   else if(act==='mapbase')setMapBase(mapBase==='chart'?'sat':'chart');
@@ -2652,7 +2715,7 @@ document.addEventListener('click',e=>{
   else if(act==='rtshare')shareRoute();
   else if(act==='rtclose'){rt=null;drawRoute();mapBar()}
   else if(act==='mapclear'){mapSel=null;mapNote='';mapPin(null);mapBar()}
-  else if(act==='marksave')openMarkSave();
+  else if(act==='marksave'){if(!can('marks'))lockSheet('marks','احفظ طرحاتك','سجّل أماكن الصيد بتاعتك على الخريطة وارجعلها تاني.');else if(!can('marksMany')&&marks.length>=PRO_MARKS)lockSheet('marksMany','طرحات من غير حد','البرو بيحفظ لحد '+PRO_MARKS+' طرحة.');else openMarkSave()}
   else if(act==='markdel'){marks=marks.filter(m=>m.id!==Number(a.dataset.id));saveMarks();mapSel=null;drawMarks();mapBar()}
   else if(act==='areago'){const id=a.dataset.id;mapSel=null;if(AREAS.find(x=>x.id===id)===area)go('home');else{view='home';try{location.hash='home'}catch(e){}setArea(id)}drawMarks()}
   else if(act==='cancelbk')openCancelBk(Number(a.dataset.id));
