@@ -10,6 +10,9 @@
 --    partner_board(): ترتيب الشركاء بالنقط، بيشوفه الشركاء والإدارة بس.
 --    الشريك يبعت 30 إجابة في اليوم بالكتير.
 -- 5) posts_public و comments_public: زاد عليهم author_partner في الآخر عشان الشارة تظهر في المجتمع.
+-- 6) مراقبة المجتمع: الشريك المؤسس مراقب. يقدر يخفي بوست أو تعليق مخالف (mod_hide) ويشوف البلاغات ويقفلها.
+--    الإخفاء مش مسح: المحتوى بيختفي من المجتمع وبيفضل محفوظ، والإدارة بس تشوفه (admin_hidden) وترجّعه أو تمسحه.
+--    الشريك ميقدرش يخفي محتوى الإدارة ولا يرجّع حاجة مخفية.
 
 alter table profiles add column if not exists is_partner boolean not null default false;
 
@@ -128,17 +131,78 @@ end $$;
 revoke execute on function admin_set_partner(uuid, boolean), admin_partners(), admin_partner_answers(int) from public, anon;
 grant  execute on function admin_set_partner(uuid, boolean), admin_partners(), admin_partner_answers(int) to authenticated;
 
--- نفس الـ views بتاعة 008 ومعاها شارة الشريك في الآخر
+-- ============ مراقبة المجتمع ============
+alter table posts    add column if not exists hidden_at timestamptz;
+alter table posts    add column if not exists hidden_by uuid references profiles on delete set null;
+alter table comments add column if not exists hidden_at timestamptz;
+alter table comments add column if not exists hidden_by uuid references profiles on delete set null;
+
+create or replace function is_mod() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select is_admin or is_partner from profiles where id = auth.uid()), false)
+$$;
+
+-- واحد بس من p_post و p_comment. p_on = true يخفي، false يرجّع (للإدارة بس)
+create or replace function mod_hide(p_post bigint, p_comment bigint, p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_owner uuid;
+begin
+  if not is_mod() then raise exception 'not_mod'; end if;
+  if not p_on and not is_admin() then raise exception 'not_admin'; end if;
+  if num_nonnulls(p_post, p_comment) <> 1 then raise exception 'bad_target'; end if;
+  if p_post is not null then select user_id into v_owner from posts where id = p_post;
+  else select user_id into v_owner from comments where id = p_comment; end if;
+  if v_owner is null then raise exception 'no_such_item'; end if;
+  if not is_admin() and exists (select 1 from profiles where id = v_owner and is_admin) then raise exception 'not_admin'; end if;
+  if p_post is not null then
+    update posts set hidden_at = case when p_on then now() end, hidden_by = case when p_on then auth.uid() end where id = p_post;
+    if p_on then delete from reports where post_id = p_post; end if;
+  else
+    update comments set hidden_at = case when p_on then now() end, hidden_by = case when p_on then auth.uid() end where id = p_comment;
+    if p_on then delete from reports where comment_id = p_comment; end if;
+  end if;
+end $$;
+
+-- المحتوى المخفي ومين اللي خفاه (للإدارة بس)
+create or replace function admin_hidden()
+returns table (kind text, id bigint, body text, author_name text, hidden_by_name text, hidden_at timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  if not is_admin() then raise exception 'not_admin'; end if;
+  return query
+  select x.kind, x.id, x.body, a.name, h.name, x.hidden_at from (
+    select 'post'::text as kind, p.id, p.body, p.user_id, p.hidden_by, p.hidden_at from posts p where p.hidden_at is not null
+    union all
+    select 'comment'::text, c.id, c.body, c.user_id, c.hidden_by, c.hidden_at from comments c where c.hidden_at is not null
+  ) x
+  left join profiles a on a.id = x.user_id
+  left join profiles h on h.id = x.hidden_by
+  order by x.hidden_at desc
+  limit 200;
+end $$;
+
+revoke execute on function mod_hide(bigint, bigint, boolean), admin_hidden() from public, anon;
+grant  execute on function mod_hide(bigint, bigint, boolean), admin_hidden() to authenticated;
+
+-- البلاغات: المراقب يشوفها ويقفلها زي الإدارة
+drop policy if exists reports_admin on reports;
+create policy reports_admin on reports for select using (is_mod());
+drop policy if exists reports_close on reports;
+create policy reports_close on reports for delete using (is_mod());
+
+-- نفس الـ views بتاعة 008 ومعاها شارة الشريك في الآخر، ومن غير المحتوى المخفي
 create or replace view posts_public as
 select p.id, p.user_id, p.kind, p.area, p.body, p.photos, p.video_url, p.created_at,
        f.name as author_name, f.role as author_role, f.verified as author_verified,
        (select count(*) from post_likes l where l.post_id = p.id) as like_count,
-       (select count(*) from comments c where c.post_id = p.id) as comment_count,
+       (select count(*) from comments c where c.post_id = p.id and c.hidden_at is null) as comment_count,
        exists (select 1 from post_likes l where l.post_id = p.id and l.user_id = auth.uid()) as liked,
        f.avatar as author_avatar,
        f.is_partner as author_partner
 from posts p
-join profiles f on f.id = p.user_id;
+join profiles f on f.id = p.user_id
+where p.hidden_at is null;
 
 create or replace view comments_public as
 select c.id, c.post_id, c.user_id, c.body, c.created_at,
@@ -146,7 +210,8 @@ select c.id, c.post_id, c.user_id, c.body, c.created_at,
        f.avatar as author_avatar,
        f.is_partner as author_partner
 from comments c
-join profiles f on f.id = c.user_id;
+join profiles f on f.id = c.user_id
+where c.hidden_at is null;
 
 -- المهام الأساسية (بتتضاف مرة واحدة بس، لو الجدول فاضي)
 insert into partner_tasks (title, hint, fields, sort, points)

@@ -2103,6 +2103,37 @@ function bizSubmit(f){
 const PARTNER='<span class="pbdg">★ شريك مؤسس</span>';
 const isPartner=()=>!!(me&&me.is_partner);
 const partnerTab=()=>srvOn()&&!!uid()&&(isPartner()||labs());
+/* مراقبة المجتمع: الشريك المؤسس مراقب. بيخفي البوست أو التعليق المخالف (مش مسح)، والإدارة تراجع وترجّع أو تمسح.
+   الإدارة عندها المسح أصلاً، فزرار الإخفاء بيظهرلها في وضع التجربة بس. */
+const isMod=()=>isAdmin()||isPartner();
+const canHide=()=>isPartner()||labs();
+const modErr=e=>/not_mod|not_admin/.test(String(e.message))?'مش مسموح تخفي المحتوى ده.':ptMissing(e)?'المراقبة لسه متفعّلتش على السيرفر (ملف 014).':srvErr(e);
+async function modHide(pid,cid,btn){
+  btn.disabled=true;
+  try{await rpc('mod_hide',{p_post:pid||null,p_comment:cid||null,p_on:true});
+    if(pid){delete openCm[pid];posts=posts.filter(x=>x.id!==pid);reps=reps.filter(r=>r.post_id!==pid&&!(r.comments&&r.comments.post_id===pid));closeSheet()}
+    else{reps=reps.filter(r=>r.comment_id!==cid);Object.keys(openCm).forEach(k=>{const o=openCm[k];if(o&&o.list&&o.list.some(c=>c.id===cid)){o.list=o.list.filter(c=>c.id!==cid);const po=posts.find(x=>x.id===Number(k));if(po)po.comment_count=Math.max(0,Number(po.comment_count||0)-1)}})}
+    comMsg=(pid?'البوست':'التعليق')+' اتخفى من المجتمع. الإدارة هتراجعه.';render();
+  }catch(e){btn.disabled=false;btn.textContent=modErr(e)}
+}
+async function admUnhide(kind,id,btn){
+  btn.disabled=true;
+  try{await rpc('mod_hide',{p_post:kind==='post'?id:null,p_comment:kind==='post'?null:id,p_on:false});
+    adm.hidden=adm.hidden.filter(h=>!(h.kind===kind&&Number(h.id)===id));comState='new';const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){btn.disabled=false;btn.textContent=srvErr(e)}
+}
+async function admPurge(kind,id,btn){
+  btn.disabled=true;
+  try{if(kind==='post')await delPost(id);else await sbFetch('/rest/v1/comments?id=eq.'+id,{method:'DELETE'});
+    adm.hidden=adm.hidden.filter(h=>!(h.kind===kind&&Number(h.id)===id));const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){btn.disabled=false;btn.textContent=srvErr(e)}
+}
+function admHiddenHtml(){
+  const hs=adm.hidden||[];if(!hs.length)return '<h2>محتوى مخفي</h2><span class="muted">مفيش بوستات ولا تعليقات مخفية.</span>';
+  return `<h2>محتوى مخفي (${hs.length})</h2><span class="muted">حاجات المراقبين خفوها. رجّعها لو مفيهاش مشكلة، أو امسحها خالص.</span><ul class="list">${hs.map(h=>`<li><div class="who"><strong>${h.kind==='post'?'بوست':'تعليق'}</strong><span class="chip">${esc(h.author_name||'من غير اسم')}</span></div>
+    <div class="muted">${esc(String(h.body||'(من غير نص)').slice(0,200))}</div><div class="muted">خفاه ${esc(h.hidden_by_name||'مراقب')} · ${ago(h.hidden_at)}</div>
+    <div class="rowbtns"><button class="btn ghost sm" data-act="admunhide" data-k="${h.kind}" data-id="${h.id}">رجّعه</button><button class="btn ghost sm" data-act="admpurge" data-k="${h.kind}" data-id="${h.id}">امسحه خالص</button></div></li>`).join('')}</ul>`;
+}
 const PT_DEMO=[
   {id:-1,title:'تقرير بعد الرحلة',hint:'بعد كل رحلة: دقيقة واحدة تقولنا اليوم كان عامل إزاي. ده اللي بيظبط مؤشر الصيد.',fields:[{k:'date',label:'يوم الرحلة',type:'date',req:true},{k:'area',label:'المنطقة',type:'area',req:true},{k:'day',label:'الصيد كان عامل إزاي؟',type:'select',opts:['حلو جداً','كويس','متوسط','ضعيف'],req:true},{k:'sea',label:'حالة البحر',type:'select',opts:['هادي','متوسط','عالي']},{k:'fish',label:'أنواع السمك اللي طلعت',type:'text'},{k:'kg',label:'الكمية بالتقريب (كجم)',type:'num'}]},
   {id:-2,title:'مكان جديد للخريطة',hint:'مرسى أو شعب أو منطقة خطر الناس لازم تعرفها. متكتبش طرحاتك الخاصة، دي بتفضل سر ليك.',fields:[{k:'name',label:'اسم المكان',type:'text',req:true},{k:'kind',label:'نوع المكان',type:'select',opts:['مرسى','شعب','منطقة صيد معروفة','مكان خطر','ممنوع فيه الصيد'],req:true},{k:'area',label:'أقرب منطقة',type:'area'},{k:'pos',label:'الإحداثيات أو وصف المكان',type:'text',req:true},{k:'depth',label:'العمق بالمتر',type:'num'},{k:'note',label:'ملاحظة',type:'long'}]},
@@ -2141,6 +2172,7 @@ function mgPartner(){
     <div class="plv"><strong>المستوى: ${lv.name}</strong><span class="muted">${lv.next?'فاضلك '+(lv.next[0]-pts)+' نقطة وتوصل '+lv.next[1]:'وصلت أعلى مستوى'}</span><i><b style="width:${lv.next?Math.round((pts-lv.from)/(lv.next[0]-lv.from)*100):100}%"></b></i></div></div>
   ${isPartner()?'':'<div class="sec"><span class="chip">ده عرض ليك إنت بس. الشركاء هيشوفوا التبويب ده بعد ما تعلّم على حساباتهم من لوحة المالك.</span></div>'}
   ${pt.st==='none'?'<div class="sec"><span class="muted">حساب الشريك لسه متفعّلش على السيرفر، فالإرسال مش هيشتغل. شغّل ملف 014_partners.sql من SQL Editor في Supabase.</span></div>':''}
+  <div class="sec"><div class="trip dg"><strong>إنت مراقب في المجتمع</strong><div class="muted">لو شفت بوست أو تعليق مخالف (إعلان، شتيمة، حاجة ملهاش علاقة بالصيد): دوس على الـ3 نقط في البوست واختار "اخفي البوست"، أو "اخفي" تحت التعليق. المحتوى بيختفي من عند الناس، والإدارة بتراجعه وتقدر ترجّعه. والبلاغات بتظهرلك فوق في صفحة المجتمع.</div><button class="btn ghost sm" data-act="nav" data-v="community">روح المجتمع</button></div></div>
   <div class="sec"><h2>المهام</h2>${pt.done?`<span class="chip okc">اتبعتت: ${esc(pt.done)}. شكراً ليك.</span>`:''}${list||'<span class="muted">مفيش مهام دلوقتي.</span>'}</div>${board}`;
 }
 function ptInput(f,i){const id='ptf'+i,opt=a=>'<option value="">اختار</option>'+a.map(o=>`<option>${esc(o)}</option>`).join('');
@@ -2172,8 +2204,8 @@ function submitPt(form){
 }
 /* لوحة المالك: تعليم الشركاء وإجاباتهم */
 async function loadAdmPartners(){
-  try{const [ps,as]=await Promise.all([rpc('admin_partners'),rpc('admin_partner_answers')]);
-    adm.pOk=true;adm.pans=as||[];const m={};(ps||[]).forEach(p=>{m[p.id]=Number(p.answers)||0});
+  try{const [ps,as,hs]=await Promise.all([rpc('admin_partners'),rpc('admin_partner_answers'),rpc('admin_hidden')]);
+    adm.pOk=true;adm.pans=as||[];adm.hidden=hs||[];const m={};(ps||[]).forEach(p=>{m[p.id]=Number(p.answers)||0});
     const pp={};(ps||[]).forEach(p=>{pp[p.id]=Number(p.points)||0});adm.users.forEach(u=>{u.is_partner=u.id in m;u.pcount=m[u.id]||0;u.ppts=pp[u.id]||0})}
   catch(e){adm.pOk=false;adm.pans=[]}
   if(view==='manage'&&mtab==='adm')render();
@@ -2189,8 +2221,9 @@ function admPansHtml(){
   if(!adm.pOk)return '<span class="muted">حساب الشريك لسه متفعّلش على السيرفر. شغّل ملف 014_partners.sql من SQL Editor في Supabase.</span>';
   const ps=adm.users.filter(u=>u.is_partner);
   const head=`<span class="muted">${ps.length?'الشركاء ('+ps.length+'): '+ps.slice().sort((a,b)=>b.ppts-a.ppts).map(u=>esc(u.name||'من غير اسم')+' ('+u.ppts+' نقطة، '+u.pcount+' مساهمة)').join('، '):'لسه مفيش شركاء. علّم على حساب من قايمة المشتركين بزرار "خليه شريك مؤسس".'}</span>`;
-  if(!adm.pans.length)return head+'<span class="muted">لسه مفيش إجابات.</span>';
-  return head+'<ul class="list">'+adm.pans.map(a=>{const fs=ptFields(a),an=a.answers||{};
+  const hid=admHiddenHtml();
+  if(!adm.pans.length)return head+'<span class="muted">لسه مفيش إجابات.</span>'+hid;
+  return head+hid+'<h2>إجابات الشركاء</h2><ul class="list">'+adm.pans.map(a=>{const fs=ptFields(a),an=a.answers||{};
     return `<li><div class="who"><strong>${esc(a.task_title)}</strong></div><div class="muted">${esc(a.user_name||'من غير اسم')} · ${ago(a.created_at)}</div>
       ${fs.filter(f=>an[f.k]!==undefined&&an[f.k]!=='').map(f=>`<div><span class="muted">${esc(f.label)}:</span> ${esc(String(an[f.k]))}</div>`).join('')}</li>`}).join('')+'</ul>';
 }
@@ -2268,9 +2301,9 @@ function communityView(){
       <button data-act="newpost" data-k="question">${ic('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.500a2.5 2.5 0 1 1 3.5 2.300c-.700.4-1 1-1 1.700M12 17h.01"/>')}سؤال</button></div></div>`;
   const filt=`<div class="fchips" role="group" aria-label="فلتر البوستات">${comUser?`<button class="fchip" data-act="cuserx" aria-pressed="true">بوستات ${esc(comUser.name)} ✕</button>`:''}<button class="fchip" data-act="ckind" data-k="" aria-pressed="${!comKind}">الكل</button>${POST_KINDS.map(k=>`<button class="fchip" data-act="ckind" data-k="${k[0]}" aria-pressed="${k[0]===comKind}">${k[2]}</button>`).join('')}
     <select class="fchip" id="cArea" aria-label="المنطقة"><option value="">كل المناطق</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===comArea?'selected':''}>${a.name}</option>`).join('')}</select></div>`;
-  const repBlock=isAdmin()&&reps.length?`<div class="sec"><h2>بلاغات (${reps.length})</h2><ul class="list">${reps.map(r=>{const t=r.comment_id?(r.comments&&r.comments.body):(r.posts&&r.posts.body);
+  const repBlock=isMod()&&reps.length?`<div class="sec"><h2>بلاغات (${reps.length})</h2><ul class="list">${reps.map(r=>{const t=r.comment_id?(r.comments&&r.comments.body):(r.posts&&r.posts.body);
     return `<li><strong>${r.comment_id?'تعليق':'بوست'}</strong> · ${esc(r.reason||'من غير سبب')}<br><span class="muted">${esc(String(t||'(من غير نص)').slice(0,140))}</span>
-      <div class="rowbtns" style="margin-top:8px"><button class="btn ghost sm" data-act="repdel" data-id="${r.id}">امسح المحتوى</button><button class="btn ghost sm" data-act="repskip" data-id="${r.id}">تجاهل البلاغ</button></div></li>`}).join('')}</ul></div>`:'';
+      <div class="rowbtns" style="margin-top:8px">${isAdmin()?`<button class="btn ghost sm" data-act="repdel" data-id="${r.id}">امسح المحتوى</button>`:`<button class="btn ghost sm" data-act="rephide" data-id="${r.id}">اخفي المحتوى</button>`}<button class="btn ghost sm" data-act="repskip" data-id="${r.id}">تجاهل البلاغ</button></div></li>`}).join('')}</ul></div>`:'';
   let body;
   if(comState==='fail')body=`<span class="err" role="alert">${esc(comErr)}</span><button class="btn ghost" data-act="comreload">جرّب تاني</button>`;
   else if(!posts.length)body=`<span class="muted">${comState==='loading'?'بنحمّل البوستات...':comKind||comArea||comUser?'مفيش بوستات بالاختيارات دي.':'لسه مفيش بوستات. ابدأ إنت بأول بوست.'}</span>`;
@@ -2289,7 +2322,7 @@ async function loadPosts(reset){
     const last=posts.length?posts[posts.length-1].id:0;
     const rows=await sbFetch('/rest/v1/posts_public?select=*&order=id.desc&limit='+POSTS_PAGE+(comKind?'&kind=eq.'+comKind:'')+(comArea?'&area=eq.'+comArea:'')+(comUser?'&user_id=eq.'+comUser.id:'')+(last?'&id=lt.'+last:''));
     let rp=[];
-    if(isAdmin())try{rp=await sbFetch('/rest/v1/reports?select=id,reason,post_id,comment_id,posts!reports_post_id_fkey(body),comments!reports_comment_id_fkey(body,post_id)&order=id.desc&limit=50')}catch(e){}
+    if(isMod())try{rp=await sbFetch('/rest/v1/reports?select=id,reason,post_id,comment_id,posts!reports_post_id_fkey(body),comments!reports_comment_id_fkey(body,post_id)&order=id.desc&limit=50')}catch(e){}
     if(my!==comSeq)return;
     if(pin)posts.push(pin);
     posts=posts.concat(rows.filter(x=>!posts.some(y=>y.id===x.id)));comMore=rows.length===POSTS_PAGE;reps=rp;comState='ok';
@@ -2413,7 +2446,7 @@ async function toggleLike(id){
 function cmHtml(pid){
   const s=openCm[pid];if(!s)return '';
   const list=s.list===null?'<span class="muted">بنحمّل التعليقات...</span>':s.list.map(c=>`<div class="cm">${avatar(c.user_id,c.author_name,'sm',c.author_avatar)}<div class="cmb"><div class="bub"><strong>${esc(c.author_name||'عضو')}${c.author_verified?' '+VERIFIED:''}${c.author_partner?' '+PARTNER:''}</strong><p>${esc(c.body)}</p></div>
-    <div class="cmm"><span>${ago(c.created_at)}</span>${c.user_id===uid()?'':`<button data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id===uid()||isAdmin()?`<button data-act="delcmt" data-id="${c.id}" data-pid="${pid}">امسح</button>`:''}</div></div></div>`).join('');
+    <div class="cmm"><span>${ago(c.created_at)}</span>${c.user_id===uid()?'':`<button data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id!==uid()&&canHide()?`<button data-act="hidecmt" data-id="${c.id}">اخفي</button>`:''}${c.user_id===uid()||isAdmin()?`<button data-act="delcmt" data-id="${c.id}" data-pid="${pid}">امسح</button>`:''}</div></div></div>`).join('');
   return `<div class="cms">${s.err?'<span class="err" role="alert">'+esc(s.err)+'</span>':''}${list}
     ${uid()?`<form class="cmf" data-pid="${pid}" novalidate>${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}<input name="t" maxlength="600" autocomplete="off" enterkeyhint="send" placeholder="اكتب تعليق..." aria-label="اكتب تعليق"><button type="submit" aria-label="ابعت التعليق">${SEND}</button></form>`
       :'<button class="cmlogin" data-act="cmlogin">ادخل بحسابك عشان تعلّق</button>'}</div>`;
@@ -2462,6 +2495,7 @@ function openPostMenu(id){
   $('#sheet').innerHTML=`<h2>اختيارات البوست</h2>
     <button class="q" data-act="pcopy" data-id="${id}">انسخ لينك البوست</button>
     ${mine?'':`<button class="q" data-act="report" data-pid="${id}">بلّغ عن البوست</button>`}
+    ${!mine&&canHide()?`<button class="q" data-act="hidepost" data-id="${id}"><strong>اخفي البوست (مراقبة)</strong><br><span class="muted">بيختفي من المجتمع، والإدارة بتراجعه.</span></button>`:''}
     ${mine||isAdmin()?`<button class="q" data-act="delpost" data-id="${id}">امسح البوست</button>`:''}
     <button class="btn ghost" type="button" data-act="close">قفل</button>`;
   $('#ovl').hidden=false;
@@ -2988,6 +3022,10 @@ document.addEventListener('click',e=>{
   else if(act==='comreload')loadPosts(true);
   else if(act==='commore'){a.disabled=true;loadPosts(false)}
   else if(act==='repdel')repAct(Number(a.dataset.id),true,a);
+  else if(act==='rephide'){const r=reps.find(x=>x.id===Number(a.dataset.id));if(r&&isMod())modHide(r.comment_id?0:r.post_id,r.comment_id||0,a)}
+  else if(act==='hidepost'){if(canHide())modHide(Number(a.dataset.id),0,a)}
+  else if(act==='hidecmt'){if(canHide())modHide(0,Number(a.dataset.id),a)}
+  else if(act==='admunhide'||act==='admpurge'){if(isAdmin()&&/^\d+$/.test(a.dataset.id)&&['post','comment'].includes(a.dataset.k))(act==='admunhide'?admUnhide:admPurge)(a.dataset.k,Number(a.dataset.id),a)}
   else if(act==='repskip')repAct(Number(a.dataset.id),false,a);
   else if(act==='star'){starSel=Number(a.dataset.n);document.querySelectorAll('.st').forEach((b,i)=>{b.classList.toggle('on',i<starSel);b.setAttribute('aria-pressed',i<starSel?'true':'false')})}
 });
