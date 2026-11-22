@@ -446,6 +446,25 @@ select.fchip{padding:0 10px}
 .pv img{width:100%;height:100%;object-fit:cover;display:block}
 .pv button{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(14,42,68,.85);color:#fff;font-weight:800;line-height:1;padding:0}
 .zoom{display:block;max-width:100%;max-height:70vh;margin:0 auto;border-radius:14px}
+/* الأمان وإدارة المركب (وضع التجربة) */
+.seg.s4{grid-template-columns:repeat(4,1fr)}.seg.s4 button{font-size:13px;padding:0 2px}
+.labs .lbn{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.labs .lbn::-webkit-scrollbar{display:none}
+.labs .lbn button{flex:none;border:1px solid #E0B040;background:#fff;color:#6B4A00;font-weight:800;border-radius:999px;min-height:36px;padding:0 12px;font-size:13px}
+.labs .lbn button[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.sosc{display:flex;flex-direction:column;gap:10px}.sosc form{display:flex;flex-direction:column;gap:8px}
+.btn.sosb{background:linear-gradient(180deg,#E5484D,#C6282D);box-shadow:0 6px 14px rgba(198,40,45,.3);min-height:56px;font-size:17px}
+a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}
+.dg ol,.dg ul{margin:6px 0 0;padding:0 20px 0 0;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.bzf{margin:0}.bzf .two>*{min-width:0}.bzf input,.bzf select{min-width:0;width:100%;box-sizing:border-box}
+.dg .chip,.chip.warn{align-self:flex-start}
+.bzr{display:flex;justify-content:flex-end}.bzx{border:0;background:none;color:#B3261E;font-weight:700;min-height:36px;padding:0 6px;font-size:13px}.bzf form{display:flex;flex-direction:column;gap:10px}
+.bzo{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+.plv{align-self:stretch;display:flex;flex-direction:column;gap:4px}.plv i{display:flex;justify-content:flex-start;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.plv i b{display:block;height:100%;background:linear-gradient(90deg,#F6CC55,#E0A020);border-radius:99px}
+.pbr{display:flex;align-items:center;gap:8px}.pbr .rk{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}.pbr strong{flex:1}
+/* شارة ولوحة الشريك المؤسس */
+.pbdg{display:inline-block;font-size:11px;font-weight:800;color:#6B4A00;background:linear-gradient(180deg,#FFE9A8,#F6CC55);border:1px solid #E0B040;border-radius:999px;padding:1px 9px;white-space:nowrap;vertical-align:middle}
+.pth{display:flex;flex-direction:column;gap:8px;align-items:flex-start;border:1.5px solid #E0B040}.pth .tiles{align-self:stretch}
+.ptq .chip{margin-inline-start:8px;font-size:11px}
 /* وضع التجربة والاشتراكات (لحساب الإدارة بس) */
 .labs{margin:12px 16px 0;padding:10px 12px;border-radius:18px;background:#FFF6E0;border:1px dashed #E0B040;display:flex;flex-direction:column;gap:8px}
 .labs .lbt{display:flex;align-items:center;gap:8px;font-size:13px}.labs .lbt span{color:#7A5A10;flex:1}
@@ -1201,7 +1220,7 @@ async function doAuth(email,pw,name,phone,kind){
 async function signOut(){
   await dropSub(false); /* الإشعارات متكملش توصل للجهاز ده بعد الخروج */
   try{await sbFetch('/auth/v1/logout',{method:'POST'})}catch(e){}
-  notifOn=false;notifMsg='';saveSes(null);me=null;adm={st:'new',stats:null,users:[],trips:[],q:'',sub:'users',err:''};bookings.length=0;blocks.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
+  notifOn=false;notifMsg='';saveSes(null);me=null;pt=ptNew();adm={st:'new',stats:null,users:[],trips:[],q:'',sub:'users',err:''};bookings.length=0;blocks.length=0;logSrv=false;logs=[];role='org';authMode='in';authMsg='';
   await loadSrv();
 }
 async function setRole(r){
@@ -1845,7 +1864,7 @@ const rpc=(fn,body)=>sbFetch('/rest/v1/rpc/'+fn,{method:'POST',body:body||{}});
 async function loadAdm(){
   adm.st='loading';adm.err='';
   try{const [st,us,ts]=await Promise.all([rpc('admin_stats'),rpc('admin_users'),rpc('admin_trips')]);
-    adm.stats=st||{};adm.users=us||[];adm.trips=ts||[];adm.st='ok'}
+    adm.stats=st||{};adm.users=us||[];adm.trips=ts||[];adm.st='ok';if(labs())loadAdmPartners()}
   catch(e){adm.st=(e.status===404||/PGRST202|42883/.test(String(e.code)))?'none':'fail';adm.err=srvErr(e)}
   if(view==='manage'&&mtab==='adm')render();
 }
@@ -1854,11 +1873,11 @@ function admUsersHtml(){
   const q=adm.q.trim().toLowerCase(),list=q?adm.users.filter(u=>[u.name,u.phone,u.email].some(v=>String(v||'').toLowerCase().includes(q))):adm.users;
   if(!list.length)return '<span class="muted">'+(q?'مفيش مشترك بالاسم أو الرقم ده.':'لسه مفيش مشتركين.')+'</span>';
   return '<ul class="list">'+list.slice(0,200).map(u=>{const pro=u.role!=='angler',ph=telNum(u.phone);
-    return `<li><div class="mgu">${avatar(u.id,u.name,'sm')}<div class="fbn"><div class="who"><strong>${esc(u.name||'من غير اسم')}</strong>${u.verified?VERIFIED:''}<span class="chip">${ROLE_NAME[u.role]||'صياد'}</span>${u.is_admin?'<span class="chip">إدارة</span>':''}</div>
+    return `<li><div class="mgu">${avatar(u.id,u.name,'sm')}<div class="fbn"><div class="who"><strong>${esc(u.name||'من غير اسم')}</strong>${u.verified?VERIFIED:''}${u.is_partner?PARTNER:''}<span class="chip">${ROLE_NAME[u.role]||'صياد'}</span>${u.is_admin?'<span class="chip">إدارة</span>':''}</div>
         <div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(u.email||'')}</div>
         <div class="muted">سجّل ${dShort(u.created_at)}${u.last_seen?' · آخر دخول '+ago(u.last_seen):''}</div>
         <div class="muted">${Number(u.bookings)||0} حجز · ${Number(u.trips)||0} رحلة منشورة · ${Number(u.posts)||0} بوست</div></div></div>
-      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}</div></li>`}).join('')+'</ul>'
+      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}${labs()&&adm.pOk?`<button class="btn ghost sm" data-act="admpartner" data-id="${esc(u.id)}" data-on="${u.is_partner?'0':'1'}">${u.is_partner?'شيل الشراكة':'خليه شريك مؤسس'}</button>`:''}</div></li>`}).join('')+'</ul>'
     +(list.length>200?'<span class="muted">ظاهر أول 200. اكتب في البحث عشان توصل للباقي.</span>':'');
 }
 function admTripsHtml(){
@@ -1880,9 +1899,9 @@ function mgAdmin(){
   <div class="sec"><h2>نشاط التطبيق</h2>
     <div class="tiles t2"><div class="tile"><b>${n('trips_upcoming')}</b><span>رحلة قادمة من ${n('trips_total')} منشورة</span></div><div class="tile"><b>${n('bookings')}</b><span>حجز شغال (${n('seats')} مكان)</span></div><div class="tile"><b>${n('bookings_week')}</b><span>حجز آخر 7 أيام</span></div><div class="tile"><b>${n('boats')}</b><span>مركب مسجلة</span></div><div class="tile"><b>${n('posts')}</b><span>بوست و${n('comments')} تعليق</span></div><div class="tile"><b>${n('catches')}</b><span>صيدة في السجلات</span></div></div>
     ${n('reports')?`<button class="q" data-act="nav" data-v="community">في ${n('reports')===1?'بلاغ واحد مستني':n('reports')+' بلاغات مستنية'} مراجعتك في المجتمع</button>`:''}</div>
-  <div class="sec"><div class="seg" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button></div>
+  <div class="sec"><div class="seg${labs()?' s3':''}" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button>${labs()?`<button data-act="admsub" data-s="pans" aria-pressed="${adm.sub==='pans'}">الشركاء</button>`:''}</div>
     ${adm.sub==='users'?`<input id="admQ" type="search" maxlength="60" autocomplete="off" placeholder="دوّر بالاسم أو الموبايل أو الإيميل" aria-label="بحث في المشتركين" value="${esc(adm.q)}"><div id="admList" style="display:flex;flex-direction:column;gap:8px">${admUsersHtml()}</div>`
-      :`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
+      :adm.sub==='pans'&&labs()?admPansHtml():`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
 }
 async function admVerify(id,on,btn){
   btn.disabled=true;
@@ -1896,12 +1915,12 @@ function manageView(){
   const on=srvOn();
   if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تتابع رحلاتك وحجوزاتك. الحساب بيتعمل كصياد أو منظم رحلات أو صاحب مركب، ولكل واحد لوحة مناسبة لشغله.</span></div><div class="card">${authCard()}</div>${logView()}`;
   const d=mgData(),R=role==='owner'?'owner':role==='angler'?'angler':'org',nm=String((me&&me.name)||'').trim()||'حسابي';
-  const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
+  const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}${isPartner()?PARTNER:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
     :`<div class="sec"><h2>الإدارة</h2>${srvNote()}<span class="muted">ده عرض تجريبي للوحة ${R==='owner'?'صاحب المركب':R==='angler'?'الصياد':'منظم الرحلات'}. غيّر نوع الحساب من تحت عشان تشوف الباقي.</span></div>`;
-  const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية'],['cal','الجدول']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
+  const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(partnerTab()?[['partner','مهام الشريك']]:[],R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية'],['cal','الجدول']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
-  const body=mtab==='adm'?mgAdmin():mtab==='log'?(can('log')?logView():lockCard('log','سجل الصيد','سجّل صيدك، والتطبيق يتعرف على السمكة من الصورة.')):R!=='angler'&&mtab!=='mine'&&!can('dash')?lockCard('dash','لوحة الإدارة','جدول الكراسي وتقويم المركب ونشر الرحلات والتقييمات.'):R==='angler'?mgAngler(true):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
+  const body=mtab==='adm'?mgAdmin():mtab==='partner'?mgPartner():mtab==='log'?(can('log')?logView():lockCard('log','سجل الصيد','سجّل صيدك، والتطبيق يتعرف على السمكة من الصورة.')):R!=='angler'&&mtab!=='mine'&&!can('dash')?lockCard('dash','لوحة الإدارة','جدول الكراسي وتقويم المركب ونشر الرحلات والتقييمات.'):R==='angler'?mgAngler(true):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
   /* نوع الحساب بيتختار وقت التسجيل وبيتغيّر من نافذة الحساب. هنا بيظهر في العرض التجريبي بس (من غير سيرفر) */
   if(on)return `${head}${chips}${body}`;
@@ -1938,9 +1957,9 @@ const PLANS={
   free:{name:'فري',price:'مجاني',who:'لأي صياد',feats:['الجو والمد والجزر وأحسن أيام الصيد','عرض الرحلات والحجز','المجتمع','الخريطة: مناطق الصيد بس','فيها إعلانات']},
   pro:{name:'برو',price:'100',per:1,who:'للصياد',feats:['كل اللي في الفري، من غير إعلانات','تنبيه الصبح بالأيام الحلوة اللي فيها أماكن فاضية','اسأل فيش بوك وتخطيط لشهر قدام','سجل الصيد والتعرف على السمك من الصورة','الخريطة: تسجّل طرحاتك (لحد 20 طرحة)']},
   max:{name:'ماكس',price:'500',per:1,who:'لأصحاب المراكب والمنظمين',feats:['كل اللي في البرو','لوحة الإدارة: الكراسي والتقويم ونشر الرحلات والتقييمات','الخريطة كاملة: طرحات من غير حد وتسجيل التراك','طرحاتك سرية ليك إنت بس']},
-  biz:{name:'ماكس بيزنس',price:'1000',per:1,who:'لصاحب المركب اللي عنده طاقم',soon:1,feats:['كل اللي في الماكس','حسابات للريس والبحرية بصلاحيات','جدول الطاقم ومصاريف كل رحلة','حصص البحرية وتقرير المكسب','تنبيهات الصيانة وتجديد التراخيص']}};
+  biz:{name:'ماكس بيزنس',price:'1000',per:1,who:'لصاحب المركب اللي عنده طاقم',short:'بيزنس',feats:['كل اللي في الماكس','حسابات للريس والبحرية بصلاحيات','جدول الطاقم ومصاريف كل رحلة','حصص البحرية وتقرير المكسب','تنبيهات الصيانة وتجديد التراخيص']}};
 const PLAN_ORDER=['free','pro','max','biz'];
-const NEED={ask:'pro',log:'pro',marks:'pro',noads:'pro',track:'max',dash:'max',marksMany:'max'};
+const NEED={ask:'pro',log:'pro',marks:'pro',noads:'pro',track:'max',dash:'max',marksMany:'max',biz:'biz'};
 const PRO_MARKS=20;
 const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
@@ -1960,8 +1979,9 @@ const ADS=[['مساحة إعلان لمحل عدة صيد','هنا هيظهر إ
 function adSlot(i){if(can('noads'))return '';const a=ADS[i%ADS.length];
   return `<div class="card ad"><span class="adt">إعلان</span><strong>${a[0]}</strong><span class="muted">${a[1]} الإعلانات بتظهر في الفري بس، والبرو من غير إعلانات.</span></div>`}
 function labsBar(){if(!labs())return '';
-  return `<div class="labs"><div class="lbt"><b>وضع التجربة</b><span>ظاهر ليك إنت بس</span><button data-act="plans">الباقات</button></div>
-  <div class="seg s3" role="group" aria-label="الباقة التجريبية">${['free','pro','max'].map(k=>`<button data-act="plantest" data-p="${k}" aria-pressed="${testPlan===k}">${PLANS[k].name}</button>`).join('')}</div></div>`}
+  return `<div class="labs"><div class="lbt"><b>وضع التجربة</b><span>ظاهر ليك إنت بس</span></div>
+  <div class="seg s4" role="group" aria-label="الباقة التجريبية">${PLAN_ORDER.map(k=>`<button data-act="plantest" data-p="${k}" aria-pressed="${testPlan===k}">${PLANS[k].short||PLANS[k].name}</button>`).join('')}</div>
+  <div class="lbn">${[['plans','الباقات'],['safety','الأمان والدليل'],['biz','إدارة المركب'],['partner','مهام الشريك']].map(x=>`<button data-act="labgo" data-v="${x[0]}" aria-pressed="${view===x[0]||(view==='manage'&&mtab===x[0])}">${x[1]}</button>`).join('')}</div></div>`}
 function plansView(){
   const card=k=>{const p=PLANS[k],cur=testPlan===k;
     return `<div class="card plan${k==='pro'?' hot':''}"><div class="ph"><h2>${p.name}</h2>${cur?'<span class="chip">باقتك دلوقتي</span>':p.soon?'<span class="chip">قريب</span>':k==='pro'?'<span class="chip">الأنسب للصياد</span>':''}</div>
@@ -1971,6 +1991,208 @@ function plansView(){
   return `<div class="sec"><h2>الاشتراكات</h2><span class="muted">اختار الباقة اللي تناسبك. تقدر تغيّرها أو تلغيها في أي وقت.</span></div>
   ${PLAN_ORDER.map(card).join('')}
   <div class="sec"><span class="muted">الدفع لسه مش شغال. في وضع التجربة، زرار الاشتراك بيغيّر الباقة على جهازك بس عشان تشوف شكل التطبيق فيها.</span></div>`;
+}
+/* ---------- الأمان ودليل السمك (وضع التجربة بس) ----------
+   زرار الطوارئ ومشاركة المكان بيجهّزوا رسالة فيها الإحداثيات ولينك خريطة، وتتبعت بواتساب أو SMS.
+   مشاركة لحظية (مش متابعة مستمرة). رقم الطوارئ بيتحفظ على الجهاز بس. */
+let sosNum=lsGet('fishbook-sos','');
+const DANGER=[
+  ['القراض (الأرنب، البالون)','سام لو اتاكل','لحمه وأحشاؤه فيهم سم قوي مبيروحش بالطبخ. متاكلوش ومتبيعوش.','eat'],
+  ['سمكة الحجر','شوكها سام جداً','شكلها زي الحجر وبتقعد على القاع. الشكّة منها خطيرة ومحتاجة مستشفى فوراً.','spine'],
+  ['سمكة الأسد (الديك)','شوكها سام','شوك الضهر الطويل بيوجع جداً. امسكها بحذر أو اقطع الخيط.','spine'],
+  ['العقرب','شوكها سام','شبه سمكة الحجر وبتستخبى في الشعاب. نفس إسعاف سمكة الحجر.','spine'],
+  ['الراي اللاسع (الوطواط)','شوكة الديل سامة','الشوكة اللي في الديل بتجرح وفيها سم. متقربش من الديل.','spine'],
+  ['السيجان (البطاطا)','شوكها بيوجع','سمكة بتتاكل عادي، بس شوك الزعانف فيه سم خفيف بيوجع.','spine'],
+  ['الموراي (الثعبان)','بيعض','عضته بتجرح جامد وبتتلوث. متحطش إيدك في بقه وانت بتطلّع السنارة.','bite'],
+  ['الباراكودا والقرش','أسنان حادة','خلي بالك من البق وانت بتشيل السنارة، حتى لو السمكة باين عليها ميتة.','bite']];
+const AID=[
+  ['شكّة شوك سام',['اطلع من الميه واقعد، ومتتحركش كتير.','شيل أي شوك باين من غير ما تعصر مكان الشكّة.','حط مكان الشكّة في ميه سخنة على قد ما تستحمل، من غير ما تتحرق، من 30 لـ 90 دقيقة.','روح أقرب مستشفى. في سمكة الحجر روح فوراً ومتستناش.']],
+  ['عضة أو جرح',['اغسل الجرح بميه نضيفة.','اضغط عليه بقماشة نضيفة لحد ما النزيف يقف.','روح المستشفى لو الجرح عميق أو النزيف مش بيقف.']],
+  ['أكل سمك سام',['الأعراض: تنميل في البق والوش، دوخة، ترجيع، صعوبة في التنفس.','متستناش الأعراض تزيد. روح المستشفى فوراً وقول أكلت سمك إيه.']]];
+const RULES=['صيد القرش ممنوع في البحر الأحمر.','السلاحف والدلافين وعروسة البحر محمية، وممنوع صيدها أو إيذاؤها.','ممنوع تكسير أو جمع الشعاب المرجانية والأصداف الحية.','الصيد ممنوع جوه المحميات الطبيعية إلا في الأماكن المسموح بيها.','الصيد بالحربة (الهاربون) ممنوع في البحر الأحمر.','ممنوع ترمي المخطاف على الشعاب. اربط في الشمندورة.','رجّع السمك الصغير للميه.'];
+function safetyView(){
+  const tag={eat:'warn',spine:'warn',bite:''};
+  return `<div class="card sosc"><h2>الطوارئ</h2><span class="muted">الزرار بيحدد مكانك ويجهّز رسالة استغاثة فيها الإحداثيات ولينك الخريطة، وإنت تبعتها بواتساب أو رسالة عادية.</span>
+    <button class="btn sosb" data-act="sos">طوارئ: ابعت مكاني</button>
+    <button class="btn ghost" data-act="shareloc">شارك مكاني مع الأهل</button>
+    <form id="sosForm" novalidate><label for="sosNum">رقم حد من الأهل (الرسالة تروحله على طول)<input id="sosNum" type="tel" inputmode="tel" maxlength="15" autocomplete="off" value="${esc(sosNum)}" placeholder="01xxxxxxxxx"></label>
+      <div class="err" id="sosErr" role="alert"></div><div class="rowbtns"><button class="btn ghost sm" type="submit">احفظ الرقم</button>${sosNum?'<span class="chip okc" style="align-self:center">محفوظ على الجهاز ده</span>':''}</div></form>
+    <span class="muted">المشاركة لحظية: بتبعت مكانك وقت ما تدوس بس. الرسالة محتاجة شبكة موبايل.</span></div>
+  <div class="sec"><h2>أسماك خطرة</h2><span class="chip warn">قايمة مبدئية، لسه هتتراجع مع صيادين الغردقة القدام</span>
+    ${DANGER.map(d=>`<div class="trip dg"><strong>${d[0]}</strong> <span class="chip ${tag[d[3]]}">${d[1]}</span><div class="muted">${d[2]}</div></div>`).join('')}</div>
+  <div class="sec"><h2>الإسعافات الأولية</h2>${AID.map(a=>`<div class="trip dg"><strong>${a[0]}</strong><ol>${a[1].map(x=>'<li>'+x+'</li>').join('')}</ol></div>`).join('')}
+    <span class="muted">دي إسعافات أولية بس ومش بديل عن الدكتور. الإسعاف 123.</span></div>
+  <div class="sec"><h2>قوانين الصيد</h2><span class="chip warn">مبدئية: لازم تتراجع مع جهاز شؤون البيئة وهيئة الثروة السمكية قبل ما تنزل للناس</span>
+    <div class="trip dg"><ul>${RULES.map(x=>'<li>'+x+'</li>').join('')}</ul></div></div>`;
+}
+function sosSheet(kind,p,err){
+  const sos=kind==='sos',ll=p?p.lat.toFixed(5)+', '+p.lon.toFixed(5):'';
+  const msg=(sos?'طوارئ! أنا في البحر ومحتاج مساعدة.':'أنا في رحلة صيد وده مكاني دلوقتي.')+(p?'\nالإحداثيات: '+ll+'\nhttps://maps.google.com/?q='+p.lat.toFixed(5)+','+p.lon.toFixed(5):'')+'\nالوقت: '+new Date().toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+  const t=encodeURIComponent(msg),n=sosNum&&telNum(sosNum)?waNum(sosNum):'';
+  $('#sheet').innerHTML=`<h2>${sos?'طوارئ':'شارك مكاني'}</h2>
+    ${p?`<div class="pos" dir="ltr" style="text-align:right">${ll}</div>`:`<span class="err" role="alert">${esc(err||'بنحدد مكانك...')}</span>`}
+    ${p||err?`<a class="btn${sos?' sosb':''}" href="https://wa.me/${n}?text=${t}" target="_blank" rel="noopener noreferrer">ابعت على واتساب${n?' للرقم المحفوظ':''}</a>
+    <a class="btn ghost" href="sms:${sosNum?telNum(sosNum):''}?&body=${t}">ابعت رسالة عادية (SMS)</a>`:''}
+    ${sos?'<div class="rowbtns"><a class="btn ghost" href="tel:122">اتصل بالنجدة 122</a><a class="btn ghost" href="tel:123">الإسعاف 123</a></div>':''}
+    <div class="rowbtns"><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
+  $('#ovl').hidden=false;
+}
+function openSos(kind){
+  if(mePos){sosSheet(kind,mePos);return}
+  if(!navigator.geolocation){sosSheet(kind,null,'الجهاز ده مش بيدّي الموقع. ابعت الرسالة واكتب مكانك بإيدك.');return}
+  sosSheet(kind,null,'');
+  navigator.geolocation.getCurrentPosition(g=>sosSheet(kind,{lat:g.coords.latitude,lon:g.coords.longitude}),
+    e=>sosSheet(kind,null,e.code===1?'محتاجين إذن الموقع. ابعت الرسالة واكتب مكانك بإيدك.':'معرفناش نحدد مكانك. ابعت الرسالة واكتب مكانك بإيدك.'),
+    {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+/* ---------- إدارة المركب: باقة ماكس بيزنس (وضع التجربة بس) ----------
+   الطاقم وحصصهم، مصاريف ودخل كل رحلة، تقسيم الصافي، وتنبيهات الصيانة والتراخيص.
+   البيانات على الجهاز ده بس دلوقتي. حسابات الطاقم بصلاحيات محتاجة السيرفر وهتتعمل بعدين. */
+let biz={crew:[],trips:[],rem:[],own:50};
+try{const b=JSON.parse(lsGet('fishbook-biz','null'));if(b&&Array.isArray(b.crew)&&Array.isArray(b.trips)&&Array.isArray(b.rem))biz=Object.assign(biz,b)}catch(e){}
+const bizSave=()=>lsSet('fishbook-biz',JSON.stringify(biz));
+const bizExp=t=>(t.fuel||0)+(t.ice||0)+(t.food||0)+(t.other||0);
+const BIZ_JOBS=['ريس','بحري','طباخ','ميكانيكي'],BIZ_REMS=['صيانة الموتور','تجديد ترخيص المركب','تجديد التأمين','فحص معدات السلامة','تغيير الزيت','حاجة تانية'];
+const egp=n=>money(Math.round(n))+' جنيه';
+function bizSplit(net){
+  const sh=biz.crew.reduce((n,c)=>n+c.share,0);if(net<=0||!sh)return '';
+  const pot=net*(100-biz.own)/100;
+  return `<div class="muted">المركب: ${egp(net-pot)} · ${biz.crew.map(c=>esc(c.name)+': '+egp(pot*c.share/sh)).join(' · ')}</div>`;
+}
+function bizView(){
+  const ym=iso(today).slice(0,7),mt=biz.trips.filter(t=>t.date.slice(0,7)===ym),inc=mt.reduce((n,t)=>n+t.income,0),ex=mt.reduce((n,t)=>n+bizExp(t),0);
+  const num=(id,l)=>`<label for="${id}">${l}<input id="${id}" type="number" inputmode="decimal" min="0" max="10000000" step="any"></label>`;
+  const del=(k,id)=>`<button class="bzx" data-act="bizdel" data-k="${k}" data-id="${id}">امسح</button>`;
+  const trips=biz.trips.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(t=>{const e=bizExp(t),net=t.income-e;
+    return `<li><div class="who"><strong>${esc(t.name||'رحلة')}</strong><span class="chip">${gDate(fromIso(t.date))}</span></div>
+      <div class="muted">الدخل ${egp(t.income)} · المصاريف ${egp(e)} (سولار ${money(t.fuel||0)}، تلج ${money(t.ice||0)}، أكل ${money(t.food||0)}، تاني ${money(t.other||0)})</div>
+      <div><strong>الصافي ${egp(net)}</strong></div>${bizSplit(net)}<div class="bzr">${del('trips',t.id)}</div></li>`}).join('');
+  const rems=biz.rem.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(r=>{const d=Math.ceil((fromIso(r.date)-today)/864e5);
+    return `<li><div class="who"><strong>${esc(r.title)}</strong><span class="chip ${d<0?'warn':d<=14?'warn':'okc'}">${d<0?'فات من '+(-d)+' يوم':d===0?'النهارده':'فاضل '+d+' يوم'}</span></div><div class="muted">${gDate(fromIso(r.date))}</div><div class="bzr">${del('rem',r.id)}</div></li>`}).join('');
+  return `<div class="sec"><h2>إدارة المركب</h2><span class="muted">ماكس بيزنس: الطاقم والمصاريف والحصص والمكسب في مكان واحد. البيانات محفوظة على الجهاز ده بس دلوقتي.</span>
+    <div class="tiles"><div class="tile"><b>${money(Math.round(inc))}</b><span>دخل الشهر</span></div><div class="tile"><b>${money(Math.round(ex))}</b><span>مصاريف الشهر</span></div><div class="tile"><b>${money(Math.round(inc-ex))}</b><span>صافي الشهر</span></div></div></div>
+  <div class="sec"><h2>الطاقم (${biz.crew.length})</h2>
+    ${biz.crew.length?'<ul class="list">'+biz.crew.map(c=>`<li><div class="who"><strong>${esc(c.name)}</strong><span class="chip">${esc(c.job)}</span><span class="chip okc">${c.share} سهم</span></div><div class="bzr">${del('crew',c.id)}</div></li>`).join('')+'</ul>':'<span class="muted">ضيف الريس والبحرية، ولكل واحد عدد أسهمه في الرحلة.</span>'}
+    <div class="card bzf"><form id="bizCrewF" novalidate><label for="bcName">الاسم<input id="bcName" maxlength="30" autocomplete="off"></label>
+      <div class="two"><label for="bcJob">الشغلانة<select id="bcJob">${BIZ_JOBS.map(j=>'<option>'+j+'</option>').join('')}</select></label><label for="bcShare">عدد الأسهم<input id="bcShare" type="number" inputmode="decimal" min="0.5" max="10" step="0.5" value="1"></label></div>
+      <div class="err" id="bcErr" role="alert"></div><button class="btn" type="submit">ضيف للطاقم</button></form></div>
+    <div class="bzo"><span>نصيب المركب من الصافي: <strong>${biz.own}%</strong>، والباقي للطاقم بالأسهم</span><span class="rowbtns"><button class="btn ghost sm" data-act="bizown" data-d="-5">-5</button><button class="btn ghost sm" data-act="bizown" data-d="5">+5</button></span></div></div>
+  <div class="sec"><h2>الرحلات والمصاريف (${biz.trips.length})</h2>${trips?'<ul class="list">'+trips+'</ul>':'<span class="muted">سجّل دخل ومصاريف كل رحلة، والتطبيق يحسب الصافي ونصيب كل واحد.</span>'}
+    <div class="card bzf"><form id="bizTripF" novalidate><div class="two"><label for="btDate">يوم الرحلة<input id="btDate" type="date" value="${iso(today)}"></label><label for="btName">اسم الرحلة<input id="btName" maxlength="30" autocomplete="off" placeholder="مثلاً: 3 أيام جنوب"></label></div>
+      ${num('btInc','الدخل (جنيه)')}<div class="two">${num('btFuel','سولار')}${num('btIce','تلج')}</div><div class="two">${num('btFood','أكل')}${num('btOther','مصاريف تانية')}</div>
+      <div class="err" id="btErr" role="alert"></div><button class="btn" type="submit">سجّل الرحلة</button></form></div></div>
+  <div class="sec"><h2>الصيانة والتراخيص (${biz.rem.length})</h2>${rems?'<ul class="list">'+rems+'</ul>':'<span class="muted">حط مواعيد الصيانة وتجديد التراخيص، وهتظهرلك هنا قبلها.</span>'}
+    <div class="card bzf"><form id="bizRemF" novalidate><div class="two"><label for="brTitle">الموعد<select id="brTitle">${BIZ_REMS.map(j=>'<option>'+j+'</option>').join('')}</select></label><label for="brDate">التاريخ<input id="brDate" type="date"></label></div>
+      <div class="err" id="brErr" role="alert"></div><button class="btn" type="submit">ضيف الموعد</button></form></div>
+    <span class="muted">لسه جاي: حساب لكل واحد من الطاقم بصلاحياته، وجدول مين طالع في أنهي رحلة، وتنبيه على الموبايل قبل الموعد.</span></div>`;
+}
+function bizSubmit(f){
+  const v=id=>String($('#'+id).value).trim(),n=id=>{const x=Number(v(id));return isFinite(x)&&x>0?x:0},id=Date.now();
+  if(f.id==='bizCrewF'){const name=v('bcName'),share=n('bcShare');if(!name){$('#bcErr').textContent='اكتب الاسم.';return}if(!share){$('#bcErr').textContent='اكتب عدد الأسهم.';return}
+    biz.crew.push({id,name:name.slice(0,30),job:v('bcJob'),share:Math.min(10,share)})}
+  else if(f.id==='bizTripF'){const date=v('btDate'),inc=n('btInc');if(!/^\d{4}-\d\d-\d\d$/.test(date)){$('#btErr').textContent='اختار يوم الرحلة.';return}if(!inc&&!n('btFuel')&&!n('btIce')&&!n('btFood')&&!n('btOther')){$('#btErr').textContent='اكتب الدخل أو المصاريف.';return}
+    biz.trips.push({id,date,name:v('btName').slice(0,30),income:inc,fuel:n('btFuel'),ice:n('btIce'),food:n('btFood'),other:n('btOther')})}
+  else{const date=v('brDate');if(!/^\d{4}-\d\d-\d\d$/.test(date)){$('#brErr').textContent='اختار التاريخ.';return}biz.rem.push({id,title:v('brTitle'),date})}
+  bizSave();const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+}
+/* ---------- حساب الشريك المؤسس ----------
+   الشريك حساب الإدارة علّم عليه is_partner (ملف supabase/014_partners.sql). بياخد شارة "شريك مؤسس"
+   وتبويب "مهام الشريك" في الإدارة: أسئلة وخانات بسيطة بيملاها، والإجابات بتروح للإدارة.
+   المهام في جدول partner_tasks والإدارة بتزوّد عليها من Table Editor. PT_DEMO نفس المهام الأساسية،
+   وبتظهر للإدارة كعرض لو الملف لسه متشغّلش على السيرفر. */
+const PARTNER='<span class="pbdg">★ شريك مؤسس</span>';
+const isPartner=()=>!!(me&&me.is_partner);
+const partnerTab=()=>srvOn()&&!!uid()&&(isPartner()||labs());
+const PT_DEMO=[
+  {id:-1,title:'تقرير بعد الرحلة',hint:'بعد كل رحلة: دقيقة واحدة تقولنا اليوم كان عامل إزاي. ده اللي بيظبط مؤشر الصيد.',fields:[{k:'date',label:'يوم الرحلة',type:'date',req:true},{k:'area',label:'المنطقة',type:'area',req:true},{k:'day',label:'الصيد كان عامل إزاي؟',type:'select',opts:['حلو جداً','كويس','متوسط','ضعيف'],req:true},{k:'sea',label:'حالة البحر',type:'select',opts:['هادي','متوسط','عالي']},{k:'fish',label:'أنواع السمك اللي طلعت',type:'text'},{k:'kg',label:'الكمية بالتقريب (كجم)',type:'num'}]},
+  {id:-2,title:'مكان جديد للخريطة',hint:'مرسى أو شعب أو منطقة خطر الناس لازم تعرفها. متكتبش طرحاتك الخاصة، دي بتفضل سر ليك.',fields:[{k:'name',label:'اسم المكان',type:'text',req:true},{k:'kind',label:'نوع المكان',type:'select',opts:['مرسى','شعب','منطقة صيد معروفة','مكان خطر','ممنوع فيه الصيد'],req:true},{k:'area',label:'أقرب منطقة',type:'area'},{k:'pos',label:'الإحداثيات أو وصف المكان',type:'text',req:true},{k:'depth',label:'العمق بالمتر',type:'num'},{k:'note',label:'ملاحظة',type:'long'}]},
+  {id:-3,title:'موسم سمكة',hint:'نوع سمك تعرف موسمه كويس: امتى بييجي وبيتصاد بإيه.',fields:[{k:'fish',label:'اسم السمكة',type:'text',req:true},{k:'months',label:'أحسن شهور',type:'text',req:true},{k:'bait',label:'الطُعم أو الطريقة',type:'text'},{k:'depth',label:'العمق بالمتر',type:'num'}]},
+  {id:-4,title:'أسعار الرحلات',hint:'سعر رحلة اتعملت قريب، عشان نعرف السوق ماشي إزاي.',fields:[{k:'days',label:'مدة الرحلة بالأيام',type:'num',req:true},{k:'seat',label:'سعر الفرد (جنيه)',type:'num'},{k:'full',label:'سعر المركب كاملة (جنيه)',type:'num'},{k:'note',label:'السعر شامل إيه؟',type:'text'}]},
+  {id:-5,title:'سمكة خطرة أو ممنوعة',hint:'سمكة سامة أو شوكها مؤذي أو ممنوع صيدها، عشان ننبّه الصيادين.',fields:[{k:'fish',label:'اسم السمكة',type:'text',req:true},{k:'why',label:'الخطر',type:'select',opts:['سامة لو اتاكلت','شوكها سام','بتعض أو بتجرح','ممنوع صيدها','حجم صغير ممنوع'],req:true},{k:'note',label:'تتصرف إزاي لو حصل؟',type:'long'}]},
+  {id:-6,title:'جهاز السونار على مركبك',hint:'عشان نعرف نربط التطبيق بالأجهزة الموجودة فعلاً.',fields:[{k:'brand',label:'الماركة (Garmin, Lowrance...)',type:'text',req:true},{k:'model',label:'الموديل',type:'text'},{k:'wifi',label:'فيه واي فاي أو بلوتوث؟',type:'select',opts:['أيوه','لأ','مش عارف']}]},
+  {id:-7,title:'اقتراح أو مشكلة',hint:'ميزة ناقصة، حاجة مش مفهومة، أو غلطة شفتها في التطبيق.',fields:[{k:'kind',label:'النوع',type:'select',opts:['ميزة جديدة','مشكلة في التطبيق','معلومة غلط'],req:true},{k:'text',label:'اكتب بالتفصيل',type:'long',req:true}]}];
+PT_DEMO.forEach((t,i)=>{t.points=[10,20,15,10,10,15,5][i]});
+const PT_LEVELS=[[0,'برونزي'],[100,'فضي'],[300,'ذهبي']];
+const ptTaskPts=id=>{const t=pt.tasks.find(x=>x.id===id);return t&&typeof t.points==='number'?t.points:10};
+const ptPts=()=>pt.mine.reduce((n,a)=>n+ptTaskPts(a.task_id),0);
+const ptLevel=n=>{let i=0;PT_LEVELS.forEach((l,j)=>{if(n>=l[0])i=j});return {name:PT_LEVELS[i][1],next:PT_LEVELS[i+1]||null,from:PT_LEVELS[i][0]}};
+const ptNew=()=>({st:'new',tasks:[],mine:[],board:[],done:'',err:''});
+let pt=ptNew();
+const ptMissing=e=>e.status===404||/PGRST205|PGRST202|42P01|42883/.test(String(e.code));
+const ptFields=t=>Array.isArray(t&&t.fields)?t.fields.filter(f=>f&&typeof f.k==='string'&&f.label):[];
+async function loadPartner(){
+  pt.st='loading';pt.err='';
+  try{const [ts,as]=await Promise.all([sbFetch('/rest/v1/partner_tasks?select=*&active=eq.true&order=sort,id'),sbFetch('/rest/v1/partner_answers?select=id,task_id,created_at&user_id=eq.'+uid()+'&order=id.desc&limit=500')]);
+    pt.tasks=ts||[];pt.mine=as||[];pt.st='ok';try{pt.board=await rpc('partner_board')||[]}catch(e){pt.board=[]}}
+  catch(e){if(ptMissing(e)){pt.st='none';pt.tasks=PT_DEMO;pt.mine=[]}else{pt.st='fail';pt.err=srvErr(e)}}
+  if(view==='manage'&&mtab==='partner')render();
+}
+function mgPartner(){
+  if(pt.st==='new')loadPartner();
+  if(pt.st==='new'||pt.st==='loading')return '<div class="sec"><span class="muted">بنحمّل مهام الشريك...</span></div>';
+  if(pt.st==='fail')return `<div class="sec"><span class="err" role="alert">${esc(pt.err)}</span><button class="btn ghost" data-act="ptload">جرّب تاني</button></div>`;
+  const wk=pt.mine.filter(a=>Date.now()-new Date(a.created_at).getTime()<7*864e5).length;
+  const pts=ptPts(),lv=ptLevel(pts);
+  const board=pt.board.length>1?`<div class="sec"><h2>ترتيب الشركاء</h2><ul class="list">${pt.board.map((b,i)=>`<li class="pbr"><span class="rk">${i+1}</span><strong>${esc(b.name||'شريك')}${b.me?' (إنت)':''}</strong><span class="chip">${ptLevel(Number(b.points)||0).name}</span><span class="muted">${Number(b.points)||0} نقطة</span></li>`).join('')}</ul></div>`:'';
+  const list=pt.tasks.map(t=>{const n=pt.mine.filter(a=>a.task_id===t.id).length;
+    return `<button class="q ptq" data-act="ptopen" data-id="${t.id}"><strong>${esc(t.title)}</strong><span class="chip okc">+${ptTaskPts(t.id)} نقطة</span>${n?`<span class="chip">بعت ${n}</span>`:''}<br><span class="muted">${esc(t.hint||'')}</span></button>`}).join('');
+  return `<div class="card pth">${PARTNER}<h2>مهام الشريك المؤسس</h2><span class="muted">إنت من الناس اللي بتبني فيش بوك معانا. كل معلومة بتبعتها من هنا بتدخل في التطبيق: الخريطة ومؤشر الصيد ومواسم السمك. اختار أي مهمة واملا الخانات، بتاخد دقيقة.</span>
+    <div class="tiles"><div class="tile"><b>${pts}</b><span>نقطة</span></div><div class="tile"><b>${pt.mine.length}</b><span>مساهمة</span></div><div class="tile"><b>${wk}</b><span>آخر 7 أيام</span></div></div>
+    <div class="plv"><strong>المستوى: ${lv.name}</strong><span class="muted">${lv.next?'فاضلك '+(lv.next[0]-pts)+' نقطة وتوصل '+lv.next[1]:'وصلت أعلى مستوى'}</span><i><b style="width:${lv.next?Math.round((pts-lv.from)/(lv.next[0]-lv.from)*100):100}%"></b></i></div></div>
+  ${isPartner()?'':'<div class="sec"><span class="chip">ده عرض ليك إنت بس. الشركاء هيشوفوا التبويب ده بعد ما تعلّم على حساباتهم من لوحة المالك.</span></div>'}
+  ${pt.st==='none'?'<div class="sec"><span class="muted">حساب الشريك لسه متفعّلش على السيرفر، فالإرسال مش هيشتغل. شغّل ملف 014_partners.sql من SQL Editor في Supabase.</span></div>':''}
+  <div class="sec"><h2>المهام</h2>${pt.done?`<span class="chip okc">اتبعتت: ${esc(pt.done)}. شكراً ليك.</span>`:''}${list||'<span class="muted">مفيش مهام دلوقتي.</span>'}</div>${board}`;
+}
+function ptInput(f,i){const id='ptf'+i,opt=a=>'<option value="">اختار</option>'+a.map(o=>`<option>${esc(o)}</option>`).join('');
+  const inp=f.type==='select'?`<select id="${id}">${opt(Array.isArray(f.opts)?f.opts:[])}</select>`
+    :f.type==='area'?`<select id="${id}">${opt(AREAS.map(a=>a.name))}</select>`
+    :f.type==='long'?`<textarea id="${id}" maxlength="600" rows="3"></textarea>`
+    :f.type==='num'?`<input id="${id}" type="number" inputmode="decimal" min="0" max="1000000" step="any">`
+    :f.type==='date'?`<input id="${id}" type="date" value="${iso(today)}" max="${iso(today)}">`
+    :`<input id="${id}" maxlength="120" autocomplete="off">`;
+  return `<label for="${id}">${esc(f.label)}${f.req?'':' (اختياري)'}${inp}</label>`}
+function openPt(id){
+  const t=pt.tasks.find(x=>x.id===id);if(!t)return;
+  $('#sheet').innerHTML=`<h2>${esc(t.title)}</h2><span class="muted">${esc(t.hint||'')}</span>
+  <form id="ptForm" data-id="${t.id}" novalidate>${ptFields(t).map(ptInput).join('')}
+    <div class="err" id="ptErr" role="alert"></div>
+    <div class="rowbtns"><button class="btn" type="submit">ابعت</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
+  $('#ovl').hidden=false;
+}
+function submitPt(form){
+  const t=pt.tasks.find(x=>x.id===Number(form.dataset.id)),er=$('#ptErr');if(!t)return;
+  const ans={};let miss='';
+  ptFields(t).forEach((f,i)=>{const el=$('#ptf'+i),v=el?String(el.value).trim():'';
+    if(!v){if(f.req&&!miss)miss=f.label;return}
+    ans[f.k]=f.type==='num'?Number(v):v.slice(0,600)});
+  if(miss){er.textContent='ناقص: '+miss;return}
+  if(pt.st==='none'){er.textContent='حساب الشريك لسه متفعّلش على السيرفر: ملف 014_partners.sql لازم يتشغّل الأول.';return}
+  srvRun(form,'#ptErr',async()=>{await sbFetch('/rest/v1/partner_answers',{method:'POST',body:{task_id:t.id,answers:ans}});
+    pt.mine.unshift({id:0,task_id:t.id,created_at:new Date().toISOString()});pt.done=t.title+' (+'+ptTaskPts(t.id)+' نقطة)';closeSheet();render();rpc('partner_board').then(b=>{pt.board=b||[];if(view==='manage'&&mtab==='partner')render()}).catch(()=>{})});
+}
+/* لوحة المالك: تعليم الشركاء وإجاباتهم */
+async function loadAdmPartners(){
+  try{const [ps,as]=await Promise.all([rpc('admin_partners'),rpc('admin_partner_answers')]);
+    adm.pOk=true;adm.pans=as||[];const m={};(ps||[]).forEach(p=>{m[p.id]=Number(p.answers)||0});
+    const pp={};(ps||[]).forEach(p=>{pp[p.id]=Number(p.points)||0});adm.users.forEach(u=>{u.is_partner=u.id in m;u.pcount=m[u.id]||0;u.ppts=pp[u.id]||0})}
+  catch(e){adm.pOk=false;adm.pans=[]}
+  if(view==='manage'&&mtab==='adm')render();
+}
+async function admPartner(id,on,btn){
+  btn.disabled=true;
+  try{await rpc('admin_set_partner',{p_user:id,p_on:on});
+    const u=adm.users.find(x=>x.id===id);if(u)u.is_partner=on;if(me&&uid()===id)me.is_partner=on;
+    const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){btn.disabled=false;btn.textContent=srvErr(e)}
+}
+function admPansHtml(){
+  if(!adm.pOk)return '<span class="muted">حساب الشريك لسه متفعّلش على السيرفر. شغّل ملف 014_partners.sql من SQL Editor في Supabase.</span>';
+  const ps=adm.users.filter(u=>u.is_partner);
+  const head=`<span class="muted">${ps.length?'الشركاء ('+ps.length+'): '+ps.slice().sort((a,b)=>b.ppts-a.ppts).map(u=>esc(u.name||'من غير اسم')+' ('+u.ppts+' نقطة، '+u.pcount+' مساهمة)').join('، '):'لسه مفيش شركاء. علّم على حساب من قايمة المشتركين بزرار "خليه شريك مؤسس".'}</span>`;
+  if(!adm.pans.length)return head+'<span class="muted">لسه مفيش إجابات.</span>';
+  return head+'<ul class="list">'+adm.pans.map(a=>{const fs=ptFields(a),an=a.answers||{};
+    return `<li><div class="who"><strong>${esc(a.task_title)}</strong></div><div class="muted">${esc(a.user_name||'من غير اسم')} · ${ago(a.created_at)}</div>
+      ${fs.filter(f=>an[f.k]!==undefined&&an[f.k]!=='').map(f=>`<div><span class="muted">${esc(f.label)}:</span> ${esc(String(an[f.k]))}</div>`).join('')}</li>`}).join('')+'</ul>';
 }
 /* صورة العضو: صورة حسابه لو حاطط واحدة (عمود profiles.avatar من ملف 008)، وإلا دايرة ملوّنة فيها أول حرف من اسمه. */
 const AV_RE=/^[0-9a-f-]{36}\/[\w-]{8,60}\.jpg$/;
@@ -2016,7 +2238,7 @@ function postCard(p){
   const kn=(POST_KINDS.find(k=>k[0]===p.kind)||[])[1],ar=AREAS.find(a=>a.id===p.area),ph=(p.photos||[]).slice(0,PIC_MAX),nm=esc(p.author_name||'عضو');
   const long=!!p.body&&(p.body.length>280||p.body.split('\n').length>6),zero=!Number(p.like_count)&&!Number(p.comment_count);
   return `<article class="fb${hlPost===p.id?' hl':''}" data-post="${p.id}">
-    <header class="fbh"><button class="avb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}" aria-label="بوستات ${nm}">${avatar(p.user_id,p.author_name,'',p.author_avatar)}</button><div class="fbn"><div class="who"><button class="nmb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}"><strong>${nm}</strong></button>${p.author_verified?VERIFIED:''}${kn?'<span class="chip">'+kn+'</span>':''}</div>
+    <header class="fbh"><button class="avb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}" aria-label="بوستات ${nm}">${avatar(p.user_id,p.author_name,'',p.author_avatar)}</button><div class="fbn"><div class="who"><button class="nmb" data-act="cuser" data-u="${esc(p.user_id)}" data-n="${nm}"><strong>${nm}</strong></button>${p.author_verified?VERIFIED:''}${p.author_partner?PARTNER:''}${kn?'<span class="chip">'+kn+'</span>':''}</div>
       <div class="muted">${ROLE_NAME[p.author_role]||'صياد'} · ${ago(p.created_at)}${ar?' · '+ar.name:''}</div></div>
       <button class="fbm" data-act="pmenu" data-id="${p.id}" aria-label="اختيارات البوست">${DOTS}</button></header>
     ${p.body?`<p class="fbt${long?' clamp':''}">${esc(p.body)}</p>${long?'<button class="fbmore" data-act="pmore">عرض المزيد</button>':''}`:''}
@@ -2190,7 +2412,7 @@ async function toggleLike(id){
 /* ----- تعليقات: بتفتح تحت البوست. openCm[رقم البوست] = {list, err} ----- */
 function cmHtml(pid){
   const s=openCm[pid];if(!s)return '';
-  const list=s.list===null?'<span class="muted">بنحمّل التعليقات...</span>':s.list.map(c=>`<div class="cm">${avatar(c.user_id,c.author_name,'sm',c.author_avatar)}<div class="cmb"><div class="bub"><strong>${esc(c.author_name||'عضو')}${c.author_verified?' '+VERIFIED:''}</strong><p>${esc(c.body)}</p></div>
+  const list=s.list===null?'<span class="muted">بنحمّل التعليقات...</span>':s.list.map(c=>`<div class="cm">${avatar(c.user_id,c.author_name,'sm',c.author_avatar)}<div class="cmb"><div class="bub"><strong>${esc(c.author_name||'عضو')}${c.author_verified?' '+VERIFIED:''}${c.author_partner?' '+PARTNER:''}</strong><p>${esc(c.body)}</p></div>
     <div class="cmm"><span>${ago(c.created_at)}</span>${c.user_id===uid()?'':`<button data-act="report" data-cid="${c.id}">بلّغ</button>`}${c.user_id===uid()||isAdmin()?`<button data-act="delcmt" data-id="${c.id}" data-pid="${pid}">امسح</button>`:''}</div></div></div>`).join('');
   return `<div class="cms">${s.err?'<span class="err" role="alert">'+esc(s.err)+'</span>':''}${list}
     ${uid()?`<form class="cmf" data-pid="${pid}" novalidate>${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}<input name="t" maxlength="600" autocomplete="off" enterkeyhint="send" placeholder="اكتب تعليق..." aria-label="اكتب تعليق"><button type="submit" aria-label="ابعت التعليق">${SEND}</button></form>`
@@ -2615,7 +2837,8 @@ function openAcct(){
   if(!uid()){openAuth('ادخل بحسابك أو اعمل حساب جديد.');return}
   const nm=String((me&&me.name)||'').trim()||'حسابي';
   $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
-      <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}</div></div></div>
+      <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}${isPartner()?' '+PARTNER:''}</div></div></div>
+    ${partnerTab()?'<button class="q" data-act="acctgo" data-v="partner">مهام الشريك المؤسس</button>':''}
     <button class="q" data-act="myav">صورة الحساب</button>
     <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
@@ -2630,8 +2853,8 @@ function render(){
   $('#hAcct').innerHTML=acctChip();
   const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
   if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
-  if(view==='plans'&&!labs())view='home';
-  $('#main').innerHTML=labsBar()+(view==='home'?home():view==='plans'?plansView():view==='trips'?tripsView():view==='ask'?(can('ask')?askView():lockCard('ask','اسأل فيش بوك','اسأل عن أحسن أيام الصيد وخطط لشهر قدام.')):view==='log'?logView():view==='community'?communityView():manageView());
+  if(['plans','safety','biz'].includes(view)&&!labs())view='home';
+  $('#main').innerHTML=labsBar()+(view==='home'?home():view==='plans'?plansView():view==='safety'?safetyView():view==='biz'?(can('biz')?bizView():lockCard('biz','إدارة المركب','الطاقم ومصاريف كل رحلة وحصص البحرية وتقرير المكسب.')):view==='trips'?tripsView():view==='ask'?(can('ask')?askView():lockCard('ask','اسأل فيش بوك','اسأل عن أحسن أيام الصيد وخطط لشهر قدام.')):view==='log'?logView():view==='community'?communityView():manageView());
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   if(view==='home'){const be=$('#bars');if(be){if(barScroll!==null)be.scrollLeft=barScroll;
     if(reveal){const el=be.querySelector('[aria-pressed="true"]');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'center'});reveal=false}}}
@@ -2644,7 +2867,7 @@ function render(){
     if(live!=='loading')scrollToTrip=null}
 }
 let enterT=0;
-function go(v){if(v==='log'){v='manage';mtab='log'}if(v==='adm'){v='manage';mtab='adm'}if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
+function go(v){if(v==='log'){v='manage';mtab='log'}if(v==='adm'){v='manage';mtab='adm'}if(v==='partner'){v='manage';mtab='partner'}if(v!=='trips'){sharedMsg='';hlTrip=null}view=v;try{location.hash=v}catch(e){}render();const m=$('#main');m.scrollTop=0;
   m.classList.remove('enter');void m.offsetWidth;m.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>m.classList.remove('enter'),520)}
 
 /* ---------- Booking sheet ---------- */
@@ -2693,8 +2916,15 @@ document.addEventListener('click',e=>{
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
   else if(act==='acct')openAcct();
+  else if(act==='ptopen'){if(/^-?\d+$/.test(a.dataset.id))openPt(Number(a.dataset.id))}
+  else if(act==='ptload'){pt=ptNew();render()}
+  else if(act==='admpartner'){if(labs()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}
+  else if(act==='labgo'){if(labs())go(a.dataset.v)}
+  else if(act==='sos'||act==='shareloc'){if(labs())openSos(act==='sos'?'sos':'share')}
+  else if(act==='bizdel'){if(labs()&&['crew','trips','rem'].includes(a.dataset.k)){biz[a.dataset.k]=biz[a.dataset.k].filter(x=>String(x.id)!==a.dataset.id);bizSave();const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}}
+  else if(act==='bizown'){if(labs()){biz.own=Math.max(0,Math.min(90,(Number(biz.own)||0)+Number(a.dataset.d)));bizSave();const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}}
   else if(act==='plantest'){if(labs()&&PLANS[a.dataset.p]&&!PLANS[a.dataset.p].soon){testPlan=a.dataset.p;lsSet('fishbook-plan',testPlan);const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}}
   else if(act==='acctgo'){closeSheet();go(a.dataset.v)}
   else if(act==='share')shareTrip(Number(a.dataset.id));
@@ -2781,6 +3011,9 @@ document.addEventListener('submit',e=>{
     if(!mapSel||mapSel.t!=='pin'){closeSheet();return}
     const m={id:Date.now(),name,lat:mapSel.lat,lon:mapSel.lon};marks.push(m);saveMarks();
     mapPin(null);mapSel={t:'mark',id:m.id};closeSheet();drawMarks();mapBar();return}
+  if(e.target.id==='ptForm'){submitPt(e.target);return}
+  if(e.target.id==='sosForm'){const v=$('#sosNum').value.trim();if(v&&!telNum(v)){$('#sosErr').textContent='اكتب رقم موبايل صح.';return}sosNum=v;lsSet('fishbook-sos',v);render();return}
+  if(/^biz(Crew|Trip|Rem)F$/.test(e.target.id)){bizSubmit(e.target);return}
   if(e.target.id==='postForm'){submitPost(e.target);return}
   if(e.target.classList.contains('cmf')){submitCm(e.target);return}
   if(e.target.id==='repForm'){submitReport(e.target);return}
