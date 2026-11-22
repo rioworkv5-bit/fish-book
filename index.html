@@ -1196,7 +1196,7 @@ async function loadSrv(){
     bookings.length=0;bk.forEach(k=>{const tr=k.trips;if(!tr||!tr.boats)return;const lt=trips.find(t=>t.id===k.trip_id);
       bookings.push({id:k.id,tripId:k.trip_id,name:k.name,phone:k.phone,seats:k.seats,whole:k.whole,boat:tr.boats.name,range:tripRange({date:tr.start_date,n:tr.days}),by:lt?lt.by:'org',org:lt?lt.org:'',date:tr.start_date,n:tr.days,rated:rated[k.id]||0,
         tripOff:tr.status==='cancelled',mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()})});
-    me=pf[0]||null;if(me)role=me.role==='owner'?'owner':me.role==='angler'?'angler':'org';
+    me=pf[0]||null;if(me)role=me.role==='owner'?'owner':me.role==='angler'?'angler':'org';setTimeout(()=>partnerWelcome(false),800);
     srv='ok';
     if(uid())await loadRoutes();else Object.keys(routes).forEach(k=>delete routes[k]);
     if(uid())await loadCatches();else if(logSrv){logSrv=false;logs=[]}
@@ -2170,7 +2170,7 @@ function vrReset(){if(!vr)return;clearInterval(vr.timer);try{if(vr.rec&&vr.rec.s
 function drawVr(msg){const el=$('#ptVoice');if(!el)return;
   if(!canRec()){el.innerHTML='';return}
   const mic=ic(MIC_D,22);
-  if(!vr)el.innerHTML=`<button type="button" class="btn vbtn" data-act="vrstart">${mic}سجّل إجابتك بصوتك</button>${msg?'<span class="err" role="alert">'+esc(msg)+'</span>':''}<span class="muted">أو اكتب في الخانات اللي تحت.</span>`;
+  if(!vr)el.innerHTML=`<button type="button" class="btn vbtn" data-act="vrstart">${mic}سجّل إجابتك بصوتك</button>${msg?'<span class="err" role="alert">'+esc(msg)+'</span>':''}${$('#ptForm')&&$('#ptForm').dataset.vm?'<span class="muted">دوس على الزرار الأخضر واتكلم.</span>':'<span class="muted">أو اكتب في الخانات اللي تحت.</span>'}`;
   else if(vr.state==='rec'){const n=Math.floor((Date.now()-vr.t0)/1000);
     el.innerHTML=`<button type="button" class="btn sosb vbtn" data-act="vrstop">${mic}بيسجّل... ${Math.floor(n/60)}:${String(n%60).padStart(2,'0')} · دوس عشان توقّف</button><span class="muted">اتكلم براحتك، لحد دقيقة.</span>`}
   else el.innerHTML=`<span class="chip okc">الرسالة الصوتية جاهزة. دوس "ابعت".</span><audio controls src="${vr.url}"></audio><div class="rowbtns"><button type="button" class="btn ghost sm" data-act="vrdrop">امسحها وسجّل تاني</button></div>`;
@@ -2203,6 +2203,36 @@ async function admVoice(path,btn){
     if(!r.ok)throw new Error('x');const a=document.createElement('audio');a.controls=true;a.autoplay=true;a.src=URL.createObjectURL(await r.blob());btn.replaceWith(a)}
   catch(e){btn.disabled=false;btn.textContent='معرفناش نحمّل الرسالة. جرّب تاني'}
 }
+/* رسالة الترحيب: بتظهر للشريك أول مرة يفتح التطبيق بعد ما الإدارة تعلّم عليه (مرة واحدة لكل حساب على الجهاز) */
+const PWEL=['من "الإدارة" تحت، افتح "مهام الشريك".','اختار مهمة وجاوب عليها بالكتابة، أو سجّل إجابتك بصوتك.','لو مش عايز تقرا: دوس "نفّذ المهام بالصوت"، والتطبيق يقولك السؤال وإنت ترد عليه بصوتك.','كل إجابة بتكسب بيها نقط، وبتعلى في ترتيب الشركاء.','إنت مراقب في المجتمع: تقدر تخفي أي بوست أو تعليق مخالف.'];
+const PWEL_SAY='مبروك، بقيت شريك مؤسس في فيش بوك. '+['من الإدارة تحت، افتح مهام الشريك.','اختار مهمة وجاوب عليها بالكتابة، أو سجّل إجابتك بصوتك.','لو مش عايز تقرا، دوس نفّذ المهام بالصوت، والتطبيق يقولك السؤال وإنت ترد عليه بصوتك.','كل إجابة بتكسب بيها نقط.','وإنت مراقب في المجتمع، تقدر تخفي أي بوست أو تعليق مخالف.'].join(' ');
+function partnerWelcome(force){
+  if(!isPartner()||!uid())return;const k='fishbook-pwel-'+uid();
+  if(!force){if(lsGet(k,'')==='1'||!$('#ovl').hidden)return}
+  lsSet(k,'1');
+  $('#sheet').innerHTML=`<div>${PARTNER}</div><h2>مبروك، بقيت شريك مؤسس في فيش بوك</h2><span class="muted">إدارة فيش بوك اختارتك من الشركاء المؤسسين. إنت من الناس اللي بتبني التطبيق معانا، وده المطلوب منك:</span>
+    <div class="trip dg"><ol>${PWEL.map(x=>'<li>'+x+'</li>').join('')}</ol></div>
+    ${canSay()?`<button type="button" class="btn ghost vbtn" data-act="pwelsay">${ic(SPK_D,22)}اسمع الشرح</button>`:''}
+    ${canRec()?`<button type="button" class="btn vbtn" data-act="vmstart">${ic(MIC_D,22)}نفّذ المهام بالصوت</button>`:''}
+    <div class="rowbtns"><button class="btn${canRec()?' ghost':''}" type="button" data-act="acctgo" data-v="partner">افتح مهامي</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
+  $('#ovl').hidden=false;
+}
+/* وضع الصوت: التطبيق بيقول السؤال، والشريك بيرد برسالة صوتية، والتطبيق بيرد عليه بالصوت ويروح للمهمة اللي بعدها */
+function openVm(i,pre){
+  const t=pt.tasks[i];if(!t){closeSheet();return}vrReset();
+  $('#sheet').innerHTML=`<div><span class="chip">مهمة ${i+1} من ${pt.tasks.length}</span></div><h2>${esc(t.title)}</h2><span class="muted">${esc(t.hint||'')}</span>
+    ${canSay()?`<button type="button" class="btn ghost vbtn" data-act="ptsay" data-id="${t.id}">${ic(SPK_D,22)}اسمع السؤال تاني</button>`:''}
+    <form id="ptForm" data-id="${t.id}" data-vm="1" novalidate><div id="ptVoice" class="vbox"></div><div class="err" id="ptErr" role="alert"></div>
+      <div class="rowbtns"><button class="btn" type="submit">ابعت</button><button class="btn ghost" type="button" data-act="vmnext" data-i="${i+1}">${i+1<pt.tasks.length?'المهمة اللي بعدها':'خلصت'}</button></div></form>
+    <button class="btn ghost" type="button" data-act="close">قفل</button>`;
+  $('#ovl').hidden=false;drawVr();say((pre||'')+ptSayText(t));
+}
+async function vmStart(){
+  if(!isPartner()&&!labs())return;
+  if(pt.st==='new'||pt.st==='fail')await loadPartner();
+  if(!pt.tasks.length){closeSheet();go('partner');return}
+  openVm(0,'');
+}
 const ptSayText=t=>t.title+'. '+(t.hint||'')+' المطلوب: '+ptFields(t).map(f=>f.label).join('، ')+'.'+(canRec()?' تقدر تسجّل إجابتك بصوتك من الزرار الأخضر.':'');
 let pt=ptNew();
 const ptMissing=e=>e.status===404||/PGRST205|PGRST202|42P01|42883/.test(String(e.code));
@@ -2225,6 +2255,8 @@ function mgPartner(){
     return `<button class="q ptq" data-act="ptopen" data-id="${t.id}"><strong>${esc(t.title)}</strong><span class="chip okc">+${ptTaskPts(t.id)} نقطة</span>${n?`<span class="chip">بعت ${n}</span>`:''}<br><span class="muted">${esc(t.hint||'')}</span></button>`}).join('');
   return `<div class="card pth">${PARTNER}<h2>مهام الشريك المؤسس</h2><span class="muted">إنت من الناس اللي بتبني فيش بوك معانا. كل معلومة بتبعتها من هنا بتدخل في التطبيق: الخريطة ومؤشر الصيد ومواسم السمك. اختار أي مهمة واملا الخانات أو سجّل إجابتك بصوتك، بتاخد دقيقة.</span>
     ${canSay()?`<button class="btn ghost sm vbtn" data-act="ptsayall">${ic(SPK_D,20)}اسمع الشرح</button>`:''}
+    ${canRec()?`<button class="btn vbtn" style="align-self:stretch" data-act="vmstart">${ic(MIC_D,22)}نفّذ المهام بالصوت</button>`:''}
+    ${isPartner()?'<button class="btn ghost sm" data-act="pwel">إزاي أنفّذ المهام؟</button>':''}
     <div class="tiles"><div class="tile"><b>${pts}</b><span>نقطة</span></div><div class="tile"><b>${pt.mine.length}</b><span>مساهمة</span></div><div class="tile"><b>${wk}</b><span>آخر 7 أيام</span></div></div>
     <div class="plv"><strong>المستوى: ${lv.name}</strong><span class="muted">${lv.next?'فاضلك '+(lv.next[0]-pts)+' نقطة وتوصل '+lv.next[1]:'وصلت أعلى مستوى'}</span><i><b style="width:${lv.next?Math.round((pts-lv.from)/(lv.next[0]-lv.from)*100):100}%"></b></i></div></div>
   ${isPartner()?'':'<div class="sec"><span class="chip">ده عرض ليك إنت بس. الشركاء هيشوفوا التبويب ده بعد ما تعلّم على حساباتهم من لوحة المالك.</span></div>'}
@@ -2258,11 +2290,15 @@ function submitPt(form){
     ans[f.k]=f.type==='num'?Number(v):v.slice(0,600)});
   const voice=vr&&vr.state==='done';
   if(vr&&vr.state==='rec'){er.textContent='وقّف التسجيل الأول.';return}
+  if(form.dataset.vm&&!voice){er.textContent='سجّل إجابتك بصوتك الأول، أو دوس على المهمة اللي بعدها.';say(er.textContent);return}
   if(miss&&!voice){er.textContent=canRec()?'ناقص: '+miss+'. أو سجّل إجابتك بصوتك.':'ناقص: '+miss;return}
   if(pt.st==='none'){er.textContent='حساب الشريك لسه متفعّلش على السيرفر: ملف 014_partners.sql لازم يتشغّل الأول.';return}
   srvRun(form,'#ptErr',async()=>{if(voice){ans.voice=await vrUpload();ans.voice_sec=vr.sec||0}
     await sbFetch('/rest/v1/partner_answers',{method:'POST',body:{task_id:t.id,answers:ans}});
-    pt.mine.unshift({id:0,task_id:t.id,created_at:new Date().toISOString()});pt.done=t.title+' (+'+ptTaskPts(t.id)+' نقطة)';closeSheet();render();rpc('partner_board').then(b=>{pt.board=b||[];if(view==='manage'&&mtab==='partner')render()}).catch(()=>{})});
+    pt.mine.unshift({id:0,task_id:t.id,created_at:new Date().toISOString()});pt.done=t.title+' (+'+ptTaskPts(t.id)+' نقطة)';const thanks='وصلت رسالتك، شكراً ليك. كسبت '+ptTaskPts(t.id)+' نقطة. ';
+    if(form.dataset.vm){const i=pt.tasks.indexOf(t)+1;vrReset();if(i<pt.tasks.length){openVm(i,thanks+'المهمة اللي بعدها. ');if(view==='manage'&&mtab==='partner'){const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}}else{closeSheet();render();say(thanks+'خلصت كل المهام. تسلم إيدك.')}}
+    else{closeSheet();render();if(voice)say(thanks)}
+    rpc('partner_board').then(b=>{pt.board=b||[];if(view==='manage'&&mtab==='partner')render()}).catch(()=>{})});
 }
 /* لوحة المالك: تعليم الشركاء وإجاباتهم */
 async function loadAdmPartners(){
@@ -3016,6 +3052,10 @@ document.addEventListener('click',e=>{
   else if(act==='ptload'){pt=ptNew();render()}
   else if(act==='ptsay'){const t=pt.tasks.find(x=>x.id===Number(a.dataset.id));if(t)say(ptSayText(t))}
   else if(act==='ptsayall')say('أهلاً بيك يا شريك. من هنا بتساعدنا نبني فيش بوك. اختار أي مهمة من اللي تحت، وجاوب بالكتابة أو برسالة صوتية. المهام هي: '+pt.tasks.map(t=>t.title).join('، ')+'.');
+  else if(act==='vmstart')vmStart();
+  else if(act==='vmnext'){const i=Number(a.dataset.i);if(i<pt.tasks.length)openVm(i,'');else{closeSheet();say('خلصت كل المهام. تسلم إيدك.')}}
+  else if(act==='pwel')partnerWelcome(true);
+  else if(act==='pwelsay')say(PWEL_SAY);
   else if(act==='vrstart')vrStart();
   else if(act==='vrstop'){if(vr&&vr.state==='rec'){try{vr.rec.stop()}catch(e){}}}
   else if(act==='vrdrop'){vrReset();drawVr()}
