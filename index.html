@@ -148,6 +148,7 @@ ul.list .top{display:flex;justify-content:space-between;gap:10px;align-items:fle
 .tide svg{display:block;width:100%;height:auto;margin:10px 0 4px}
 .trow{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
 .trow b{font-weight:800}
+html[dir=ltr] .trow{font-size:13px}html[dir=ltr] .trow b{white-space:nowrap}
 .notif{display:flex;flex-direction:column;gap:8px}
 .notif .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .btn.sm{min-height:44px;padding:0 14px;font-size:13px}
@@ -490,6 +491,14 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 html[dir=ltr] .q,html[dir=ltr] .fbnew .ask,html[dir=ltr] .mbar .pos{text-align:left}
 .q{flex-shrink:0}
 html[dir=ltr] [style*="text-align:right"]{text-align:left!important}
+/* الإنجليزي بنفس شكل العربي: أعمدة أيام الصيد بنفس العرض، والكلام الطويل ينزل تحت بعض بدل ما يوسّع العمود */
+html[dir=ltr] .bar .hf{white-space:normal;max-width:36px;text-align:center;line-height:1.15;padding:1px 2px}
+html[dir=ltr] .bar .mo{display:flex;justify-content:center;width:36px;font-size:9px}
+html[dir=ltr] .bar .bw{font-size:7px}
+html[dir=ltr] .fchip::first-letter{text-transform:uppercase}
+html[dir=ltr] .mcalh .btn{transform:scaleX(-1)}
+html[dir=ltr] svg[style*="scaleX(-1)"]{transform:none!important}
+html[dir=ltr] .row.wx{background:linear-gradient(to right,var(--wc),var(--card) 48%)}
 </style>
 </head>
 <body>
@@ -794,15 +803,15 @@ function liveNote(){
 function tideCard(d){
   const a=new Date(d);a.setHours(0,0,0,0);const t0=a.getTime(),t1=t0+864e5,{ev,real}=tideEvents(t0,t1);
   const hd=hijri(d).day,amp=0.3+0.15*Math.cos(2*Math.PI*(hd-15)/14.77),mid=(seaMax+seaMin)/2,half=(seaMax-seaMin)/2||1;
-  const W=320,X=t=>W-(t-t0)/864e5*W,Y=real?t=>42-(seaAt(t)-mid)/half*32:t=>42-amp*Math.cos(2*Math.PI*(t-TIDE_ANCHOR)/TIDE_P)/0.45*30;
+  const W=320,X=t=>enOn?(t-t0)/864e5*W:W-(t-t0)/864e5*W,Y=real?t=>42-(seaAt(t)-mid)/half*32:t=>42-amp*Math.cos(2*Math.PI*(t-TIDE_ANCHOR)/TIDE_P)/0.45*30;
   let path='';for(let i=0;i<=72;i++){const t=t0+i*1200e3;path+=(i?'L':'M')+X(t).toFixed(1)+' '+Y(t).toFixed(1)}
   const dots=ev.filter(e=>e.t+SLACK_LAG<t1).map(e=>`<circle cx="${X(e.t+SLACK_LAG).toFixed(1)}" cy="${Y(e.t+SLACK_LAG).toFixed(1)}" r="5" fill="#0B2A3F" stroke="#fff" stroke-width="2"><title>توقيفة ${tm(e.t+SLACK_LAG)}</title></circle>`).join('');
-  const ticks=[[0,'12 ص'],[6,'6 ص'],[12,'12 م'],[18,'6 م'],[24,'12 ص']].map(x=>`<text x="${W-x[0]/24*W}" y="94" font-size="10" fill="#44566A" text-anchor="${x[0]===0?'end':x[0]===24?'start':'middle'}" direction="rtl">${x[1]}</text>`).join('');
+  const ticks=[[0,'12 ص'],[6,'6 ص'],[12,'12 م'],[18,'6 م'],[24,'12 ص']].map(x=>`<text x="${enOn?x[0]/24*W:W-x[0]/24*W}" y="94" font-size="10" fill="#44566A" text-anchor="${x[0]===0?(enOn?'start':'end'):x[0]===24?(enOn?'end':'start'):'middle'}" direction="${enOn?'ltr':'rtl'}">${x[1]}</text>`).join('');
   const now=Date.now(),nowLine=(now>=t0&&now<t1)?`<line x1="${X(now).toFixed(1)}" x2="${X(now).toFixed(1)}" y1="4" y2="80" stroke="#B84E0A" stroke-width="2"/><text x="${X(now).toFixed(1)}" y="3" font-size="10" font-weight="700" fill="#0B2A3F" text-anchor="middle" dominant-baseline="hanging" dx="${X(now)<30?16:X(now)>290?-16:0}">دلوقتي</text>`:'';
   return `<div class="card tide"><h2>المد والجزر وأوقات التوقيفة</h2>
   <svg viewBox="0 0 ${W} 98" role="img" aria-label="منحنى المد والجزر على مدار اليوم"><line x1="0" x2="${W}" y1="80" y2="80" stroke="#DFE7EC"/><line x1="0" x2="${W}" y1="42" y2="42" stroke="#DFE7EC" stroke-dasharray="3 4"/><path d="${path}" fill="none" stroke="#2F7FB5" stroke-width="2" stroke-linejoin="round"/>${dots}${nowLine}${ticks}</svg>
   <div class="muted">النقط على المنحنى هي أوقات التوقيفة.</div>
-  ${ev.map(e=>`<div class="trow"><span>${e.high?'أعلى مد':'أقل جزر'} <b>${tm(e.t)}</b>${real?` <span class="muted" dir="ltr">${e.h>0?'+':''}${Math.round(e.h*100)}</span><span class="muted"> سم</span>`:''}</span><span>التوقيفة حوالي <b>${tm(e.t+SLACK_LAG)}</b></span></div>`).join('')}
+  ${ev.map(e=>`<div class="trow"><span>${e.high?'أعلى مد':'أقل جزر'} <b>${tm(e.t)}</b>${real?` <span style="white-space:nowrap"><span class="muted" dir="ltr">${e.h>0?'+':''}${Math.round(e.h*100)}</span><span class="muted"> سم</span></span>`:''}</span><span>التوقيفة حوالي <b>${tm(e.t+SLACK_LAG)}</b></span></div>`).join('')}
   <div class="muted" style="border-top:1px solid var(--line);padding-top:8px">${real?'أوقات المد من نموذج Open-Meteo البحري لنقطة في البحر عند '+area.name+'،والارتفاع بالسنتي عن متوسط سطح البحر. النموذج دقته كيلومترات مش مرسى بعينه، فراجعه على الواقع قبل ما تعتمد عليه.':'أوقات تقريبية: توقعات المد الحقيقية بتغطي '+FORECAST_DAYS+' أيام بس.'} التوقيفة محسوبة بعد قمة المد وقاع الجزر بنص ساعة.</div></div>`;
 }
 
@@ -1210,7 +1219,7 @@ async function loadSrv(){
     bookings.length=0;bk.forEach(k=>{const tr=k.trips;if(!tr||!tr.boats)return;const lt=trips.find(t=>t.id===k.trip_id);
       bookings.push({id:k.id,tripId:k.trip_id,name:k.name,phone:k.phone,seats:k.seats,whole:k.whole,boat:tr.boats.name,range:tripRange({date:tr.start_date,n:tr.days}),by:lt?lt.by:'org',org:lt?lt.org:'',date:tr.start_date,n:tr.days,rated:rated[k.id]||0,
         tripOff:tr.status==='cancelled',mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()||(!!tr.boats.captain_id&&tr.boats.captain_id===uid())})});
-    me=pf[0]||null;if(me)role=roleKey(me.role);await loadCaptains();setTimeout(()=>partnerWelcome(false),800);
+    me=pf[0]||null;if(me)role=roleKey(me.role);await loadCaptains();setTimeout(()=>{partnerWelcome(false);welcomeMsg(false)},800);
     srv='ok';
     if(uid())await loadRoutes();else Object.keys(routes).forEach(k=>delete routes[k]);
     if(uid())await loadCatches();else if(logSrv){logSrv=false;logs=[]}
@@ -2034,7 +2043,8 @@ const PLANS={
   max:{name:'ماكس',price:'500',per:1,who:'لأصحاب المراكب والمنظمين',feats:['كل اللي في البرو','لوحة الإدارة: الكراسي والتقويم ونشر الرحلات والتقييمات','الخريطة كاملة: طرحات من غير حد وتسجيل التراك','طرحاتك سرية ليك إنت بس']},
   biz:{name:'ماكس بيزنس',price:'1000',per:1,who:'لصاحب المركب اللي عنده طاقم',short:'بيزنس',feats:['كل اللي في الماكس','حسابات للريس والبحرية بصلاحيات','جدول الطاقم ومصاريف كل رحلة','حصص البحرية وتقرير المكسب','تنبيهات الصيانة وتجديد التراخيص']}};
 const PLAN_ORDER=['free','pro','max','biz'];
-const NEED={ask:'pro',log:'pro',marks:'pro',noads:'pro',track:'max',dash:'max',marksMany:'max',biz:'biz'};
+/* "اسأل" مفتوحة للكل (حتى في وضع التجربة) لحد ما الباقات تنزل. ساعتها ترجع ask:'pro' */
+const NEED={ask:'free',log:'pro',marks:'pro',noads:'pro',track:'max',dash:'max',marksMany:'max',biz:'biz'};
 const PRO_MARKS=20;
 const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
@@ -2061,7 +2071,9 @@ function enRun(r){
   return hit?out.join(' '):r;
 }
 const enText=s=>{if(!s||!AR_RUN.test(s))return s;AR_RUN.lastIndex=0;
-  return s.replace(AR_RUN,(r,o,all)=>{const t=enRun(r),a=all[o-1],z=all[o+r.length];return (a&&/[\w%)]/.test(a)?' ':'')+t+(z&&/[\w(]/.test(z)?' ':'')}).replace(/،/g,',').replace(/؟/g,'?').replace(/·(?=\S)/g,'· ')};
+  /* "0.6 م" ده موج بالمتر مش الساعة 0.6 بالليل */
+  s=s.replace(/(\d\.\d+) ?م(?![؀-ۿ])/g,"$1 m");if(!AR_RUN.test(s))return s;AR_RUN.lastIndex=0;
+  return s.replace(AR_RUN,(r,o,all)=>{const t=enRun(r),a=all[o-1],z=all[o+r.length];return (a&&/[\w%)]/.test(a)?' ':'')+t+(z&&/[\w(]/.test(z)?' ':'')}).replace(/\s*،\s*/g,', ').replace(/؟/g,'?').replace(/·(?=\S)/g,'· ')};
 function enNode(root){
   if(!enOn||!root)return;
   if(root.nodeType===3){const p=root.parentElement;if(p&&!p.closest(EN_SKIP)){const t=enText(root.nodeValue);if(t!==root.nodeValue)root.nodeValue=t}return}
@@ -2076,10 +2088,12 @@ function enStart(){
   enNode(document.body);
   enObs=new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')enNode(m.target);else if(m.type==='attributes')enNode(m.target);else m.addedNodes.forEach(enNode)}));
   enObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+  /* نرسم الصفحة تاني عشان الرسومات اللي فيها وقت (زي المد والجزر) تمشي من الشمال لليمين */
+  try{render()}catch(e){}
 }
 function enSync(){
   const want=lang==='en'&&labs();
-  if(want&&!enOn){if(EN)enStart();else if(!enLoading){enLoading=true;const s=document.createElement('script');s.src='i18n-en.js?v=1';s.onload=()=>{EN=window.I18N_EN||{};Object.keys(EN).forEach(k=>{const b=k.replace(/^[،\s]+|[،\s]+$/g,'');if(b&&b!==k&&EN[b]==null)EN[b]=EN[k].replace(/^[,\s]+|[,\s]+$/g,'')});enLoading=false;enSync()};s.onerror=()=>{enLoading=false};document.head.appendChild(s)}}
+  if(want&&!enOn){if(EN)enStart();else if(!enLoading){enLoading=true;const s=document.createElement('script');s.src='i18n-en.js?v=2';s.onload=()=>{EN=window.I18N_EN||{};Object.keys(EN).forEach(k=>{const b=k.replace(/^[،\s]+|[،\s]+$/g,'');if(b&&b!==k&&EN[b]==null)EN[b]=EN[k].replace(/^[,\s]+|[,\s]+$/g,'')});enLoading=false;enSync()};s.onerror=()=>{enLoading=false};document.head.appendChild(s)}}
   else if(!want&&enOn)location.reload();
 }
 /* نوع الحساب: في الفري التغيير مفتوح. في باقة مدفوعة، النوع اللي باقتك مش بتغطيه محتاج ترقية الأول */
@@ -2337,6 +2351,66 @@ function partnerWelcome(force){
     <div class="rowbtns"><button class="btn${canRec()?' ghost':''}" type="button" data-act="acctgo" data-v="partner">افتح مهامي</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
   $('#ovl').hidden=false;
 }
+/* ---------- رسالة الترحيب للمشترك الجديد (وضع التجربة بس لحد ما تتنزّل) ----------
+   مكتوبة، وبتتقري بصوت الموبايل لوحدها أول ما تفتح، ومعاها زرار "اسمعها من الأول" و"وقّف الصوت". بتتغيّر حسب نوع الحساب (صياد، منظم، صاحب مركب، رئيس مركب)،
+   وحسب الباقة لما الباقات تنزل. بتظهر مرة واحدة لكل حساب على الجهاز، وتتفتح تاني من نافذة الحساب.
+   WEL_LIVE=true يخلّيها تظهر لكل مشترك جديد (حسابه اتعمل من أقل من 3 أيام). */
+const WEL_LIVE=false;
+const WEL={
+  angler:{t:'إزاي تستفيد من فيش بوك كصياد',p:[
+    'الرئيسية: حالة الجو والرياح والموج والمد والجزر، وأحسن أيام الصيد لـ15 يوم قدام',
+    'الرحلات: شوف الرحلات اللي فيها أماكن فاضية، واحجز مكان أو المركب كاملة',
+    'البفة: شارك صيدك وصورك، واسأل الصيادين التانيين',
+    'اسأل: اسأل ياسر عن الطعم والعدة ومواسم السمك',
+    'الإدارة: حجوزاتك وسجل صيدك في مكان واحد',
+    'فعّل إشعار الصبح عشان يجيلك تنبيه بالأيام الحلوة']},
+  org:{t:'إزاي تستفيد من فيش بوك كمنظم رحلات',p:[
+    'انشر رحلاتك على أي مركب: اليوم والمدة وعدد الأماكن والسعر',
+    'كل حجز بيوصلك باسم الصياد ورقمه، وتكلمه بالتليفون أو واتساب',
+    'جدول 3 شهور لكل رحلاتك، ونسبة امتلاء كل رحلة',
+    'شارك أي رحلة على واتساب بلينك، والصياد يحجز منه على طول',
+    'ارسم خط سير الرحلة على الخريطة للمشتركين',
+    'التقييمات بتبني اسمك، والحساب الموثّق بيطمّن الصيادين']},
+  owner:{t:'إزاي تستفيد من فيش بوك كصاحب مركب',p:[
+    'سجّل مراكبك بالمواصفات والصور عشان الصيادين يشوفوها',
+    'انشر رحلات على مراكبك، وعلّم الأيام اللي اتحجزت بالتليفون',
+    'جدول كل مراكبك وكل الحجوزات بأسماء الصيادين وأرقامهم في مكان واحد',
+    'حدد رئيس المركب يتابع الجدول والحجوزات من موبايله',
+    'إدارة المركب: الطاقم والمصاريف ونصيب كل واحد والصيانة والتراخيص',
+    'التقييمات والحساب الموثّق بيجيبولك صيادين أكتر']},
+  captain:{t:'إزاي تستفيد من فيش بوك كرئيس مركب',p:[
+    'حسابك مجاني: تتابع الجو وأحسن أيام الصيد والرحلات زي أي صياد',
+    'لو صاحب المركب مشترك في بيزنس، يربطك بمركبه برقم موبايلك',
+    'ساعتها تشوف جدول المركب ورحلاتها وحجوزاتها والصيادين بأرقامهم',
+    'شارك صيد الرحلات في البفة واسأل ياسر عن أي حاجة في الصيد']}};
+const WEL_PLAN={angler:'pro',org:'max',owner:'biz',captain:''};
+function welPlan(R){
+  if(!labs())return null;const cur=PLANS[testPlan],up=WEL_PLAN[R],nx=up&&PLAN_ORDER.indexOf(up)>PLAN_ORDER.indexOf(testPlan)?PLANS[up]:null;
+  return {cur,nx,nxFeats:nx?nx.feats.filter(f=>!/^كل اللي في/.test(f)).slice(0,4):[]};
+}
+function welText(){
+  const R=roleKey(me&&me.role),w=WEL[R],nm=String((me&&me.name)||'').trim().split(/\s+/)[0],pl=welPlan(R);
+  return ['أهلًا بيك'+(nm?' يا '+nm:'')+' في فيش بوك، تطبيق الصيد في الغردقة والبحر الأحمر.',w.t+'.'].concat(w.p.map(x=>x+'.'),
+    pl?['باقتك دلوقتي '+pl.cur.name+'.'].concat(pl.nx?['ولو رقّيت لباقة '+pl.nx.name+' هتاخد: '+pl.nxFeats.join('، ')+'.']:[]):[],
+    ['تقدر تفتح الرسالة دي تاني من زرار الحساب.']).join(' ');
+}
+function welcomeMsg(force){
+  if(!uid()||!me)return;const k='fishbook-wel-'+uid();
+  if(!force){if(lsGet(k,'')==='1'||!$('#ovl').hidden)return;
+    const fresh=me.created_at&&(Date.now()-new Date(me.created_at).getTime())<3*864e5;
+    if(!labs()&&!(WEL_LIVE&&fresh))return}
+  lsSet(k,'1');
+  const R=roleKey(me.role),w=WEL[R],nm=String(me.name||'').trim().split(/\s+/)[0],pl=welPlan(R);
+  $('#sheet').innerHTML=`<h2>أهلًا بيك${nm?' يا <span translate="no">'+esc(nm)+'</span>':''} في فيش بوك</h2><span class="muted">تطبيق الصيد في الغردقة والبحر الأحمر. دي أهم حاجات تقدر تعملها:</span>
+    ${canSay()?`<div class="rowbtns"><button type="button" class="btn vbtn" data-act="welsay">${ic(SPK_D,22)}اسمعها من الأول</button><button type="button" class="btn ghost sm" data-act="welstop">وقّف الصوت</button></div>`:''}
+    <div class="trip dg"><strong>${w.t}</strong><ol>${w.p.map(x=>'<li>'+x+'</li>').join('')}</ol></div>
+    ${pl?`<div class="trip"><strong>باقتك دلوقتي: ${pl.cur.name}</strong>${pl.nx?`<span class="muted">لو رقّيت لباقة ${pl.nx.name} (${planPrice(pl.nx)}) هتاخد:</span><ul class="pf">${pl.nxFeats.map(f=>'<li>'+f+'</li>').join('')}</ul><button class="btn ghost sm" type="button" data-act="plans">شوف الباقات</button>`:'<span class="muted">باقتك فيها كل اللي محتاجه لنوع حسابك.</span>'}</div>`:''}
+    <span class="muted">تقدر تفتح الرسالة دي تاني من زرار الحساب.</span>
+    <div class="rowbtns"><button class="btn" type="button" data-act="close">يلا نبدأ</button></div>`;
+  $('#ovl').hidden=false;
+  /* الرسالة بتتقري بالصوت لوحدها أول ما تفتح */
+  if(canSay())setTimeout(()=>{if(!$('#ovl').hidden)say(welText())},400);
+}
 /* وضع الصوت: التطبيق بيقول السؤال، والشريك بيرد برسالة صوتية، والتطبيق بيرد عليه بالصوت ويروح للمهمة اللي بعدها */
 function openVm(i,pre){
   const t=pt.tasks[i];if(!t){closeSheet();return}vrReset();
@@ -2513,7 +2587,7 @@ function communityView(){
   if(comState==='new'||comUid!==uid())loadPosts(true);
   if(comState==='none')return `<div class="sec"><h2>${COM()}</h2><span class="muted">${COM()} لسه متفعّلش على السيرفر.</span></div>`;
   const first=String((me&&me.name)||'').trim().split(/\s+/)[0];
-  const composer=`<div class="fb fbnew"><div class="fbh">${uid()?`<button class="avb" data-act="myav" aria-label="غيّر صورة حسابك">${avatar(uid(),me&&me.name,'',me&&me.avatar)}</button>`:avatar('','')}<button class="ask" data-act="newpost">${uid()?'شارك صيدك أو اسأل'+(first?' يا '+esc(first):'')+'...':'ادخل بحسابك وشارك صيدك مع الناس'}</button></div>
+  const composer=`<div class="fb fbnew"><div class="fbh">${uid()?`<button class="avb" data-act="myav" aria-label="غيّر صورة حسابك">${avatar(uid(),me&&me.name,'',me&&me.avatar)}</button>`:avatar('','')}<button class="ask" data-act="newpost">${uid()?(first?'شارك صيدك أو اسأل يا <span translate="no">'+esc(first)+'</span>...':'شارك صيدك أو اسأل...'):'ادخل بحسابك وشارك صيدك مع الناس'}</button></div>
     <div class="fba"><button data-act="newpost" data-pick="1">${ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/>')}صورة</button>
       <button data-act="newpost" data-vid="1">${ic('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>')}فيديو</button>
       <button data-act="newpost" data-k="question">${ic('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.500a2.5 2.5 0 1 1 3.5 2.300c-.700.4-1 1-1 1.700M12 17h.01"/>')}سؤال</button></div></div>`;
@@ -3011,7 +3085,7 @@ function gridDepth(lat,lon){
   const i=Math.floor(fx),j=Math.floor(fy),u=fx-i,v=fy-j,i2=Math.min(i+1,dg.w-1),j2=Math.min(j+1,dg.h-1),g=(a,b)=>dg.d[b*dg.w+a];
   return (g(i,j)*(1-u)+g(i2,j)*u)*(1-v)+(g(i,j2)*(1-u)+g(i2,j2)*u)*v;
 }
-const crossText=d=>d<0.5?'بر':Math.round(d)+' م';
+const crossText=d=>d<0.5?'بر':Math.round(d)+(enOn?' m':' م');
 function mapCross(){
   const el=$('#mapXd');if(!map||!el)return;const c=map.getCenter(),d=gridDepth(c.lat,c.lng);
   clearTimeout(crossT);
@@ -3092,6 +3166,7 @@ function openAcct(){
   $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
       <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}${isPartner()?' '+PARTNER:''}</div></div></div>
     ${partnerTab()?'<button class="q" data-act="acctgo" data-v="partner">مهام الشريك المؤسس</button>':''}
+    ${labs()?'<button class="q" data-act="welcome">رسالة الترحيب: إزاي تستفيد من التطبيق</button>':''}
     <button class="q" data-act="myav">صورة الحساب</button>
     <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
@@ -3193,6 +3268,9 @@ document.addEventListener('click',e=>{
   else if(act==='admvoice'){if(isAdmin()&&/^[0-9a-f-]{36}\/[\w.-]{5,60}$/.test(a.dataset.p))admVoice(a.dataset.p,a)}
   else if(act==='sayhome'){if(labs()){const d=fromIso(sel),sc=score(d),w=weather(d);say(gDate(d)+'. مؤشر الصيد '+sc.val+' في المية. '+(sc.prelim?'لسه مفيش توقعات جو لليوم ده.':sWord(sc.val)+'. الرياح في النهار حوالي '+Math.round((w.wind[1]+w.wind[2]+w.wind[3]+w.wind[4]+w.wind[5])/5)+' عقدة، والموج '+w.wave[2].toFixed(1)+' متر.'))}}
   else if(act==='admpartner'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
+  else if(act==='welcome')welcomeMsg(true);
+  else if(act==='welsay')say(welText());
+  else if(act==='welstop')sayStop();
   else if(act==='lang'){if(labs()){lang=lang==='en'?'ar':'en';lsSet('fishbook-lang',lang);closeSheet();render()}}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}
