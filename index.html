@@ -2093,7 +2093,7 @@ function enStart(){
 }
 function enSync(){
   const want=lang==='en'&&labs();
-  if(want&&!enOn){if(EN)enStart();else if(!enLoading){enLoading=true;const s=document.createElement('script');s.src='i18n-en.js?v=2';s.onload=()=>{EN=window.I18N_EN||{};Object.keys(EN).forEach(k=>{const b=k.replace(/^[،\s]+|[،\s]+$/g,'');if(b&&b!==k&&EN[b]==null)EN[b]=EN[k].replace(/^[,\s]+|[,\s]+$/g,'')});enLoading=false;enSync()};s.onerror=()=>{enLoading=false};document.head.appendChild(s)}}
+  if(want&&!enOn){if(EN)enStart();else if(!enLoading){enLoading=true;const s=document.createElement('script');s.src='i18n-en.js?v=3';s.onload=()=>{EN=window.I18N_EN||{};Object.keys(EN).forEach(k=>{const b=k.replace(/^[،\s]+|[،\s]+$/g,'');if(b&&b!==k&&EN[b]==null)EN[b]=EN[k].replace(/^[,\s]+|[,\s]+$/g,'')});enLoading=false;enSync()};s.onerror=()=>{enLoading=false};document.head.appendChild(s)}}
   else if(!want&&enOn)location.reload();
 }
 /* نوع الحساب: في الفري التغيير مفتوح. في باقة مدفوعة، النوع اللي باقتك مش بتغطيه محتاج ترقية الأول */
@@ -2352,7 +2352,7 @@ function partnerWelcome(force){
   $('#ovl').hidden=false;
 }
 /* ---------- رسالة الترحيب للمشترك الجديد (وضع التجربة بس لحد ما تتنزّل) ----------
-   مكتوبة، وبتتقري بصوت الموبايل لوحدها أول ما تفتح، ومعاها زرار "اسمعها من الأول" و"وقّف الصوت". بتتغيّر حسب نوع الحساب (صياد، منظم، صاحب مركب، رئيس مركب)،
+   مكتوبة، وبتتقري بصوت مصري متسجّل (audio/welcome-*.mp3) لوحدها أول ما تفتح، ومعاها زرار "اسمعها من الأول" و"وقّف الصوت". بتتغيّر حسب نوع الحساب (صياد، منظم، صاحب مركب، رئيس مركب)،
    وحسب الباقة لما الباقات تنزل. بتظهر مرة واحدة لكل حساب على الجهاز، وتتفتح تاني من نافذة الحساب.
    WEL_LIVE=true يخلّيها تظهر لكل مشترك جديد (حسابه اتعمل من أقل من 3 أيام). */
 const WEL_LIVE=false;
@@ -2363,7 +2363,16 @@ const WEL={
     'البفة: شارك صيدك وصورك، واسأل الصيادين التانيين',
     'اسأل: اسأل ياسر عن الطعم والعدة ومواسم السمك',
     'الإدارة: حجوزاتك وسجل صيدك في مكان واحد',
-    'فعّل إشعار الصبح عشان يجيلك تنبيه بالأيام الحلوة']},
+    'فعّل إشعار الصبح عشان يجيلك تنبيه بالأيام الحلوة'],
+    /* إزاي يقرا الجو ويختار يومه: نفس حسبة المؤشر في score() والألوان في الشرح تحت أعمدة الأيام */
+    g:{t:'إزاي تقرا الجو وتختار يومك',p:[
+    'الرقم فوق كل عمود في أفضل أيام الصيد هو مؤشر الصيد: 80% وأكتر يوم ممتاز، من 70 يوم كويس، من 50 متوسط، وأقل من كده ضعيف',
+    'لون العمود هو الرياح بالنهار: اللبني والأزرق رياح هادية لحد 10 عقدة، الأخضر من 11 لـ16 مقبول، والأصفر والبرتقاني والأحمر رياح شديدة',
+    'النقطة البرتقاني فوق العمود معناها إن نماذج الجو مختلفة، فاليوم ده مش مؤكد. والعمود المخطّط أو الأبيض يوم بعيد، راجعه تاني لما يقرب',
+    'دوس على أي يوم تشوف تفاصيله: الرياح لحد 8 عقدة ممتازة وفوق 20 صعبة، والموج أقل من نص متر هادي وفوق متر ونص صعب',
+    'التيار: الحمل تياره قوي غالبًا والفساد أهدى، وجنبه فرق المد بالسنتي. التيار الأهدى بياخد درجة أعلى في المؤشر',
+    'في جدول الساعات اختار أهدى ساعات في الرياح، وفي كارت المد والجزر هتلاقي أوقات التوقيفة',
+    'الخلاصة: اختار يوم نسبته عالية، ولونه أزرق، ومن غير نقطة برتقاني، وبص عليه تاني الصبح قبل ما تنزل']}},
   org:{t:'إزاي تستفيد من فيش بوك كمنظم رحلات',p:[
     'انشر رحلاتك على أي مركب: اليوم والمدة وعدد الأماكن والسعر',
     'كل حجز بيوصلك باسم الصياد ورقمه، وتكلمه بالتليفون أو واتساب',
@@ -2390,9 +2399,18 @@ function welPlan(R){
 }
 function welText(){
   const R=roleKey(me&&me.role),w=WEL[R],nm=String((me&&me.name)||'').trim().split(/\s+/)[0],pl=welPlan(R);
-  return ['أهلًا بيك'+(nm?' يا '+nm:'')+' في فيش بوك، تطبيق الصيد في الغردقة والبحر الأحمر.',w.t+'.'].concat(w.p.map(x=>x+'.'),
+  return ['أهلًا بيك'+(nm?' يا '+nm:'')+' في فيش بوك، تطبيق الصيد في الغردقة والبحر الأحمر.',w.t+'.'].concat(w.p.map(x=>x+'.'),w.g?[w.g.t+'.'].concat(w.g.p.map(x=>x+'.')):[],
     pl?['باقتك دلوقتي '+pl.cur.name+'.'].concat(pl.nx?['ولو رقّيت لباقة '+pl.nx.name+' هتاخد: '+pl.nxFeats.join('، ')+'.']:[]):[],
     ['تقدر تفتح الرسالة دي تاني من زرار الحساب.']).join(' ');
+}
+/* صوت الرسالة: تسجيل بصوت مصري لكل نوع حساب في audio/، ولو الملف مفتحش نرجع لصوت الموبايل */
+let welAud=null;
+function welStop(){if(welAud){try{welAud.pause()}catch(e){}welAud=null}sayStop()}
+function welPlay(){
+  welStop();const fb=()=>{if(canSay())say(welText())};
+  try{const a=new Audio('audio/welcome-'+roleKey(me&&me.role)+'.mp3?v=1');welAud=a;
+    a.onerror=()=>{if(welAud===a){welAud=null;fb()}};
+    const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name!=='NotAllowedError'&&welAud===a){welAud=null;fb()}})}catch(e){fb()}
 }
 function welcomeMsg(force){
   if(!uid()||!me)return;const k='fishbook-wel-'+uid();
@@ -2402,14 +2420,15 @@ function welcomeMsg(force){
   lsSet(k,'1');
   const R=roleKey(me.role),w=WEL[R],nm=String(me.name||'').trim().split(/\s+/)[0],pl=welPlan(R);
   $('#sheet').innerHTML=`<h2>أهلًا بيك${nm?' يا <span translate="no">'+esc(nm)+'</span>':''} في فيش بوك</h2><span class="muted">تطبيق الصيد في الغردقة والبحر الأحمر. دي أهم حاجات تقدر تعملها:</span>
-    ${canSay()?`<div class="rowbtns"><button type="button" class="btn vbtn" data-act="welsay">${ic(SPK_D,22)}اسمعها من الأول</button><button type="button" class="btn ghost sm" data-act="welstop">وقّف الصوت</button></div>`:''}
+    ${true?`<div class="rowbtns"><button type="button" class="btn vbtn" data-act="welsay">${ic(SPK_D,22)}اسمعها من الأول</button><button type="button" class="btn ghost sm" data-act="welstop">وقّف الصوت</button></div>`:''}
     <div class="trip dg"><strong>${w.t}</strong><ol>${w.p.map(x=>'<li>'+x+'</li>').join('')}</ol></div>
+    ${w.g?`<div class="trip dg"><strong>${w.g.t}</strong><ol>${w.g.p.map(x=>'<li>'+x+'</li>').join('')}</ol></div>`:''}
     ${pl?`<div class="trip"><strong>باقتك دلوقتي: ${pl.cur.name}</strong>${pl.nx?`<span class="muted">لو رقّيت لباقة ${pl.nx.name} (${planPrice(pl.nx)}) هتاخد:</span><ul class="pf">${pl.nxFeats.map(f=>'<li>'+f+'</li>').join('')}</ul><button class="btn ghost sm" type="button" data-act="plans">شوف الباقات</button>`:'<span class="muted">باقتك فيها كل اللي محتاجه لنوع حسابك.</span>'}</div>`:''}
     <span class="muted">تقدر تفتح الرسالة دي تاني من زرار الحساب.</span>
     <div class="rowbtns"><button class="btn" type="button" data-act="close">يلا نبدأ</button></div>`;
   $('#ovl').hidden=false;
   /* الرسالة بتتقري بالصوت لوحدها أول ما تفتح */
-  if(canSay())setTimeout(()=>{if(!$('#ovl').hidden)say(welText())},400);
+  setTimeout(()=>{if(!$('#ovl').hidden)welPlay()},400);
 }
 /* وضع الصوت: التطبيق بيقول السؤال، والشريك بيرد برسالة صوتية، والتطبيق بيرد عليه بالصوت ويروح للمهمة اللي بعدها */
 function openVm(i,pre){
@@ -3216,7 +3235,7 @@ function openBook(id){
     <div class="rowbtns"><button class="btn" type="submit">أكد الحجز</button><button class="btn ghost" type="button" data-act="close">إلغاء</button></div></form>`;
   $('#ovl').hidden=false;$('#bName').focus();
 }
-function closeSheet(){vrReset();sayStop();$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;dropPostFiles();dropBoatFiles()}
+function closeSheet(){vrReset();if(welAud){try{welAud.pause()}catch(e){}welAud=null}sayStop();$('#ovl').hidden=true;$('#sheet').innerHTML='';sheetAuth=false;dropPostFiles();dropBoatFiles()}
 
 document.addEventListener('click',e=>{
   const nb=e.target.closest('nav button');if(nb){go(nb.dataset.view);return}
@@ -3269,8 +3288,8 @@ document.addEventListener('click',e=>{
   else if(act==='sayhome'){if(labs()){const d=fromIso(sel),sc=score(d),w=weather(d);say(gDate(d)+'. مؤشر الصيد '+sc.val+' في المية. '+(sc.prelim?'لسه مفيش توقعات جو لليوم ده.':sWord(sc.val)+'. الرياح في النهار حوالي '+Math.round((w.wind[1]+w.wind[2]+w.wind[3]+w.wind[4]+w.wind[5])/5)+' عقدة، والموج '+w.wave[2].toFixed(1)+' متر.'))}}
   else if(act==='admpartner'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
   else if(act==='welcome')welcomeMsg(true);
-  else if(act==='welsay')say(welText());
-  else if(act==='welstop')sayStop();
+  else if(act==='welsay')welPlay();
+  else if(act==='welstop')welStop();
   else if(act==='lang'){if(labs()){lang=lang==='en'?'ar':'en';lsSet('fishbook-lang',lang);closeSheet();render()}}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}

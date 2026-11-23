@@ -1603,5 +1603,13 @@ window.I18N_EN={
 "إزاي تستفيد من التطبيق":"how to use the app",
 "اسمعها من الأول":"Listen again",
 "وقّف الصوت":"Stop the voice",
-"شارك صيدك أو اسأل يا":"Share your catch or ask,"
+"شارك صيدك أو اسأل يا":"Share your catch or ask,",
+"إزاي تقرا الجو وتختار يومك":"How to read the weather and pick your day",
+"الرقم فوق كل عمود في أفضل أيام الصيد هو مؤشر الصيد: 80% وأكتر يوم ممتاز، من 70 يوم كويس، من 50 متوسط، وأقل من كده ضعيف":"The number above each bar in Best fishing days is the fishing score: 80% or more is an excellent day, from 70 a good day, from 50 average, and below that weak",
+"لون العمود هو الرياح بالنهار: اللبني والأزرق رياح هادية لحد 10 عقدة، الأخضر من 11 لـ16 مقبول، والأصفر والبرتقاني والأحمر رياح شديدة":"The bar colour is the daytime wind: light blue and blue are calm wind up to 10 knots, green from 11 to 16 is fine, and yellow, orange and red are strong wind",
+"النقطة البرتقاني فوق العمود معناها إن نماذج الجو مختلفة، فاليوم ده مش مؤكد. والعمود المخطّط أو الأبيض يوم بعيد، راجعه تاني لما يقرب":"An orange dot above a bar means the weather models disagree, so that day is not certain. A striped or white bar is a far-off day: check it again when it gets closer",
+"دوس على أي يوم تشوف تفاصيله: الرياح لحد 8 عقدة ممتازة وفوق 20 صعبة، والموج أقل من نص متر هادي وفوق متر ونص صعب":"Tap any day to see its details: wind up to 8 knots is excellent and over 20 is hard, and waves under half a metre are calm and over 1.5 metres are hard",
+"التيار: الحمل تياره قوي غالبًا والفساد أهدى، وجنبه فرق المد بالسنتي. التيار الأهدى بياخد درجة أعلى في المؤشر":"Current: Flow days usually have a strong current and Slack days are calmer, with the tide range in cm next to it. A calmer current scores higher",
+"في جدول الساعات اختار أهدى ساعات في الرياح، وفي كارت المد والجزر هتلاقي أوقات التوقيفة":"In the hourly table pick the calmest wind hours, and the tide card shows the slack times",
+"الخلاصة: اختار يوم نسبته عالية، ولونه أزرق، ومن غير نقطة برتقاني، وبص عليه تاني الصبح قبل ما تنزل":"In short: pick a day with a high score, a blue bar and no orange dot, and check it again in the morning before you go out"
 };
