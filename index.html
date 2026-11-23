@@ -486,6 +486,10 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}main{scroll-behavior:auto}}
+/* الإنجليزي: الصفحة بتبقى من الشمال لليمين */
+html[dir=ltr] .q,html[dir=ltr] .fbnew .ask,html[dir=ltr] .mbar .pos{text-align:left}
+.q{flex-shrink:0}
+html[dir=ltr] [style*="text-align:right"]{text-align:left!important}
 </style>
 </head>
 <body>
@@ -507,7 +511,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
   <button data-view="home"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/></svg>الرئيسية</button>
   <button data-view="trips"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16h18l-2 4H5z"/><path d="M12 3v10M12 4l6 8H6z"/></svg>الرحلات</button>
   <button data-view="map"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>الخريطة</button>
-  <button data-view="community"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.8c2.1.6 3.5 2.4 3.5 5.2"/></svg>المجتمع</button>
+  <button data-view="community"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.8c2.1.6 3.5 2.4 3.5 5.2"/></svg><span id="navCom">المجتمع</span></button>
   <button data-view="ask"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>اسأل</button>
   <button data-view="manage"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>الإدارة</button>
 </nav>
@@ -1162,10 +1166,20 @@ async function loadCatches(){
 }
 /* مواصفات وصور المراكب والأيام المحجوزة بيتضافوا بملف 010. لو لسه متشغّلش، المراكب تتحمّل بالشكل القديم. */
 let boatsExt=false,blocksOn=false;const blocks=[];
+/* رئيس المركب (ملف 015): capOn لو عمود captain_id موجود. capInfo: اسم ورقم الرئيس وصاحب المركب لكل مركب */
+let capOn=false;const capInfo={};
+const roleKey=r=>r==='owner'||r==='angler'||r==='captain'?r:'org';
 async function getBoats(){
-  try{const r=await sbFetch('/rest/v1/boats?select=id,name,capacity,owner_id,created_by,specs,about,photos&order=id');boatsExt=true;return r}
-  catch(e){if(e.status!==400&&!/42703|PGRST204/.test(String(e.code)))throw e;
-    boatsExt=false;return sbFetch('/rest/v1/boats?select=id,name,capacity,owner_id,created_by&order=id')}
+  const base='/rest/v1/boats?select=id,name,capacity,owner_id,created_by',ext=',specs,about,photos',bad=e=>e.status===400||/42703|PGRST204/.test(String(e.code));
+  try{const r=await sbFetch(base+ext+',captain_id&order=id');boatsExt=true;capOn=true;return r}catch(e){if(!bad(e))throw e}
+  capOn=false;
+  try{const r=await sbFetch(base+ext+'&order=id');boatsExt=true;return r}catch(e){if(!bad(e))throw e}
+  boatsExt=false;return sbFetch(base+'&order=id');
+}
+async function loadCaptains(){
+  Object.keys(capInfo).forEach(k=>delete capInfo[k]);
+  if(!capOn||!uid()||!boats.some(b=>b.owner===uid()||b.capt===uid()))return;
+  try{((await rpc('boat_captains'))||[]).forEach(c=>capInfo[c.boat_id]={id:c.captain_id,name:c.captain_name||'',phone:c.captain_phone||'',oName:c.owner_name||'',oPhone:c.owner_phone||''})}catch(e){}
 }
 async function loadSrv(){
   try{
@@ -1178,13 +1192,13 @@ async function loadSrv(){
     if(uid()){
       [pf,bk]=await Promise.all([
         sbFetch('/rest/v1/profiles?select=*&id=eq.'+uid()),
-        sbFetch('/rest/v1/bookings?select=*,trips(start_date,days,publisher_id,status,boats(name,owner_id))&status=eq.booked&order=created_at.desc')]);
+        sbFetch('/rest/v1/bookings?select=*,trips(start_date,days,publisher_id,status,boats(name,owner_id'+(capOn?',captain_id':'')+'))&status=eq.booked&order=created_at.desc')]);
       const ids=bk.filter(k=>k.user_id===uid()).map(k=>k.id);
       if(ids.length)mr=await sbFetch('/rest/v1/ratings?select=booking_id,stars&target=eq.boat&booking_id=in.('+ids.join(',')+')');
     }
     let bl=[];blocksOn=false;
     if(uid()&&boatsExt){try{bl=await sbFetch('/rest/v1/boat_blocks?select=id,boat_id,start_date,days,note&start_date=gte.'+from+'&order=start_date');blocksOn=true}catch(e){bl=[]}}
-    boats.length=0;bs.forEach(b=>boats.push({id:b.id,name:b.name,cap:b.capacity,owner:b.owner_id,by:b.created_by,specs:b.specs&&typeof b.specs==='object'?b.specs:{},about:b.about||'',photos:Array.isArray(b.photos)?b.photos:[]}));
+    boats.length=0;bs.forEach(b=>boats.push({id:b.id,name:b.name,cap:b.capacity,owner:b.owner_id,by:b.created_by,specs:b.specs&&typeof b.specs==='object'?b.specs:{},about:b.about||'',photos:Array.isArray(b.photos)?b.photos:[],capt:b.captain_id||null}));
     blocks.length=0;bl.forEach(k=>{const b=boats.find(x=>x.id===k.boat_id);if(b)blocks.push({id:k.id,boatId:k.boat_id,boat:b.name,date:k.start_date,n:k.days,note:k.note||''})});
     trips.length=0;ts.forEach(t=>{const ow=t.publisher_role==='owner';
       trips.push({id:t.id,date:t.start_date,boat:t.boat_name,boatId:t.boat_id,n:t.days,total:t.seats_total,left:Math.max(0,t.seats_left),price:t.price_seat,full:t.price_whole,area:AREAS.some(a=>a.id===t.area)?t.area:'hurghada',by:ow?'owner':'org',org:ow?'':(t.publisher_name||'منظم رحلات'),pub:t.publisher_id})});
@@ -1195,8 +1209,8 @@ async function loadSrv(){
     const rated={};mr.forEach(r=>rated[r.booking_id]=r.stars);
     bookings.length=0;bk.forEach(k=>{const tr=k.trips;if(!tr||!tr.boats)return;const lt=trips.find(t=>t.id===k.trip_id);
       bookings.push({id:k.id,tripId:k.trip_id,name:k.name,phone:k.phone,seats:k.seats,whole:k.whole,boat:tr.boats.name,range:tripRange({date:tr.start_date,n:tr.days}),by:lt?lt.by:'org',org:lt?lt.org:'',date:tr.start_date,n:tr.days,rated:rated[k.id]||0,
-        tripOff:tr.status==='cancelled',mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()})});
-    me=pf[0]||null;if(me)role=me.role==='owner'?'owner':me.role==='angler'?'angler':'org';setTimeout(()=>partnerWelcome(false),800);
+        tripOff:tr.status==='cancelled',mine:k.user_id===uid(),forMe:tr.publisher_id===uid()||tr.boats.owner_id===uid()||(!!tr.boats.captain_id&&tr.boats.captain_id===uid())})});
+    me=pf[0]||null;if(me)role=roleKey(me.role);await loadCaptains();setTimeout(()=>partnerWelcome(false),800);
     srv='ok';
     if(uid())await loadRoutes();else Object.keys(routes).forEach(k=>delete routes[k]);
     if(uid())await loadCatches();else if(logSrv){logSrv=false;logs=[]}
@@ -1227,7 +1241,7 @@ async function signOut(){
   await loadSrv();
 }
 async function setRole(r){
-  const v=r==='owner'?'owner':r==='angler'?'angler':'organizer';
+  const v=r==='owner'||r==='angler'||r==='captain'?r:'organizer';
   try{await sbFetch('/rest/v1/profiles?id=eq.'+uid(),{method:'PATCH',body:{role:v}});if(me)me.role=v;role=r}catch(e){}
   render();
 }
@@ -1556,7 +1570,7 @@ function yasserBox(){
   const msgs=yChat.map(m=>m.role==='user'?`<div class="ym yu">${esc(m.content)}</div>`
     :`<div class="ym ya">${m.html||yText(m.content||'')}</div>${(m.rel||[]).length?`<div class="yrel">${m.rel.map(id=>chip(byId(id))).join('')}</div>`:''}`).join('');
   const intro=yChat.length?'':`<div class="muted">اسأل ياسر في أي حاجة تخص الصيد: الطُعم، العدة، طرق الصيد، المواسم، الأمان، أو التطبيق. أو اختار سؤال:</div><div class="yrel">${Y_POP.map(id=>chip(byId(id))).join('')}</div>`;
-  return `<div class="sec ybox"><h2>اسأل ياسر</h2>${intro}<div class="ylist" aria-live="polite">${msgs}</div>
+  return `<div class="sec ybox"><h2>اسأل ياسر</h2>${enOn?'<div class="muted">ياسر بيرد بالعربي بس دلوقتي</div>':''}${intro}<div class="ylist" aria-live="polite">${msgs}</div>
   <textarea id="yQ" rows="2" maxlength="300" aria-label="سؤالك لياسر" placeholder="مثلًا: إيه أحسن طُعم للمرجان؟">${esc(yDraft)}</textarea>
   <div class="yrow"><button class="btn" data-act="ysend">اسأل</button>${yChat.length?'<button class="btn ghost" data-act="yclear">محادثة جديدة</button>':''}</div></div>`;
 }
@@ -1597,11 +1611,11 @@ const waNum=p=>{const d=String(p||'').replace(/\D/g,'');return /^01\d{9}$/.test(
 const bkAmount=b=>{const t=trips.find(x=>x.id===b.tripId);return t?(b.whole?t.full:b.seats*t.price):0};
 const PHONE_ICON='<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.500a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
 function mgData(){
-  const on=srvOn(),owner=role==='owner';
-  const ownB=on?boats.filter(b=>owner?b.owner===uid():b.by===uid()&&!b.owner):boats;
-  const mine=(on?trips.filter(t=>t.pub===uid()||(owner&&ownB.some(b=>b.id===t.boatId))):trips.filter(t=>t.by===role)).sort(byDate);
+  const on=srvOn(),owner=role==='owner',cap=role==='captain';
+  const ownB=on?boats.filter(b=>cap?b.capt===uid():owner?b.owner===uid():b.by===uid()&&!b.owner):boats;
+  const mine=(on?trips.filter(t=>t.pub===uid()||((owner||cap)&&ownB.some(b=>b.id===t.boatId))):trips.filter(t=>t.by===role)).sort(byDate);
   const myB=on?bookings.filter(b=>b.forMe&&!b.tripOff):bookings.filter(b=>b.by===role);
-  return{on,owner,ownB,mine,up:mine.filter(t=>!isPast(t)),past:mine.filter(isPast).reverse(),myB,blocks:on?blocks.filter(b=>ownB.some(x=>x.id===b.boatId)):[]};
+  return{on,owner,cap,ownB,mine,up:mine.filter(t=>!isPast(t)),past:mine.filter(isPast).reverse(),myB,blocks:on?blocks.filter(b=>ownB.some(x=>x.id===b.boatId)):[]};
 }
 /* كارت حجز للصياد: قادمة (إلغاء وخط سير) أو خلصت (تقييم) */
 function bkCard(b){
@@ -1619,7 +1633,7 @@ function mgAngler(full){
 function mgTrip(t,past){
   const bk=t.total-t.left,own=!srvOn()||t.pub===uid();let sq='';for(let i=0;i<t.total;i++)sq+='<i class="seat'+(i<bk?' on':'')+'"></i>';
   const st=past?[bk?'طلع '+bk+' فرد':'من غير حجوزات','chip']:t.left===0?['كاملة','pill s-good']:bk===0?['لسه فاضية','pill s-bad']:['ناقص '+t.left,'pill s-mid'];
-  return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${areaName(t.area)} · ${tripRange(t)} · ${dWord(t.n)}${own?'':' · ناشرها '+esc(t.org||'منظم رحلات')}</div></div><span class="${st[1]}">${st[0]}</span></div>
+  return `<li><div class="top"><div><strong>${esc(t.boat)}</strong><div class="muted">${areaName(t.area)} · ${tripRange(t)} · ${dWord(t.n)}${own?'':' · ناشرها '+(t.by==='owner'?'صاحب المركب':esc(t.org||'منظم رحلات'))}</div></div><span class="${st[1]}">${st[0]}</span></div>
     ${past?'':`<div class="seats" role="img" aria-label="محجوز ${bk} من ${t.total}">${sq}</div>`}<span class="muted">محجوز ${bk} · فاضي ${t.left} · ${money(t.price)} جنيه للفرد${t.full>0?' · '+money(t.full)+' للمركب كاملة':''}</span>
     ${past?'':`<div class="rowbtns wrap">${bk?`<button class="btn ghost sm" data-act="mpeople" data-id="${t.id}">المشتركين (${bk})</button>`:''}${own||routes[t.id]?`<button class="btn ghost sm" data-act="routeedit" data-id="${t.id}">${routes[t.id]?'خط السير':'ارسم خط السير'}</button>`:''}${srvOn()&&own?`<button class="btn ghost sm" data-act="edittrip" data-id="${t.id}">عدّل</button><button class="btn ghost sm" data-act="canceltrip" data-id="${t.id}">الغي</button>`:''}<button class="btn ghost sm" data-act="share" data-id="${t.id}">شارك</button></div>`}</li>`;
 }
@@ -1635,9 +1649,9 @@ function calItems(d){
   d.blocks.forEach(b=>its.push({k:'b',b,boat:b.boat,key:'i'+b.boatId,date:b.date,end:tEnd(b),n:b.n}));
   return its.sort(byDate);
 }
-function blockRow(b){
-  return `<li><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${tripRange(b)} · ${dWord(b.n)}</div></div><span class="chip">محجوز من عندك</span></div>
-    ${b.note?`<span class="muted">${esc(b.note)}</span>`:''}<div class="rowbtns wrap"><button class="btn ghost sm" data-act="blkdel" data-id="${b.id}">شيل الحجز ده</button></div></li>`;
+function blockRow(b){const m=boats.some(x=>x.id===b.boatId&&canManage(x));
+  return `<li><div class="top"><div><strong>${esc(b.boat)}</strong><div class="muted">${tripRange(b)} · ${dWord(b.n)}</div></div><span class="chip">${m?'محجوز من عندك':'محجوز من صاحب المركب'}</span></div>
+    ${b.note?`<span class="muted">${esc(b.note)}</span>`:''}${m?`<div class="rowbtns wrap"><button class="btn ghost sm" data-act="blkdel" data-id="${b.id}">شيل الحجز ده</button></div>`:''}</li>`;
 }
 function mgMonth(d,mo,its,keys,noNav){
   its=its||calItems(d);keys=keys||[...new Set(d.ownB.map(b=>'i'+b.id).concat(its.map(i=>i.key)))];
@@ -1827,7 +1841,7 @@ function mgPeople(d){
     return `<div class="trip${mgFocus===Number(k)?' hl':''}" data-mtrip="${k}" style="gap:4px"><div class="top"><div><strong>${esc(f.boat)}</strong><div class="muted">${f.range}</div></div><span class="chip">${seats}${t?' من '+t.total:''} محجوز</span></div>
       <ul class="plist">${a.map(b=>{const am=bkAmount(b);return `<li><div style="min-width:0"><strong>${esc(b.name)}</strong><div class="muted">${b.whole?'المركب كاملة · '+b.seats+' فرد':seatsW(b.seats)}${am?' · '+money(am)+' جنيه':''}</div></div>
         <div class="pbtn"><a class="rate" href="tel:${telNum(b.phone)}" aria-label="اتصل بـ ${esc(b.name)}">${PHONE_ICON}<span dir="ltr">${esc(b.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(b.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(b.name)}">${WA_ICON}</a></div></li>`}).join('')}</ul></div>`};
-  const word=d.owner?'الحجوزات':'المشتركين';
+  const word=d.owner||d.cap?'الحجوزات':'المشتركين';
   return `<div class="sec"><h2>${word} في الرحلات القادمة</h2>${up.length?up.map(grp).join(''):`<span class="muted">لسه مفيش حجوزات على رحلاتك القادمة.</span>`}</div>
   ${old.length?`<div class="sec"><h2>${word} في رحلات خلصت</h2>${old.map(grp).join('')}</div>`:''}`;
 }
@@ -1841,11 +1855,49 @@ function ownerCal(list){
       cells+=`<div class="cd${st}" title="${st===' full'?'محجوز كامل':st?'عليه رحلة':'متاح'}"><small>${WDS[d.getDay()]}</small><b>${d.getDate()}</b></div>`}
     return `<li><div class="top"><strong>${esc(b.name)}</strong><span class="muted">تشيل ${b.cap} فرد</span></div><div class="cal">${cells}</div><span class="muted">متاح ${free} يوم · مشغول ${N-free} يوم في الـ${N} يوم الجايين</span></li>`}).join('')}</ul>`;
 }
+/* لوحة رئيس المركب: مراكبه (اللي صاحبها حدده عليها)، الجدول، أقرب رحلة، وآخر الحجوزات. قراية بس */
+function mgCaptain(d){
+  if(!capOn)return '<div class="sec"><h2>رئيس المركب</h2><span class="muted">لوحة رئيس المركب لسه متفعّلتش على السيرفر. شغّل ملف 015_admin_role.sql من SQL Editor في Supabase.</span></div>';
+  if(!d.ownB.length){const ph=me&&me.phone;
+    return `<div class="card"><h2>رئيس مركب على الباقة المجانية</h2><span class="muted">حسابك مجاني. لو صاحب المركب اللي بتشتغل معاه مشترك في باقة بيزنس، يقدر يربطك بمركبه: يفتح "مراكبي" ويدوس "حدد رئيس المركب"، ويكتب ${ph?'رقم موبايلك <b dir="ltr">'+esc(ph)+'</b>':'رقم موبايلك أو إيميلك'}. ساعتها هتشوف جدول المركب وحجوزاتها هنا، واشتراكك بيبقى ضمن اشتراكه.</span></div>`}
+  const nx=d.up[0],last=d.myB.slice(0,3),booked=d.up.reduce((s,t)=>s+(t.total-t.left),0),free=d.up.reduce((s,t)=>s+t.left,0);
+  const bl=d.ownB.map(b=>{const c=capInfo[b.id]||{},ph=telNum(c.oPhone),n=d.up.filter(t=>t.boatId===b.id).length;
+    return `<li><div class="top"><div><strong>${esc(b.name)}</strong><div class="muted">تشيل ${b.cap} فرد · ${n} رحلة قادمة</div></div><span class="chip">رئيسها إنت</span></div>
+      <span class="muted">تابع لصاحب المركب: ${esc(c.oName||'من غير اسم')} · ضمن اشتراكه في بيزنس</span>${ph?`<div class="rowbtns wrap"><a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(c.oPhone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(c.oPhone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب صاحب المركب">${WA_ICON}</a></div>`:''}</li>`}).join('');
+  return `${mgMonth(d,mcal)}<div class="sec" style="margin-top:-6px"><button class="btn ghost" data-act="mtab" data-t="cal">الجدول الكامل: 3 شهور</button></div>
+  <div class="sec"><h2>${d.ownB.length===1?'المركب بتاعتك':'المراكب بتاعتك'}</h2><ul class="list">${bl}</ul></div>
+  <div class="sec"><h2>نظرة عامة</h2><div class="tiles"><div class="tile"><b>${d.up.length}</b><span>رحلة قادمة</span></div><div class="tile"><b>${booked}</b><span>مكان محجوز</span></div><div class="tile"><b>${free}</b><span>مكان فاضي</span></div></div></div>
+  <div class="sec"><h2>أقرب رحلة</h2>${nx?`<ul class="list">${mgTrip(nx)}</ul>`:'<span class="muted">مفيش رحلات قادمة على مركبك.</span>'}</div>
+  <div class="sec"><h2>آخر الحجوزات</h2>${last.length?`<ul class="list">${last.map(b=>`<li><div class="top"><div><strong>${esc(b.name)}</strong><div class="muted">${esc(b.boat)} · ${b.range}</div></div><span class="chip">${b.whole?'المركب كاملة':seatsW(b.seats)}</span></div></li>`).join('')}</ul><button class="btn ghost" data-act="mtab" data-t="people">كل الحجوزات (${d.myB.length})</button>`:'<span class="muted">لسه مفيش حجوزات على رحلات مركبك.</span>'}</div>`;
+}
+/* صاحب المركب يحدد رئيس المركب برقم موبايله أو إيميله */
+function capRow(b){
+  if(!capOn||!labs()||b.owner!==uid())return '';const c=capInfo[b.id];
+  return `<div class="rowbtns wrap" style="align-items:center"><span class="muted" style="flex:1 1 100%">رئيس المركب: ${c?'<strong>'+esc(c.name||'من غير اسم')+'</strong>'+(c.phone?' · <span dir="ltr">'+esc(c.phone)+'</span>':''):'لسه محددتهوش'}</span><button class="btn ghost sm" data-act="capset" data-id="${b.id}">${c?'غيّر رئيس المركب':'حدد رئيس المركب'}</button></div>`;
+}
+function openCaptain(id){
+  const b=boats.find(x=>x.id===id);if(!b||b.owner!==uid())return;const c=capInfo[id];
+  $('#sheet').innerHTML=`<h2>رئيس مركب ${esc(b.name)}</h2><span class="muted">اكتب رقم موبايل الرئيس أو إيميله. لازم يكون عامل حساب على فيش بوك ونوع حسابه "رئيس مركب". هيشوف جدول المركب دي وحجوزاتها بس، ومش هيقدر ينشر رحلات أو يعدّل في المركب. اشتراكه بيبقى ضمن باقة بيزنس بتاعتك.</span>
+    <form id="capForm" data-id="${id}" novalidate><label for="capC">رقم الموبايل أو الإيميل<input id="capC" type="text" inputmode="email" maxlength="80" autocomplete="off" dir="ltr" value="${c?esc(c.phone||''):''}"></label>
+    <div class="err" id="capErr" role="alert"></div><button class="btn" type="submit">احفظ</button></form>
+    <div class="rowbtns">${c?`<button class="btn ghost" type="button" data-act="capdel" data-id="${id}">شيل ${esc(c.name||'الرئيس')} من المركب</button>`:''}<button class="btn ghost" type="button" data-act="close">رجوع</button></div>`;
+  $('#ovl').hidden=false;
+}
+async function saveCaptain(id,v,btn){
+  const er=$('#capErr');if(btn)btn.disabled=true;
+  try{const r=await rpc('owner_set_captain',{p_boat:id,p_contact:v});
+    const b=boats.find(x=>x.id===id);if(b)b.capt=r&&r.id||null;
+    if(r&&r.id)capInfo[id]={id:r.id,name:r.name||'',phone:r.phone||'',oName:me&&me.name||'',oPhone:me&&me.phone||''};else delete capInfo[id];
+    closeSheet();const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){if(btn)btn.disabled=false;const t='تغيير رئيس المركب لسه متفعّلش على السيرفر. شغّل ملف 015_admin_role.sql.';
+    const msg=/no_captain/.test(String(e.message||e.msg||''))||/no_captain/.test(JSON.stringify(e))?'مفيش حساب رئيس مركب بالرقم أو الإيميل ده. خلّيه يعمل حساب على فيش بوك ويختار نوعه "رئيس مركب"، وبعدين جرّب تاني.':(e.status===404||/PGRST202|42883/.test(String(e.code)))?t:srvErr(e);
+    if(er)er.textContent=msg}
+}
 function boatCard(b,d,cnt){
   const p=boatPics(b)[0],sl=specLine(b),ft=Array.isArray(b.specs.feats)?b.specs.feats.length:0;
   return `<li><div class="bcard">${p?`<img class="bcov" src="${PIC_URL(p)}" alt="" loading="lazy">`:'<div class="bcov none">من غير صورة</div>'}<div style="flex:1;min-width:0"><div class="who"><strong>${esc(b.name)}</strong>${b.specs.cls==='vip'?VIP_CHIP:''}</div><div class="muted">تشيل ${b.cap} فرد${sl?' · '+sl:''}</div><div class="muted">${cnt} رحلة قادمة${ft?' · '+ft+' مميزات':''}${boatPics(b).length>1?' · '+boatPics(b).length+' صور':''}</div></div></div>
     ${d.owner&&!boatDone(b)?'<span class="err">ناقص صور ومواصفات. كمّلها عشان الصيادين يشوفوا مركبك.</span>':''}
-    <div class="rowbtns wrap"><button class="btn${d.owner&&!boatDone(b)?'':' ghost'} sm" data-act="boatedit" data-id="${b.id}">${boatDone(b)?'عدّل البيانات والصور':'كمّل البيانات والصور'}</button>${blocksOn&&canManage(b)?`<button class="btn ghost sm" data-act="blknew" data-id="${b.id}">علّم أيام محجوزة</button>`:''}<button class="btn ghost sm" data-act="boatinfo" data-id="${b.id}">شوفها زي الصياد</button></div></li>`;
+    <div class="rowbtns wrap"><button class="btn${d.owner&&!boatDone(b)?'':' ghost'} sm" data-act="boatedit" data-id="${b.id}">${boatDone(b)?'عدّل البيانات والصور':'كمّل البيانات والصور'}</button>${blocksOn&&canManage(b)?`<button class="btn ghost sm" data-act="blknew" data-id="${b.id}">علّم أيام محجوزة</button>`:''}<button class="btn ghost sm" data-act="boatinfo" data-id="${b.id}">شوفها زي الصياد</button></div>${capRow(b)}</li>`;
 }
 function mgBoats(d){
   const cnt=b=>d.up.filter(t=>t.boatId?t.boatId===b.id:t.boat===b.name).length;
@@ -1880,7 +1932,7 @@ function admUsersHtml(){
         <div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(u.email||'')}</div>
         <div class="muted">سجّل ${dShort(u.created_at)}${u.last_seen?' · آخر دخول '+ago(u.last_seen):''}</div>
         <div class="muted">${Number(u.bookings)||0} حجز · ${Number(u.trips)||0} رحلة منشورة · ${Number(u.posts)||0} بوست</div></div></div>
-      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}${adm.pOk?`<button class="btn ghost sm" data-act="admpartner" data-id="${esc(u.id)}" data-on="${u.is_partner?'0':'1'}">${u.is_partner?'شيل الشراكة':'خليه شريك مؤسس'}</button>`:''}</div></li>`}).join('')+'</ul>'
+      <div class="rowbtns wrap">${ph?`<a class="rate" href="tel:${ph}">${PHONE_ICON}<span dir="ltr">${esc(u.phone)}</span></a><a class="rate wa" href="https://wa.me/${waNum(u.phone)}" target="_blank" rel="noopener noreferrer" aria-label="واتساب ${esc(u.name||'')}">${WA_ICON}</a>`:'<span class="muted" style="align-self:center">من غير رقم موبايل</span>'}${pro?`<button class="btn ghost sm" data-act="admver" data-id="${esc(u.id)}" data-on="${u.verified?'0':'1'}">${u.verified?'شيل التوثيق':'وثّق الحساب'}</button>`:''}<button class="btn ghost sm" data-act="admrole" data-id="${esc(u.id)}">غيّر النوع</button>${adm.pOk?`<button class="btn ghost sm" data-act="admpartner" data-id="${esc(u.id)}" data-on="${u.is_partner?'0':'1'}">${u.is_partner?'شيل الشراكة':'خليه شريك مؤسس'}</button>`:''}</div></li>`}).join('')+'</ul>'
     +(list.length>200?'<span class="muted">ظاهر أول 200. اكتب في البحث عشان توصل للباقي.</span>':'');
 }
 function admTripsHtml(){
@@ -1898,10 +1950,10 @@ function mgAdmin(){
   const s=adm.stats,n=k=>Number(s[k])||0;
   return `<div class="sec"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>المشتركين</h2><button class="btn ghost sm" data-act="admload" ${adm.st==='loading'?'disabled':''}>${adm.st==='loading'?'بنحدّث...':'حدّث الأرقام'}</button></div>
     <div class="tiles"><div class="tile"><b>${n('users')}</b><span>كل المشتركين</span></div><div class="tile"><b>${n('new_week')}</b><span>جداد آخر 7 أيام</span></div><div class="tile"><b>${n('new_today')}</b><span>جداد النهارده</span></div></div>
-    <div><span class="chip">${n('anglers')} صياد</span> <span class="chip">${n('organizers')} منظم رحلات</span> <span class="chip">${n('owners')} صاحب مركب</span> <span class="chip">${n('verified')} موثّق</span></div></div>
+    <div><span class="chip">${n('anglers')} صياد</span> <span class="chip">${n('organizers')} منظم رحلات</span> <span class="chip">${n('owners')} صاحب مركب</span>${adm.users.some(u=>u.role==='captain')?` <span class="chip">${adm.users.filter(u=>u.role==='captain').length} رئيس مركب</span>`:''} <span class="chip">${n('verified')} موثّق</span></div></div>
   <div class="sec"><h2>نشاط التطبيق</h2>
     <div class="tiles t2"><div class="tile"><b>${n('trips_upcoming')}</b><span>رحلة قادمة من ${n('trips_total')} منشورة</span></div><div class="tile"><b>${n('bookings')}</b><span>حجز شغال (${n('seats')} مكان)</span></div><div class="tile"><b>${n('bookings_week')}</b><span>حجز آخر 7 أيام</span></div><div class="tile"><b>${n('boats')}</b><span>مركب مسجلة</span></div><div class="tile"><b>${n('posts')}</b><span>بوست و${n('comments')} تعليق</span></div><div class="tile"><b>${n('catches')}</b><span>صيدة في السجلات</span></div></div>
-    ${n('reports')?`<button class="q" data-act="nav" data-v="community">في ${n('reports')===1?'بلاغ واحد مستني':n('reports')+' بلاغات مستنية'} مراجعتك في المجتمع</button>`:''}</div>
+    ${n('reports')?`<button class="q" data-act="nav" data-v="community">في ${n('reports')===1?'بلاغ واحد مستني':n('reports')+' بلاغات مستنية'} مراجعتك في ${COM()}</button>`:''}</div>
   <div class="sec"><div class="seg${adm.pOk?' s3':''}" role="group" aria-label="القايمة"><button data-act="admsub" data-s="users" aria-pressed="${adm.sub==='users'}">المشتركين (${adm.users.length})</button><button data-act="admsub" data-s="trips" aria-pressed="${adm.sub==='trips'}">الرحلات (${adm.trips.length})</button>${adm.pOk?`<button data-act="admsub" data-s="pans" aria-pressed="${adm.sub==='pans'}">الشركاء</button>`:''}</div>
     ${adm.sub==='users'?`<input id="admQ" type="search" maxlength="60" autocomplete="off" placeholder="دوّر بالاسم أو الموبايل أو الإيميل" aria-label="بحث في المشتركين" value="${esc(adm.q)}"><div id="admList" style="display:flex;flex-direction:column;gap:8px">${admUsersHtml()}</div>`
       :adm.sub==='pans'&&adm.pOk?admPansHtml():`<span class="muted">كل رحلات التطبيق من آخر 30 يوم ولقدام.</span>${admTripsHtml()}`}</div>`;
@@ -1914,16 +1966,36 @@ async function admVerify(id,on,btn){
     const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
   }catch(e){btn.disabled=false;btn.textContent=srvErr(e)}
 }
+function admRoleOpen(id){
+  const u=adm.users.find(x=>x.id===id);if(!u)return;
+  const b=(r,t,d)=>`<button class="q" data-act="admroleset" data-id="${esc(id)}" data-r="${r}" ${u.role===r?'aria-current="true"':''}><strong>${t}${u.role===r?' (الحالي)':''}</strong><br><span class="muted">${d}</span></button>`;
+  $('#sheet').innerHTML=`<h2>نوع حساب ${esc(u.name||'المشترك')}</h2><span class="muted">اختار النوع الجديد. التغيير بيحصل على طول، ورحلاته وحجوزاته ومراكبه بتفضل محفوظة. التغيير من هنا مش بيطلب منه ترقية.</span>
+    ${b('angler','صياد','يحجز رحلات ويسجّل صيده')}${b('organizer','منظم رحلات','ينشر رحلات على مراكب')}${b('owner','صاحب مركب','يسجّل مراكبه وينشر عليها')}${b('captain','رئيس مركب','تابع لصاحب مركب. يشوف جدول المركب وحجوزاتها')}
+    <div class="err" id="arErr" role="alert"></div><div class="rowbtns"><button class="btn ghost" type="button" data-act="close">رجوع</button></div>`;
+  $('#ovl').hidden=false;
+}
+async function admSetRole(id,r){
+  const u=adm.users.find(x=>x.id===id);if(!u||!ROLE_NAME[r])return;
+  if(u.role===r){closeSheet();return}
+  const bs=[...document.querySelectorAll('#sheet [data-act="admroleset"]')];bs.forEach(x=>x.disabled=true);
+  try{await rpc('admin_set_role',{p_user:id,p_role:r});
+    const K={angler:'anglers',organizer:'organizers',owner:'owners',captain:'captains'};
+    if(adm.stats){adm.stats[K[u.role]]=Math.max(0,(Number(adm.stats[K[u.role]])||0)-1);adm.stats[K[r]]=(Number(adm.stats[K[r]])||0)+1}
+    u.role=r;if(me&&me.id===id){me.role=r;role=r==='organizer'?'org':r}
+    closeSheet();const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top;
+  }catch(e){bs.forEach(x=>x.disabled=false);
+    $('#arErr').textContent=(e.status===404||/PGRST202|42883/.test(String(e.code)))?'تغيير النوع من هنا لسه متفعّلش على السيرفر. شغّل ملف 015_admin_role.sql من SQL Editor في Supabase.':srvErr(e)}
+}
 function manageView(){
   const on=srvOn();
   if(on&&!uid())return `<div class="sec"><h2>الإدارة</h2><span class="muted">ادخل بحسابك عشان تتابع رحلاتك وحجوزاتك. الحساب بيتعمل كصياد أو منظم رحلات أو صاحب مركب، ولكل واحد لوحة مناسبة لشغله.</span></div><div class="card">${authCard()}</div>${logView()}`;
-  const d=mgData(),R=role==='owner'?'owner':role==='angler'?'angler':'org',nm=String((me&&me.name)||'').trim()||'حسابي';
+  const d=mgData(),R=roleKey(role),nm=String((me&&me.name)||'').trim()||'حسابي';
   const head=on?`<div class="card mgh">${avatar(uid(),me&&me.name,'md',me&&me.avatar)}<div class="fbn"><div class="who"><strong>${esc(nm)}</strong>${me&&me.verified?VERIFIED:''}${isPartner()?PARTNER:''}</div><div class="muted">${ROLE_NAME[me&&me.role]||'صياد'}${isAdmin()?' · إدارة':''}</div></div><button class="btn ghost sm" data-act="acct">الحساب</button></div>`
     :`<div class="sec"><h2>الإدارة</h2>${srvNote()}<span class="muted">ده عرض تجريبي للوحة ${R==='owner'?'صاحب المركب':R==='angler'?'الصياد':'منظم الرحلات'}. غيّر نوع الحساب من تحت عشان تشوف الباقي.</span></div>`;
-  const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(partnerTab()?[['partner','مهام الشريك']]:[],R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:[['over','الرئيسية'],['cal','الجدول']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
+  const tabs=(on&&isAdmin()?[['adm','لوحة المالك']]:[]).concat(partnerTab()?[['partner','مهام الشريك']]:[],R==='angler'?[['over','رحلاتي'],['log','سجل صيدي']]:R==='captain'?[['over','الرئيسية'],['cal','الجدول'],['people','الحجوزات']]:[['over','الرئيسية'],['cal','الجدول']].concat(R==='owner'?[['boats','مراكبي'],['trips','الرحلات'],['people','الحجوزات']]:[['trips','الرحلات'],['people','المشتركين'],['boats','المراكب']],[['rates','التقييمات']],myBk().length&&on?[['mine','حجوزاتي أنا']]:[],logs.length||mtab==='log'?[['log','سجل صيدي']]:[]));
   if(!tabs.some(t=>t[0]===mtab))mtab='over';
   const chips=tabs.length?`<div class="sec" style="margin-top:14px"><div class="fchips" role="group" aria-label="أقسام الإدارة">${tabs.map(t=>`<button class="fchip" data-act="mtab" data-t="${t[0]}" aria-pressed="${t[0]===mtab}">${t[1]}${t[0]==='people'&&d.myB.length?' ('+d.myB.length+')':''}</button>`).join('')}</div></div>`:'';
-  const body=mtab==='adm'?mgAdmin():mtab==='partner'?mgPartner():mtab==='log'?(can('log')?logView():lockCard('log','سجل الصيد','سجّل صيدك، والتطبيق يتعرف على السمكة من الصورة.')):R!=='angler'&&mtab!=='mine'&&!can('dash')?lockCard('dash','لوحة الإدارة','جدول الكراسي وتقويم المركب ونشر الرحلات والتقييمات.'):R==='angler'?mgAngler(true):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
+  const body=mtab==='adm'?mgAdmin():mtab==='partner'?mgPartner():mtab==='log'?(can('log')?logView():lockCard('log','سجل الصيد','سجّل صيدك، والتطبيق يتعرف على السمكة من الصورة.')):R!=='angler'&&R!=='captain'&&mtab!=='mine'&&!can('dash')?lockCard('dash','لوحة الإدارة','جدول الكراسي وتقويم المركب ونشر الرحلات والتقييمات.'):R==='angler'?mgAngler(true):R==='captain'?(mtab==='cal'?mgCal(d):mtab==='people'?mgPeople(d):mgCaptain(d)):mtab==='cal'?mgCal(d):mtab==='trips'?mgTrips(d):mtab==='people'?mgPeople(d):mtab==='boats'?mgBoats(d):mtab==='rates'?rateSec(d.owner,d.mine):mtab==='mine'?mgAngler(false):mgOver(d);
   const pick=(r,l)=>`<button data-act="role" data-r="${r}" aria-pressed="${R===r}">${l}</button>`;
   /* نوع الحساب بيتختار وقت التسجيل وبيتغيّر من نافذة الحساب. هنا بيظهر في العرض التجريبي بس (من غير سيرفر) */
   if(on)return `${head}${chips}${body}`;
@@ -1937,7 +2009,7 @@ function manageView(){
    بيشتغل مع السيرفر بس. الصور بتتصغّر على الجهاز وبتترفع على Storage (bucket اسمه community).
    comState: new لسه متحملش، loading، ok، fail مفيش اتصال، none الجداول لسه متعملتش على السيرفر. */
 const POST_KINDS=[['catch','صيدة','صيدات'],['boat','مركب','مراكب'],['question','سؤال','أسئلة'],['general','عام','عام']];
-const ROLE_NAME={angler:'صياد',organizer:'منظم رحلات',owner:'صاحب مركب'};
+const ROLE_NAME={angler:'صياد',organizer:'منظم رحلات',owner:'صاحب مركب',captain:'رئيس مركب'};
 const REP_REASONS=['إعلان أو سبام','محتوى مسيء أو شتيمة','ملوش علاقة بالصيد','حاجة تانية'];
 const POSTS_PAGE=20,PIC_MAX=4;
 const PIC_URL=p=>SB_URL+'/storage/v1/object/public/community/'+p;
@@ -1957,7 +2029,7 @@ const isAdmin=()=>!!(me&&me.is_admin);
    أي حد تاني (أو الإدارة لو قفلت وضع التجربة) بيشوف التطبيق زي ما هو بالظبط ومفيش أي حاجة بتتقفل عليه.
    الباقة التجريبية بتتحفظ على الجهاز ده بس ومبتتبعتش للسيرفر. */
 const PLANS={
-  free:{name:'فري',price:'مجاني',who:'لأي صياد',feats:['الجو والمد والجزر وأحسن أيام الصيد','عرض الرحلات والحجز','المجتمع','الخريطة: مناطق الصيد بس','فيها إعلانات']},
+  free:{name:'فري',price:'مجاني',who:'لأي صياد',feats:['الجو والمد والجزر وأحسن أيام الصيد','عرض الرحلات والحجز','البفة','الخريطة: مناطق الصيد بس','فيها إعلانات']},
   pro:{name:'برو',price:'100',per:1,who:'للصياد',feats:['كل اللي في الفري، من غير إعلانات','تنبيه الصبح بالأيام الحلوة اللي فيها أماكن فاضية','اسأل فيش بوك وتخطيط لشهر قدام','سجل الصيد والتعرف على السمك من الصورة','الخريطة: تسجّل طرحاتك (لحد 20 طرحة)']},
   max:{name:'ماكس',price:'500',per:1,who:'لأصحاب المراكب والمنظمين',feats:['كل اللي في البرو','لوحة الإدارة: الكراسي والتقويم ونشر الرحلات والتقييمات','الخريطة كاملة: طرحات من غير حد وتسجيل التراك','طرحاتك سرية ليك إنت بس']},
   biz:{name:'ماكس بيزنس',price:'1000',per:1,who:'لصاحب المركب اللي عنده طاقم',short:'بيزنس',feats:['كل اللي في الماكس','حسابات للريس والبحرية بصلاحيات','جدول الطاقم ومصاريف كل رحلة','حصص البحرية وتقرير المكسب','تنبيهات الصيانة وتجديد التراخيص']}};
@@ -1971,6 +2043,54 @@ if(!PLANS[testPlan]||PLANS[testPlan].soon)testPlan='free';
 const labs=()=>isAdmin()&&labsFlag;
 /* برّه وضع التجربة كل حاجة مفتوحة زي دلوقتي */
 const can=f=>!labs()||PLAN_ORDER.indexOf(testPlan)>=PLAN_ORDER.indexOf(NEED[f]||'free');
+/* ---------- اللغة الإنجليزي (وضع التجربة بس) ----------
+   التطبيق بيترسم بالعربي زي ما هو، وبعدين كل جملة عربي في الصفحة بتتبدّل بالإنجليزي من قاموس i18n-en.js
+   (بيتحمّل بس لما حد يختار English). كلام المشتركين نفسه (البوستات والتعليقات والأسماء) مبيتترجمش.
+   الرجوع للعربي بيعمل reload عشان الصفحة ترجع زي ما كانت بالظبط. */
+let lang=lsGet('fishbook-lang','ar'),EN=null,enOn=false,enLoading=false,enObs=null;
+const AR_RUN=/[؀-ۿ](?:[؀-ۿً-ٟ ،؟]*[؀-ۿ؟])?/g;
+const EN_SKIP='.fbt,.cmb,.who strong,.ym,.yq,[translate="no"],script,style,textarea';
+function enRun(r){
+  if(EN[r]!=null)return EN[r];
+  if(/[،؟]./.test(r))return r.split(/([،؟] *)/).map(x=>/^[،؟] *$/.test(x)||!x?x:enRun(x.trim())).join('');
+  const w=r.split(' '),out=[];let i=0,hit=false;
+  while(i<w.length){let j=w.length,f=null;for(;j>i;j--){const k=w.slice(i,j).join(' ');if(EN[k]!=null){f=EN[k];break}}
+    if(f!=null){out.push(f);i=j;hit=true;continue}
+    const x=w[i],b=x.replace(/^(و|بال|لل|ال|ب|ل)/,''),p=x.slice(0,x.length-b.length),g=EN[b]!=null?EN[b]:EN['ال'+b];
+    if(p&&b&&g!=null){out.push((p==='و'?'and ':p==='ب'||p==='بال'?'with ':p==='ل'||p==='لل'?'for ':'')+g);hit=true}else out.push(x);i++}
+  return hit?out.join(' '):r;
+}
+const enText=s=>{if(!s||!AR_RUN.test(s))return s;AR_RUN.lastIndex=0;
+  return s.replace(AR_RUN,(r,o,all)=>{const t=enRun(r),a=all[o-1],z=all[o+r.length];return (a&&/[\w%)]/.test(a)?' ':'')+t+(z&&/[\w(]/.test(z)?' ':'')}).replace(/،/g,',').replace(/؟/g,'?').replace(/·(?=\S)/g,'· ')};
+function enNode(root){
+  if(!enOn||!root)return;
+  if(root.nodeType===3){const p=root.parentElement;if(p&&!p.closest(EN_SKIP)){const t=enText(root.nodeValue);if(t!==root.nodeValue)root.nodeValue=t}return}
+  if(root.nodeType!==1||root.closest(EN_SKIP))return;
+  const els=[root,...root.querySelectorAll('[placeholder],[aria-label],[title]')];
+  els.forEach(el=>{['placeholder','aria-label','title'].forEach(a=>{const v=el.getAttribute&&el.getAttribute(a);if(v){const t=enText(v);if(t!==v)el.setAttribute(a,t)}})});
+  const tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;const list=[];while((n=tw.nextNode()))list.push(n);
+  list.forEach(x=>{const p=x.parentElement;if(p&&!p.closest(EN_SKIP)){const t=enText(x.nodeValue);if(t!==x.nodeValue)x.nodeValue=t}});
+}
+function enStart(){
+  enOn=true;document.documentElement.lang='en';document.documentElement.dir='ltr';document.title=enText(document.title);
+  enNode(document.body);
+  enObs=new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')enNode(m.target);else if(m.type==='attributes')enNode(m.target);else m.addedNodes.forEach(enNode)}));
+  enObs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+}
+function enSync(){
+  const want=lang==='en'&&labs();
+  if(want&&!enOn){if(EN)enStart();else if(!enLoading){enLoading=true;const s=document.createElement('script');s.src='i18n-en.js?v=1';s.onload=()=>{EN=window.I18N_EN||{};Object.keys(EN).forEach(k=>{const b=k.replace(/^[،\s]+|[،\s]+$/g,'');if(b&&b!==k&&EN[b]==null)EN[b]=EN[k].replace(/^[,\s]+|[,\s]+$/g,'')});enLoading=false;enSync()};s.onerror=()=>{enLoading=false};document.head.appendChild(s)}}
+  else if(!want&&enOn)location.reload();
+}
+/* نوع الحساب: في الفري التغيير مفتوح. في باقة مدفوعة، النوع اللي باقتك مش بتغطيه محتاج ترقية الأول */
+/* رئيس المركب بيسجّل لنفسه على الفري. ربطه بمركب بييجي من اشتراك بيزنس بتاع صاحب المركب */
+const ROLE_PLAN={angler:'pro',org:'max',owner:'max',captain:'free'};
+const roleNeedsUp=r=>labs()&&testPlan!=='free'&&PLAN_ORDER.indexOf(testPlan)<PLAN_ORDER.indexOf(ROLE_PLAN[r]||'free');
+function roleUpSheet(r){const p=PLANS[ROLE_PLAN[r]],t=r==='owner'?'صاحب مركب':r==='captain'?'رئيس مركب':'منظم رحلات';
+  $('#sheet').innerHTML=`<div class="lock"><span class="lki">${LOCK_IC}</span><h2>عشان تبقى ${t}</h2><span class="muted">إنت مشترك في باقة ${PLANS[testPlan].name}، ودي باقة الصياد. حساب ${t} في باقة ${p.name} (${planPrice(p)}). رقّي حسابك ونوعه هيتغيّر على طول، ورحلاتك وحجوزاتك بتفضل محفوظة.</span>
+    <div class="rowbtns"><button class="btn" data-act="roleup" data-r="${r}">رقّي لـ ${p.name} وبقى ${t}</button></div></div>
+    <div class="rowbtns"><button class="btn ghost" data-act="plans">قارن الباقات</button><button class="btn ghost" type="button" data-act="roleopen">رجوع</button></div>`;
+  $('#ovl').hidden=false}
 const LOCK_IC='<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const planPrice=p=>p.per?p.price+' جنيه في الشهر':p.price;
 function lockBody(f,title,why){const p=PLANS[NEED[f]];
@@ -2116,7 +2236,7 @@ async function modHide(pid,cid,btn){
   try{await rpc('mod_hide',{p_post:pid||null,p_comment:cid||null,p_on:true});
     if(pid){delete openCm[pid];posts=posts.filter(x=>x.id!==pid);reps=reps.filter(r=>r.post_id!==pid&&!(r.comments&&r.comments.post_id===pid));closeSheet()}
     else{reps=reps.filter(r=>r.comment_id!==cid);Object.keys(openCm).forEach(k=>{const o=openCm[k];if(o&&o.list&&o.list.some(c=>c.id===cid)){o.list=o.list.filter(c=>c.id!==cid);const po=posts.find(x=>x.id===Number(k));if(po)po.comment_count=Math.max(0,Number(po.comment_count||0)-1)}})}
-    comMsg=(pid?'البوست':'التعليق')+' اتخفى من المجتمع. الإدارة هتراجعه.';render();
+    comMsg=(pid?'البوست':'التعليق')+' اتخفى من '+COM()+'. الإدارة هتراجعه.';render();
   }catch(e){btn.disabled=false;btn.textContent=modErr(e)}
 }
 async function admUnhide(kind,id,btn){
@@ -2261,7 +2381,7 @@ function mgPartner(){
     <div class="plv"><strong>المستوى: ${lv.name}</strong><span class="muted">${lv.next?'فاضلك '+(lv.next[0]-pts)+' نقطة وتوصل '+lv.next[1]:'وصلت أعلى مستوى'}</span><i><b style="width:${lv.next?Math.round((pts-lv.from)/(lv.next[0]-lv.from)*100):100}%"></b></i></div></div>
   ${isPartner()?'':'<div class="sec"><span class="chip">ده عرض ليك إنت بس. الشركاء هيشوفوا التبويب ده بعد ما تعلّم على حساباتهم من لوحة المالك.</span></div>'}
   ${pt.st==='none'?'<div class="sec"><span class="muted">حساب الشريك لسه متفعّلش على السيرفر، فالإرسال مش هيشتغل. شغّل ملف 014_partners.sql من SQL Editor في Supabase.</span></div>':''}
-  <div class="sec"><div class="trip dg"><strong>إنت مراقب في المجتمع</strong><div class="muted">لو شفت بوست أو تعليق مخالف (إعلان، شتيمة، حاجة ملهاش علاقة بالصيد): دوس على الـ3 نقط في البوست واختار "اخفي البوست"، أو "اخفي" تحت التعليق. المحتوى بيختفي من عند الناس، والإدارة بتراجعه وتقدر ترجّعه. والبلاغات بتظهرلك فوق في صفحة المجتمع.</div><button class="btn ghost sm" data-act="nav" data-v="community">روح المجتمع</button></div></div>
+  <div class="sec"><div class="trip dg"><strong>إنت مراقب في ${COM()}</strong><div class="muted">لو شفت بوست أو تعليق مخالف (إعلان، شتيمة، حاجة ملهاش علاقة بالصيد): دوس على الـ3 نقط في البوست واختار "اخفي البوست"، أو "اخفي" تحت التعليق. المحتوى بيختفي من عند الناس، والإدارة بتراجعه وتقدر ترجّعه. والبلاغات بتظهرلك فوق في صفحة المجتمع.</div><button class="btn ghost sm" data-act="nav" data-v="community">روح المجتمع</button></div></div>
   <div class="sec"><h2>المهام</h2>${pt.done?`<span class="chip okc">اتبعتت: ${esc(pt.done)}. شكراً ليك.</span>`:''}${list||'<span class="muted">مفيش مهام دلوقتي.</span>'}</div>${board}`;
 }
 function ptInput(f,i){const id='ptf'+i,opt=a=>'<option value="">اختار</option>'+a.map(o=>`<option>${esc(o)}</option>`).join('');
@@ -2389,9 +2509,9 @@ function syncPost(p){
   if(c){c.innerHTML=countsHtml(p);c.classList.toggle('z',!Number(p.like_count)&&!Number(p.comment_count))}
 }
 function communityView(){
-  if(!srvOn())return `<div class="sec"><h2>المجتمع</h2><span class="muted">${srv==='fail'?'المجتمع محتاج اتصال بالسيرفر. اتأكد من النت وافتح التطبيق تاني.':'بنحمّل...'}</span></div>`;
+  if(!srvOn())return `<div class="sec"><h2>${COM()}</h2><span class="muted">${srv==='fail'?COM()+' محتاج اتصال بالسيرفر. اتأكد من النت وافتح التطبيق تاني.':'بنحمّل...'}</span></div>`;
   if(comState==='new'||comUid!==uid())loadPosts(true);
-  if(comState==='none')return `<div class="sec"><h2>المجتمع</h2><span class="muted">المجتمع لسه متفعّلش على السيرفر.</span></div>`;
+  if(comState==='none')return `<div class="sec"><h2>${COM()}</h2><span class="muted">${COM()} لسه متفعّلش على السيرفر.</span></div>`;
   const first=String((me&&me.name)||'').trim().split(/\s+/)[0];
   const composer=`<div class="fb fbnew"><div class="fbh">${uid()?`<button class="avb" data-act="myav" aria-label="غيّر صورة حسابك">${avatar(uid(),me&&me.name,'',me&&me.avatar)}</button>`:avatar('','')}<button class="ask" data-act="newpost">${uid()?'شارك صيدك أو اسأل'+(first?' يا '+esc(first):'')+'...':'ادخل بحسابك وشارك صيدك مع الناس'}</button></div>
     <div class="fba"><button data-act="newpost" data-pick="1">${ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/>')}صورة</button>
@@ -2593,7 +2713,7 @@ function openPostMenu(id){
   $('#sheet').innerHTML=`<h2>اختيارات البوست</h2>
     <button class="q" data-act="pcopy" data-id="${id}">انسخ لينك البوست</button>
     ${mine?'':`<button class="q" data-act="report" data-pid="${id}">بلّغ عن البوست</button>`}
-    ${!mine&&canHide()?`<button class="q" data-act="hidepost" data-id="${id}"><strong>اخفي البوست (مراقبة)</strong><br><span class="muted">بيختفي من المجتمع، والإدارة بتراجعه.</span></button>`:''}
+    ${!mine&&canHide()?`<button class="q" data-act="hidepost" data-id="${id}"><strong>اخفي البوست (مراقبة)</strong><br><span class="muted">بيختفي من ${COM()}، والإدارة بتراجعه.</span></button>`:''}
     ${mine||isAdmin()?`<button class="q" data-act="delpost" data-id="${id}">امسح البوست</button>`:''}
     <button class="btn ghost" type="button" data-act="close">قفل</button>`;
   $('#ovl').hidden=false;
@@ -2958,10 +3078,11 @@ function acctChip(){
   return `<button class="hacct" data-act="acct" aria-label="داخل بحساب ${esc(nm)}. افتح الحساب"><span class="avw">${avatar(uid(),me&&me.name,'sm',me&&me.avatar)}</span><span class="nm">${esc(nm.split(/\s+/)[0])}</span></button>`;
 }
 function openRole(){
-  const cur=role==='owner'?'owner':role==='angler'?'angler':'org';
-  const b=(r,t,d)=>`<button class="q" data-act="roleset" data-r="${r}" ${cur===r?'aria-current="true"':''}><strong>${t}${cur===r?' (الحالي)':''}</strong><br><span class="muted">${d}</span></button>`;
-  $('#sheet').innerHTML=`<h2>نوع الحساب</h2><span class="muted">اختار اللي يناسب شغلك. رحلاتك وحجوزاتك بتفضل محفوظة لو غيّرته.</span>
-    ${b('angler','صياد','أحجز رحلات وأسجّل صيدي')}${b('org','منظم رحلات','أنشر رحلات على مراكب')}${b('owner','صاحب مركب','أسجّل مراكبي وأنشر عليها')}
+  const cur=roleKey(role);
+  const b=(r,t,d)=>{const up=cur!==r&&roleNeedsUp(r);return `<button class="q" data-act="roleset" data-r="${r}" ${cur===r?'aria-current="true"':''}><strong>${t}${cur===r?' (الحالي)':''}</strong>${up?' <span class="chip">محتاج ترقية لـ '+PLANS[ROLE_PLAN[r]].name+'</span>':''}<br><span class="muted">${d}</span></button>`};
+  const note=!labs()?'':testPlan==='free'?' إنت على الفري، فتقدر تغيّره براحتك.':' إنت مشترك في '+PLANS[testPlan].name+'. لو النوع الجديد مش في باقتك هتحتاج ترقّي الأول.';
+  $('#sheet').innerHTML=`<h2>نوع الحساب</h2><span class="muted">اختار اللي يناسب شغلك. رحلاتك وحجوزاتك بتفضل محفوظة لو غيّرته.${note}</span>
+    ${b('angler','صياد','أحجز رحلات وأسجّل صيدي')}${b('org','منظم رحلات','أنشر رحلات على مراكب')}${b('owner','صاحب مركب','أسجّل مراكبي وأنشر عليها')}${labs()||cur==='captain'?b('captain','رئيس مركب','مجاني. ولو صاحب المركب مشترك في بيزنس، يربطني بمركبه وأشوف جدولها وحجوزاتها'):''}
     <div class="rowbtns"><button class="btn ghost" type="button" data-act="acct">رجوع</button></div>`;
   $('#ovl').hidden=false;
 }
@@ -2975,14 +3096,17 @@ function openAcct(){
     <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
     ${isAdmin()?`<button class="q" data-act="labs"><strong>وضع التجربة: ${labsFlag?'شغال':'مقفول'}</strong><br><span class="muted">${labsFlag?'بتشوف الحاجات الجديدة قبل ما تنزل للناس. دوس عشان تشوف التطبيق زي باقي الناس.':'بتشوف التطبيق زي باقي الناس. دوس عشان تشوف الحاجات الجديدة.'} محدش غيرك بيشوف الزرار ده.</span></button>`:''}
+    ${labs()?`<button class="q" data-act="lang" translate="no"><strong>${lang==='en'?'Language: English':'اللغة: العربي'}</strong><br><span class="muted">${lang==='en'?'اضغط عشان ترجع للعربي':'Tap to switch to English'}</span></button>`:''}
     ${labs()?`<button class="q" data-act="acctgo" data-v="plans">الاشتراكات (تجربة): الباقة دلوقتي ${PLANS[testPlan].name}</button>`:''}
     <button class="q" data-act="acctgo" data-v="manage">رحلاتي والإدارة</button>
     <button class="q" data-act="acctgo" data-v="log">سجل صيدي</button>
     <div class="rowbtns"><button class="btn ghost" type="button" data-act="signout">خروج من الحساب</button><button class="btn ghost" type="button" data-act="close">قفل</button></div>`;
   $('#ovl').hidden=false;
 }
+/* اسم قسم المجتمع الجديد "البفة": ظاهر في وضع التجربة بس لحد ما يتنزّل للناس */
+const COM=()=>labs()?'البفة':'المجتمع';
 function render(){
-  $('#hAcct').innerHTML=acctChip();
+  $('#hAcct').innerHTML=acctChip();const nc=$('#navCom');if(nc)nc.textContent=COM();enSync();
   const isMap=view==='map';$('#main').hidden=isMap;$('#mapWrap').hidden=!isMap;
   if(isMap){$('#main').innerHTML='';document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});showMap();return}
   if(['plans','safety','biz'].includes(view)&&!labs())view='home';
@@ -3027,6 +3151,7 @@ document.addEventListener('click',e=>{
   else if(act==='goto'){sel=a.dataset.d;ensureH(sel);reveal=true;go('home')}
   else if(act==='more'){H+=30;render()}
   else if(act==='alert'){alerts[sel]=true;render()}
+  else if(act==='role'&&roleNeedsUp(a.dataset.r))roleUpSheet(a.dataset.r);
   else if(act==='role'){mtab='over';if(srvOn()&&uid())setRole(a.dataset.r);else{role=a.dataset.r;render()}}
   else if(act==='mtab'){mtab=a.dataset.t;mgFocus=null;render();const m=$('#main');if(a.closest('.fchips'))return;const el=mtab==='trips'&&a.classList.contains('btn')&&!a.classList.contains('ghost')?$('#mgNew'):null;m.scrollTop=el?el.offsetTop-80:0}
   else if(act==='admload')loadAdm().then(()=>{}),render();
@@ -3043,6 +3168,12 @@ document.addEventListener('click',e=>{
   else if(act==='mcal'||act==='mcalday'){if(act==='mcal'){mcal=Math.max(-2,Math.min(11,mcal+Number(a.dataset.d)));mcalDay=null}else mcalDay=a.dataset.k&&a.dataset.k!==mcalDay?a.dataset.k:null;
     const m=$('#main'),top=m.scrollTop;render();m.scrollTop=top}
   else if(act==='roleopen')openRole();
+  else if(act==='roleset'&&roleNeedsUp(a.dataset.r))roleUpSheet(a.dataset.r);
+  else if(act==='roleup'){const r=a.dataset.r;if(labs()&&ROLE_PLAN[r]){testPlan=ROLE_PLAN[r];lsSet('fishbook-plan',testPlan);closeSheet();mtab='over';if(uid())setRole(r);else{role=r;render()}}}
+  else if(act==='capset'){if(labs()){if(can('biz'))openCaptain(Number(a.dataset.id));else lockSheet('biz','اربط رئيس المركب بحسابك','رئيس المركب يشوف جدول مركبك وحجوزاتها من على موبايله، واشتراكه بيبقى من اشتراكك.')}}
+  else if(act==='capdel'){saveCaptain(Number(a.dataset.id),'',a)}
+  else if(act==='admrole'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admRoleOpen(a.dataset.id)}
+  else if(act==='admroleset'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admSetRole(a.dataset.id,a.dataset.r)}
   else if(act==='roleset'){$('#ovl').hidden=true;mtab='over';if(uid())setRole(a.dataset.r)}
   else if(act==='firstrole'){$('#ovl').hidden=true;if(a.dataset.r!=='angler'&&uid())setRole(a.dataset.r)}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
@@ -3062,6 +3193,7 @@ document.addEventListener('click',e=>{
   else if(act==='admvoice'){if(isAdmin()&&/^[0-9a-f-]{36}\/[\w.-]{5,60}$/.test(a.dataset.p))admVoice(a.dataset.p,a)}
   else if(act==='sayhome'){if(labs()){const d=fromIso(sel),sc=score(d),w=weather(d);say(gDate(d)+'. مؤشر الصيد '+sc.val+' في المية. '+(sc.prelim?'لسه مفيش توقعات جو لليوم ده.':sWord(sc.val)+'. الرياح في النهار حوالي '+Math.round((w.wind[1]+w.wind[2]+w.wind[3]+w.wind[4]+w.wind[5])/5)+' عقدة، والموج '+w.wave[2].toFixed(1)+' متر.'))}}
   else if(act==='admpartner'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admPartner(a.dataset.id,a.dataset.on==='1',a)}
+  else if(act==='lang'){if(labs()){lang=lang==='en'?'ar':'en';lsSet('fishbook-lang',lang);closeSheet();render()}}
   else if(act==='labs'){if(isAdmin()){labsFlag=!labsFlag;lsSet('fishbook-labs',labsFlag?'1':'0');openAcct();render()}}
   else if(act==='plans'){closeSheet();if(labs())go('plans')}
   else if(act==='labgo'){if(labs())go(a.dataset.v)}
@@ -3109,7 +3241,7 @@ document.addEventListener('click',e=>{
   else if(act==='dellog'){const id=Number(a.dataset.id),drop=()=>{logs=logs.filter(e=>e.id!==id);delete shots[id];saveLogs();render()};
     if(logSrv){a.disabled=true;sbFetch('/rest/v1/catches?id=eq.'+id,{method:'DELETE'}).then(drop).catch(()=>{a.disabled=false})}else drop()}
   else if(act==='rate')openRate(a.dataset.k);
-  else if(act==='newpost'){if(uid())openNewPost({k:a.dataset.k,pick:a.dataset.pick,vid:a.dataset.vid});else openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تنشر في المجتمع. بعد الدخول اضغط "اكتب بوست" تاني.')}
+  else if(act==='newpost'){if(uid())openNewPost({k:a.dataset.k,pick:a.dataset.pick,vid:a.dataset.vid});else openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تنشر في '+COM()+'. بعد الدخول اضغط "اكتب بوست" تاني.')}
   else if(act==='like')toggleLike(Number(a.dataset.id));
   else if(act==='cmts')toggleCm(Number(a.dataset.id),a.dataset.f==='1');
   else if(act==='cmlogin')openAuth('ادخل بحسابك أو اعمل حساب جديد عشان تعلّق.');
@@ -3256,6 +3388,10 @@ document.addEventListener('submit',e=>{
       if(b.org)(ratings['o:'+b.org]=ratings['o:'+b.org]||[]).push(r);b.rated=starSel}
     closeSheet();render();
   }else if(e.target.id==='boatForm'){submitBoat(e.target);
+  }else if(e.target.id==='capForm'){
+    const v=$('#capC').value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.replace(/\D/g,'').length<10){$('#capErr').textContent='اكتب رقم موبايل صحيح أو إيميل.';return}
+    saveCaptain(Number(e.target.dataset.id),v,e.target.querySelector('button[type="submit"]'));
   }else if(e.target.id==='blockForm'){submitBlock(e.target);
   }else if(e.target.id==='addBoat'){
     const name=$('#bbName').value.trim(),cap=Number($('#bbCap').value);
