@@ -2354,8 +2354,8 @@ function partnerWelcome(force){
 /* ---------- رسالة الترحيب للمشترك الجديد (وضع التجربة بس لحد ما تتنزّل) ----------
    مكتوبة، وبتتقري بصوت مصري متسجّل (audio/welcome-*.mp3) لوحدها أول ما تفتح، ومعاها زرار "اسمعها من الأول" و"وقّف الصوت". بتتغيّر حسب نوع الحساب (صياد، منظم، صاحب مركب، رئيس مركب)،
    وحسب الباقة لما الباقات تنزل. بتظهر مرة واحدة لكل حساب على الجهاز، وتتفتح تاني من نافذة الحساب.
-   WEL_LIVE=true يخلّيها تظهر لكل مشترك جديد (حسابه اتعمل من أقل من 3 أيام). */
-const WEL_LIVE=false;
+   WEL_LIVE=true: بتظهر لكل المشتركين (القدام والجداد) مرة واحدة. نزلت للكل يوم 23 نوفمبر 2026. */
+const WEL_LIVE=true;
 const WEL={
   angler:{t:'إزاي تستفيد من فيش بوك كصياد',p:[
     'الرئيسية: حالة الجو والرياح والموج والمد والجزر، وأحسن أيام الصيد لـ15 يوم قدام',
@@ -2415,8 +2415,7 @@ function welPlay(){
 function welcomeMsg(force){
   if(!uid()||!me)return;const k='fishbook-wel-'+uid();
   if(!force){if(lsGet(k,'')==='1'||!$('#ovl').hidden)return;
-    const fresh=me.created_at&&(Date.now()-new Date(me.created_at).getTime())<3*864e5;
-    if(!labs()&&!(WEL_LIVE&&fresh))return}
+    if(!labs()&&!WEL_LIVE)return}
   lsSet(k,'1');
   const R=roleKey(me.role),w=WEL[R],nm=String(me.name||'').trim().split(/\s+/)[0],pl=welPlan(R);
   $('#sheet').innerHTML=`<h2>أهلًا بيك${nm?' يا <span translate="no">'+esc(nm)+'</span>':''} في فيش بوك</h2><span class="muted">تطبيق الصيد في الغردقة والبحر الأحمر. دي أهم حاجات تقدر تعملها:</span>
@@ -3185,7 +3184,7 @@ function openAcct(){
   $('#sheet').innerHTML=`<div style="display:flex;align-items:center;gap:14px">${avatar(uid(),me&&me.name,'lg',me&&me.avatar)}<div style="min-width:0"><h2>${esc(nm)}</h2><div class="muted" dir="ltr" style="text-align:right;overflow-wrap:anywhere">${esc(ses.user.email)}</div>
       <div style="margin-top:6px"><span class="chip">داخل بحسابك</span> <span class="chip">${ROLE_NAME[me&&me.role]||'صياد'}</span>${isAdmin()?' <span class="chip">إدارة</span>':''}${isPartner()?' '+PARTNER:''}</div></div></div>
     ${partnerTab()?'<button class="q" data-act="acctgo" data-v="partner">مهام الشريك المؤسس</button>':''}
-    ${labs()?'<button class="q" data-act="welcome">رسالة الترحيب: إزاي تستفيد من التطبيق</button>':''}
+    ${labs()||WEL_LIVE?'<button class="q" data-act="welcome">رسالة الترحيب: إزاي تستفيد من التطبيق</button>':''}
     <button class="q" data-act="myav">صورة الحساب</button>
     <button class="q" data-act="roleopen">نوع الحساب: ${ROLE_NAME[me&&me.role]||'صياد'} (تغيير)</button>
     ${isAdmin()?'<button class="q" data-act="acctgo" data-v="adm">لوحة المالك: المشتركين وأرقام التطبيق</button>':''}
@@ -3269,7 +3268,7 @@ document.addEventListener('click',e=>{
   else if(act==='admrole'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admRoleOpen(a.dataset.id)}
   else if(act==='admroleset'){if(isAdmin()&&/^[0-9a-f-]{36}$/.test(a.dataset.id))admSetRole(a.dataset.id,a.dataset.r)}
   else if(act==='roleset'){$('#ovl').hidden=true;mtab='over';if(uid())setRole(a.dataset.r)}
-  else if(act==='firstrole'){$('#ovl').hidden=true;if(a.dataset.r!=='angler'&&uid())setRole(a.dataset.r)}
+  else if(act==='firstrole'){$('#ovl').hidden=true;const w=()=>setTimeout(()=>welcomeMsg(false),500);if(a.dataset.r!=='angler'&&uid())setRole(a.dataset.r).then(w);else w()}
   else if(act==='authmode'){authMode=a.dataset.m;authMsg='';if(sheetAuth)$('#sheet').innerHTML=authCard();else render()}
   else if(act==='signout'){closeSheet();signOut()}
   else if(act==='acct')openAcct();
